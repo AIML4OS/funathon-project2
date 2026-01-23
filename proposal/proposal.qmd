@@ -1,0 +1,31 @@
+---
+title: "proposal"
+---
+
+## Data
+
+- One choice is to use our data open data from the registry.
+- Otherwise, we will generate synthetic data in English using `llm.lab` ("generate me plausible codes for code XX ") and sample using real label distribution from our data.
+
+Nice task for Matéo Morin (intern) that arrives in February and will be working on synthetic data.
+The generation process will not be part of the subject but will be disclosed for interested readers.
+
+## Goal
+
+- Understand how to train and optimize a `torchTextClassifiers` classifier with overview of different features: custom tokenizer, explainability (a supervised learning approach):
+  - start from data processing/splitting
+  - model training and (small) grid search
+  - log and promote a wrapper on MLFlow
+  - "pour aller plus loin..." -> à réfléchir
+- Understand a simple RAG system (a few-short learning approach)
+  - embed a text
+  - analyse the retrieval
+  - prompt engineering
+
+One notebook for each - independent but that should be done "sequentially".
+
+# Tools
+
+- TTC package for supervised text classification (based on PyTorch and Lightning - deep learning frameworks)
+- llm.lab API for RAG, as well as some `qdrant` for vectorial database
+- Python
