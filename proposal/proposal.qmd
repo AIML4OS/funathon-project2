@@ -14,17 +14,20 @@ The generation process would not be part of the subject but will be disclosed fo
 
 ## Goal
 
-- Task 1: Understand how to train and optimize a `torchTextClassifiers` classifier with overview of different features: custom tokenizer, explainability (a supervised learning approach):
+- Task 1: Understand how to train and optimize a `torchTextClassifiers` classifier with overview of different features: custom tokenizer, explainability (**a supervised learning approach**):
   - Step 1:  from data preprocessing/splitting
-  - Step 2: model training and (small) grid search
+  - Step 2: show how to choose right hyperparameters via grid search - we release the weights to avoid retraining
   - Step 3: log and promote a wrapper on MLFlow
   - Step 4: deploy a model using an API
-- Task 2: Understand a simple RAG system (a few-short learning approach)
-  - embed a text
-  - analyse the retrieval
-  - prompt engineering
+  - no GPU needed, unless for advanced users that want to train themselves the model (request needed) 
 
-One notebook for each - independent but that should be done "sequentially".
+- Task 2: Understand a simple RAG system by building it, step-by-step (**a few-short learning approach**)
+  - Step 1: embed a text (how and why)
+  - Step 2: analyse the retrieval
+  - Step 3: prompt engineering
+  - some batched calls to llm.lab will be involved
+
+One notebook for each - independent but that should be done "sequentially". Utils functions will be imported from _*.py_ files.
 
 # Tools
 
