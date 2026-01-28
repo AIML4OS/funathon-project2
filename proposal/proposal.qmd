@@ -21,7 +21,7 @@ The generation process would not be part of the subject but will be disclosed fo
   - Step 4: deploy a model using an API
   - no GPU needed, unless for advanced users that want to train themselves the model (request needed) 
 
-- Task 2: Understand a simple RAG system by building it, step-by-step (**a few-short learning approach**)
+- Task 2: Understand a simple RAG system by building it, step-by-step (**a few-shot learning approach**)
   - Step 1: embed a text (how and why)
   - Step 2: analyse the retrieval
   - Step 3: prompt engineering
