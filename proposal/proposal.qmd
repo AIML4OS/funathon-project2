@@ -17,8 +17,7 @@ The generation process would not be part of the subject but will be disclosed fo
 - Task 1: Understand how to train and optimize a `torchTextClassifiers` classifier with overview of different features: custom tokenizer, explainability (**a supervised learning approach**):
   - Step 1:  from data preprocessing/splitting
   - Step 2: show how to choose right hyperparameters via grid search - we release the weights to avoid retraining
-  - Step 3: log and promote a wrapper on MLFlow
-  - Step 4: deploy a model using an API
+  - Step 3: log and promote a wrapper on MLFlow - how and why use MLFlow ?
   - no GPU needed, unless for advanced users that want to train themselves the model (request needed) 
 
 - Task 2: Understand a simple RAG system by building it, step-by-step (**a few-shot learning approach**)
