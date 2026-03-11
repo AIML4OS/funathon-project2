@@ -1,0 +1,58 @@
+[
+  {
+    "objectID": "proposal/proposal.html",
+    "href": "proposal/proposal.html",
+    "title": "proposal",
+    "section": "",
+    "text": "Two possibilities:\n\nUse our open data from the registry.\nGenerate synthetic data in English using llm.lab (“generate me plausible codes for code XX”) and sample using real label distribution from our data.\n\nNice task for Matéo Morin (intern) who arrives in February and will be working on synthetic data. The generation process would not be part of the subject but will be disclosed for interested readers."
+  },
+  {
+    "objectID": "proposal/proposal.html#data",
+    "href": "proposal/proposal.html#data",
+    "title": "proposal",
+    "section": "",
+    "text": "Two possibilities:\n\nUse our open data from the registry.\nGenerate synthetic data in English using llm.lab (“generate me plausible codes for code XX”) and sample using real label distribution from our data.\n\nNice task for Matéo Morin (intern) who arrives in February and will be working on synthetic data. The generation process would not be part of the subject but will be disclosed for interested readers."
+  },
+  {
+    "objectID": "proposal/proposal.html#goal",
+    "href": "proposal/proposal.html#goal",
+    "title": "proposal",
+    "section": "Goal",
+    "text": "Goal\n\nTask 1: Understand how to train and optimize a torchTextClassifiers classifier with overview of different features: custom tokenizer, explainability (a supervised learning approach):\n\nStep 1: from data preprocessing/splitting\nStep 2: show how to choose right hyperparameters via grid search - we release the weights to avoid retraining\nStep 3: log and promote a wrapper on MLFlow - how and why use MLFlow ?\nno GPU needed, unless for advanced users that want to train themselves the model (request needed)\n\nTask 2: Understand a simple RAG system by building it, step-by-step (a few-shot learning approach)\n\nStep 1: embed a text (how and why)\nStep 2: analyse the retrieval\nStep 3: prompt engineering\nsome batched calls to llm.lab will be involved\n\n\nOne notebook for each - independent but that should be done “sequentially”. Utils functions will be imported from _*.py_ files."
+  },
+  {
+    "objectID": "2-rag.html",
+    "href": "2-rag.html",
+    "title": "RAG approach",
+    "section": "",
+    "text": "To complete\n\n\n\n\n\n\nNoteAttention\n\n\n\nTo complete\n\n\n\n\n\n\n\n\nTip Exercice 1: To complete\n\n\n\n\n\n\nTo complete.\n\n\n\nCliquer pour voir la réponse\nprint(\"Hello\")\n\n\nHello\n\n\n\nTo complete.\n\n\n\nCliquer pour voir la réponse\nprint(\"Hello\")\n\n\nHello\n\n\n\nTo complete.\n\n\n\nClue here\n\nTo complete."
+  },
+  {
+    "objectID": "1-ttc.html",
+    "href": "1-ttc.html",
+    "title": "Supervised approach using TorchTextClassifiers",
+    "section": "",
+    "text": "To complete\n\n\n\n\n\n\nNoteAttention\n\n\n\nTo complete\n\n\n\n\n\n\n\n\nTip Exercice 1: To complete\n\n\n\n\n\n\nTo complete.\n\n\n\nCliquer pour voir la réponse\nprint(\"Hello\")\n\n\nHello\n\n\n\nTo complete.\n\n\n\nCliquer pour voir la réponse\nprint(\"Hello\")\n\n\nHello\n\n\n\nTo complete.\n\n\n\nClue here\n\nTo complete."
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Project 2: Automatic coding for NACE classification",
+    "section": "",
+    "text": "Technical level\nTasks\n\n\n\n\nBeginner\nTO COMPLETE.\n\n\nIntermediate\nTO COMPLETE.\n\n\nExpert\nTO COMPLETE."
+  },
+  {
+    "objectID": "index.html#clone-the-project-with-git",
+    "href": "index.html#clone-the-project-with-git",
+    "title": "Project 2: Automatic coding for NACE classification",
+    "section": "2.1 Clone the project with Git ",
+    "text": "2.1 Clone the project with Git \n\n\n\n\n\n\nNoteAttention\n\n\n\nTo get started with the project, begin by opening a Vscode-python service. To avoid problems later, it is imperative to modify two elements of the service configuration:\n\nIn the Networking tab of the configuration, check the box “Enable a custom service port”;\nIn the Kubernetes tab of the configuration, change the role to admin.\n\n\n\nCreate a VScode service on SSP Cloud. In the service, open a terminal by clicking on , then Terminal &gt; New Terminal. Clone the project repository with:\ngit clone https://github.com/AIML4OS/funathon-project2.git\nThe project structure is as follows:\n\nThe .qmd files and the _quarto.yaml file are necessary to build the website ;\nThe file pyproject.toml describes the dependencies of the project ;\nThe solutions are available in the solutions folder;\nTO BE COMPLETED DEPENDING ON THE PROJECT (Dockerfile, kubernetes…)/"
+  },
+  {
+    "objectID": "index.html#installation-of-dependencies",
+    "href": "index.html#installation-of-dependencies",
+    "title": "Project 2: Automatic coding for NACE classification",
+    "section": "2.2 Installation of dependencies",
+    "text": "2.2 Installation of dependencies\nInstall the project dependencies by running the following command in the terminal:\nuv sync\n\n\n\n\n\n\nNoteAttention\n\n\n\nFor all operations performed from the terminal, it is important that you are located at the root of the Git repository. You can check which folder you are in by looking at the terminal prompt: it should end with funathon2024_sujet2. If this is not the case, change your location with cd."
+  }
+]
