@@ -1,0 +1,10 @@
+[project]
+name = "funathon-project2"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "jupyter-cache>=1.0.1",
+    "quarto>=0.1.0",
+]

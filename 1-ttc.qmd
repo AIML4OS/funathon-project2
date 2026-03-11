@@ -1,0 +1,51 @@
+---
+lang: en-EN
+title: Supervised approach using TorchTextClassifiers
+
+format:
+  html:
+    number-sections: true
+---
+To complete
+
+::: {.callout-note appearance="simple"}
+
+## Attention
+
+To complete
+
+:::
+
+::: {.callout-tip collapse="false" icon=false}
+## `<i class="bi bi-book"></i>`{=html} Exercice 1: To complete
+
+1. To complete.
+
+```{python}
+#| code-fold: true
+#| code-summary: Cliquer pour voir la réponse
+#| code-overflow: scroll
+
+print("Hello")
+```
+
+2. To complete.
+
+```{python}
+#| code-fold: true
+#| code-summary: Cliquer pour voir la réponse
+#| code-overflow: scroll
+
+print("Hello")
+```
+
+3. To complete.
+
+<details>
+<summary>Clue here</summary>
+To complete.
+</details>
+
+:::
+
+
