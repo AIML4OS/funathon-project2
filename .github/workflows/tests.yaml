@@ -1,10 +1,12 @@
-name: Publish site
+name: Run tests
 
 on:
+  pull_request:
+    branches:
+      - "main"
   push:
     branches:
       - "main"
-  workflow_dispatch:
 
 jobs:
   publish-site:
