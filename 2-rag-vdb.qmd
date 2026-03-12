@@ -1,6 +1,6 @@
 ---
 lang: en-EN
-title: RAG approach
+title: RAG approach - Create a vectorial database
 
 format:
   html:
