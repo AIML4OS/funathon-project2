@@ -26,3 +26,10 @@ client_qdrant = QdrantClient(
     port=os.environ["QDRANT_API_PORT"]
 )
 # %%
+
+collections = client_qdrant.get_collections()
+
+
+for collection in collections.collections:
+    print(collection.name)
+# %%
