@@ -109,7 +109,11 @@ For all operations performed from the terminal, it is important that you are loc
 import duckdb
 con = duckdb.connect(database=":memory:")
 
-query_definition = f"SELECT * FROM read_parquet('s3://projet-formation/diffusion/funathon/2026/project2/generation_None_temp08.parquet')"
+con.execute("INSTALL httpfs;")
+con.execute("LOAD httpfs;")
+
+# query_definition = f"SELECT * FROM read_parquet('s3://projet-formation/diffusion/funathon/2026/project2/generation_None_temp08.parquet')"
+query_definition = f"SELECT * FROM read_parquet('https://minio.lab.sspcloud.fr/projet-formation/diffusion/funathon/2026/project2/generation_None_temp08.parquet')"
 annotations = con.sql(query_definition).to_df()
 annotations.head()
 ```
