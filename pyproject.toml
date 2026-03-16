@@ -14,5 +14,7 @@ dependencies = [
     "qdrant-client>=1.17.0",
     "quarto>=0.1.0",
     "s3fs>=2026.2.0",
+    "tokenizers>=0.22.2",
     "torchtextclassifiers>=1.0.4",
+    "transformers>=5.3.0",
 ]
