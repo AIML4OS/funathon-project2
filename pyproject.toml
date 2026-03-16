@@ -10,6 +10,9 @@ dependencies = [
     "jupyter-cache>=1.0.1",
     "numpy>=2.4.3",
     "pandas>=3.0.1",
+    "polars>=1.39.0",
     "qdrant-client>=1.17.0",
     "quarto>=0.1.0",
+    "s3fs>=2026.2.0",
+    "torchtextclassifiers>=1.0.4",
 ]
