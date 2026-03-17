@@ -1,7 +1,10 @@
 # %%
+import uuid
+
+# %%
 
 # -----------------------
-#       Connexion
+#       Connexions
 # -----------------------
 
 # Create Duckdb connection
@@ -9,12 +12,6 @@ import duckdb
 con = duckdb.connect(database=":memory:")
 con.execute("INSTALL httpfs;")
 con.execute("LOAD httpfs;")
-
-# Get data
-path_data = "https://minio.lab.sspcloud.fr/projet-formation/diffusion/funathon/2026/project2/generation_None_temp08.parquet"
-query_definition = f"SELECT * FROM read_parquet('{path_data}')"
-annotations = con.sql(query_definition).to_df()
-annotations.head()
 
 
 # %%
@@ -29,6 +26,8 @@ client_qdrant = QdrantClient(
     api_key=os.environ["QDRANT_API_KEY"],
     port=os.environ["QDRANT_API_PORT"]
 )
+
+
 # %%
 
 collections = client_qdrant.get_collections()
@@ -39,26 +38,42 @@ for collection in collections.collections:
 
 # %%
 
+# llm.lab client
+from openai import OpenAI
+
+client_llmlab = OpenAI(
+    base_url=os.environ["LLMLAB_URL"],
+    api_key=os.environ["LLMLAB_API_KEY"],
+)
+
+models = client_llmlab.models.list()
+
+# Afficher la liste des modèles
+for model in models.data:
+    print(f"ID: {model.id}")
+
+# %%
+
+# Embedding model parameters
+emb_dim = 4096
+emb_model = "qwen3-embedding:8b"
+
+# %%
+
+
+# ----------------------
+#      Get NACE 2.1
+# ----------------------
+
 path_nace = "../NACE_Rev2.1_Structure_Explanatory_Notes_EN.tsv"
 query_definition = f"SELECT * FROM read_csv('{path_nace}')"
 nace_df = con.sql(query_definition).to_df()
 nace_df.head()
 
 # %%
-nace.shape
-# %%
-nace.columns
-
-nace["CODE"].sample(10)
-
-# %%
-import pandas as pd
-nace_df.loc[pd.col("CODE") == "U"]
-
-# %%
-pd.set_option('display.max_colwidth', None)
-nace.loc[~pd.col("Implementation_rule").isna()].shape
-
+nace_df_correct = nace_df.fillna("")
+nace = nace_df_correct.to_dict(orient="records")
+nace
 
 # %%
 
@@ -127,7 +142,7 @@ class naceDocument:
             raise ValueError(f"Invalid level {self.level} for code {self.code}")
 
         # Code consistency check
-        if self.parent_code and self.level > 1:
+        if (self.parent_code) and (self.level > 2):
             if not self.code.startswith(self.parent_code[: len(self.parent_code)]):
                 # Not strict but useful warning
                 print(f"[Warning] Code {self.code} not aligned with parent {self.parent_code}")
@@ -187,7 +202,7 @@ class naceDocument:
         """
 
         return {
-            "id": self.code,
+            "id": self.code.replace(".", "00000"),
             "payload": {
                 "code": self.code,
                 "heading": self.heading,
@@ -199,23 +214,15 @@ class naceDocument:
 
 
 
-# %%
-
-## Usage
-
-nace_df = nace_df.fillna("")
-nace = nace_df.to_dict(orient="records")
-
-row = nace[10]
-row
 
 # %%
-nace[0]
 
+# --------------------------------------------
+#      Get structured text for each code
+# --------------------------------------------
 
-
-# %%
 payloads = []
+
 for code_dict in nace:
 
     doc = naceDocument(code_dict)
@@ -230,8 +237,74 @@ for code_dict in nace:
         doc.to_qdrant_payload(text)
     ) 
 
-# %%
 
-type(nace)
 # %%
 print(payloads[12]["payload"]["text"])
+
+
+# %%
+
+from qdrant_client.models import Distance, VectorParams, PointStruct
+
+qdrant_collection_name = "collection_test"
+client_qdrant.recreate_collection(
+    collection_name=qdrant_collection_name,
+    vectors_config=VectorParams(
+        size=emb_dim,
+        distance=Distance.COSINE
+    )
+)
+# %%
+
+# Get embeddings :
+
+embeddings = []
+
+for i, payload in enumerate(payloads):
+    try:
+        response = client_llmlab.embeddings.create(
+            model=emb_model,
+            input=payload["payload"]["text"]
+        )
+        embeddings.append(response.data[0].embedding)
+        if (i + 1) % 10 == 0:
+            print(f"Processed {i + 1}/{len(payloads)} embeddings")
+    
+    except Exception as e:
+        print(f"Failed to generate embedding for document {i}: {str(e)}")
+        continue
+# %%
+
+# Create structured points : 
+
+points = []
+for i, (payload, embedding) in enumerate(zip(payloads, embeddings)):
+    points.append(
+        PointStruct(
+            id=str(uuid.uuid4()),
+            vector=embedding,
+            payload={
+                "text": payload["payload"]["text"],
+                **payload["payload"]
+            }
+        )
+    )
+# %%
+points[100]
+
+# %%
+upload_batch_size = 10
+
+for i in range(0, len(points), upload_batch_size):
+    batch = points[i:i + upload_batch_size]
+    try:
+        client_qdrant.upsert(
+            collection_name=qdrant_collection_name,
+            points=batch
+        )
+        print(f"Uploaded batch {i//upload_batch_size + 1}/{(len(points)-1)//upload_batch_size + 1}")
+    except Exception as e:
+        print(f"Failed to upload batch {i//upload_batch_size + 1}: {str(e)}")
+        continue
+
+# %%

@@ -100,3 +100,11 @@ For all operations performed from the terminal, it is important that you are loc
 
 :::
 
+# TODO:
+
+- introduce NACE2.1 classification 
+  - Info [here](https://ec.europa.eu/eurostat/fr/web/products-manuals-and-guidelines/w/ks-gq-24-007)
+  - download [url](https://showvoc.op.europa.eu/#/datasets/ESTAT_Statistical_Classification_of_Economic_Activities_in_the_European_Community_Rev._2.1._%28NACE_2.1%29/downloads)
+
+
+
