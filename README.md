@@ -12,4 +12,7 @@ You can use this template to make it easier :
 QDRANT_URL=https://YOURNAMESPACE-qdrant.user.lab.sspcloud.fr/
 QDRANT_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxx
 QDRANT_API_PORT=443
+LLMLAB_API_KEY=xxxxxxxxxxxxxxxxxxxxxx
+LLMLAB_URL=https://llm.lab.sspcloud.fr/api
+
 ```

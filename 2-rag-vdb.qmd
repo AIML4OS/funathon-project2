@@ -1,12 +1,16 @@
 ---
 lang: en-EN
-title: RAG approach
+title: RAG approach - Create a vectorial database
 
 format:
   html:
     number-sections: true
 ---
 To complete
+
+
+
+
 
 ::: {.callout-note appearance="simple"}
 

@@ -1,0 +1,8 @@
+---
+lang: en-EN
+title: RAG approach - Introduction
+
+format:
+  html:
+    number-sections: true
+---
