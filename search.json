@@ -21,11 +21,18 @@
     "text": "Goal\n\nTask 1: Understand how to train and optimize a torchTextClassifiers classifier with overview of different features: custom tokenizer, explainability (a supervised learning approach):\n\nStep 1: from data preprocessing/splitting\nStep 2: show how to choose right hyperparameters via grid search - we release the weights to avoid retraining\nStep 3: log and promote a wrapper on MLFlow - how and why use MLFlow ?\nno GPU needed, unless for advanced users that want to train themselves the model (request needed)\n\nTask 2: Understand a simple RAG system by building it, step-by-step (a few-shot learning approach)\n\nStep 1: embed a text (how and why)\nStep 2: analyse the retrieval\nStep 3: prompt engineering\nsome batched calls to llm.lab will be involved\n\n\nOne notebook for each - independent but that should be done “sequentially”. Utils functions will be imported from _*.py_ files."
   },
   {
-    "objectID": "2-rag.html",
-    "href": "2-rag.html",
-    "title": "RAG approach",
+    "objectID": "2-rag-vdb.html",
+    "href": "2-rag-vdb.html",
+    "title": "RAG approach - Create a vectorial database",
     "section": "",
     "text": "To complete\n\n\n\n\n\n\nNoteAttention\n\n\n\nTo complete\n\n\n\n\n\n\n\n\nTip Exercice 1: To complete\n\n\n\n\n\n\nTo complete.\n\n\n\nCliquer pour voir la réponse\nprint(\"Hello\")\n\n\nHello\n\n\n\nTo complete.\n\n\n\nCliquer pour voir la réponse\nprint(\"Hello\")\n\n\nHello\n\n\n\nTo complete.\n\n\n\nClue here\n\nTo complete."
+  },
+  {
+    "objectID": "2-rag-generation.html",
+    "href": "2-rag-generation.html",
+    "title": "RAG approach - Generate predictions",
+    "section": "",
+    "text": "To complete\n\n1 Get labelled data\n\nimport duckdb\ncon = duckdb.connect(database=\":memory:\")\n\ncon.execute(\"INSTALL httpfs;\")\ncon.execute(\"LOAD httpfs;\")\n\n# query_definition = f\"SELECT * FROM read_parquet('s3://projet-formation/diffusion/funathon/2026/project2/generation_None_temp08.parquet')\"\nquery_definition = f\"SELECT * FROM read_parquet('https://minio.lab.sspcloud.fr/projet-formation/diffusion/funathon/2026/project2/generation_None_temp08.parquet')\"\nannotations = con.sql(query_definition).to_df()\nannotations.head()\n\n\n\n\n\n\n\n\ncode\nname\nlabel\n\n\n\n\n0\n01.11\nGrowing of cereals, other than rice, leguminou...\nPulses cultivation for market\n\n\n1\n01.11\nGrowing of cereals, other than rice, leguminou...\nLegume crop production activities\n\n\n2\n01.11\nGrowing of cereals, other than rice, leguminou...\nBroad bean farming operations\n\n\n3\n01.11\nGrowing of cereals, other than rice, leguminou...\nChickpea harvesting and processing\n\n\n4\n01.11\nGrowing of cereals, other than rice, leguminou...\nProduction of dried beans and peas\n\n\n\n\n\n\n\n\nimport os\nfrom dotenv import load_dotenv\nfrom qdrant_client import QdrantClient\n\nload_dotenv()\n\nclient_qdrant = QdrantClient(\n    url=os.environ[\"QDRANT_URL\"],\n    api_key=os.environ[\"QDRANT_API_KEY\"],\n    port=os.environ[\"QDRANT_API_PORT\"]\n)\n\ncollections = client_qdrant.get_collections()\n\n\n\n\n\n\n\nNoteAttention\n\n\n\nTo complete\n\n\n\n\n\n\n\n\nTip Exercice 1: To complete\n\n\n\n\n\n\nTo complete.\n\n\n\nCliquer pour voir la réponse\nprint(\"Hello\")\n\n\nHello\n\n\n\nTo complete.\n\n\n\nCliquer pour voir la réponse\nprint(\"Hello\")\n\n\nHello\n\n\n\nTo complete.\n\n\n\nClue here\n\nTo complete."
   },
   {
     "objectID": "1-ttc.html",

@@ -2,18 +2,26 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://AIML4OS.github.io/funathon-project2/proposal/proposal.html</loc>
-    <lastmod>2026-03-12T15:03:57.873Z</lastmod>
+    <lastmod>2026-03-17T16:43:29.718Z</lastmod>
   </url>
   <url>
-    <loc>https://AIML4OS.github.io/funathon-project2/2-rag.html</loc>
-    <lastmod>2026-03-12T15:03:57.862Z</lastmod>
+    <loc>https://AIML4OS.github.io/funathon-project2/2-rag-vdb.html</loc>
+    <lastmod>2026-03-17T16:43:29.704Z</lastmod>
+  </url>
+  <url>
+    <loc>https://AIML4OS.github.io/funathon-project2/2-rag-generation.html</loc>
+    <lastmod>2026-03-17T16:43:29.704Z</lastmod>
   </url>
   <url>
     <loc>https://AIML4OS.github.io/funathon-project2/1-ttc.html</loc>
-    <lastmod>2026-03-12T15:03:57.862Z</lastmod>
+    <lastmod>2026-03-17T16:43:29.704Z</lastmod>
+  </url>
+  <url>
+    <loc>https://AIML4OS.github.io/funathon-project2/2-rag-intro.html</loc>
+    <lastmod>2026-03-17T16:43:29.704Z</lastmod>
   </url>
   <url>
     <loc>https://AIML4OS.github.io/funathon-project2/index.html</loc>
-    <lastmod>2026-03-12T15:03:57.872Z</lastmod>
+    <lastmod>2026-03-17T16:43:29.717Z</lastmod>
   </url>
 </urlset>
