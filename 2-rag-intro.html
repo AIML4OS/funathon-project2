@@ -20,6 +20,41 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
@@ -41,6 +76,9 @@ ul.task-list li input[type="checkbox"] {
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="site_libs/bootstrap/bootstrap-4804d2be80772aed24f3877bc22ec667.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
+<link href="site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
+<link href="site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -71,7 +109,12 @@ ul.task-list li input[type="checkbox"] {
 
 
 <meta property="og:title" content="RAG approach - Introduction – AIML4OS Funathon - Project 2">
+<meta property="og:description" content="Automatic classification">
+<meta property="og:image" content="https://AIML4OS.github.io/funathon-project2/img/rag_wf.png">
 <meta property="og:site_name" content="AIML4OS Funathon - Project 2">
+<meta property="og:image:alt" content="Rag worklow scheme">
+<meta property="og:image:height" content="2037">
+<meta property="og:image:width" content="2961">
 </head>
 
 <body class="nav-fixed quarto-light">
@@ -124,8 +167,26 @@ ul.task-list li input[type="checkbox"] {
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
-        
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#what-is-a-rag-why-using-a-rag" id="toc-what-is-a-rag-why-using-a-rag" class="nav-link active" data-scroll-target="#what-is-a-rag-why-using-a-rag"><span class="header-section-number">1</span> What is a RAG ? Why using a RAG ?</a></li>
+  <li><a href="#what-are-we-about-to-learn" id="toc-what-are-we-about-to-learn" class="nav-link" data-scroll-target="#what-are-we-about-to-learn"><span class="header-section-number">2</span> What are we about to learn ?</a></li>
+  <li><a href="#technical-requirements-for-this-tutorial" id="toc-technical-requirements-for-this-tutorial" class="nav-link" data-scroll-target="#technical-requirements-for-this-tutorial"><span class="header-section-number">3</span> Technical requirements for this tutorial</a>
+  <ul class="collapse">
+  <li><a href="#environment-variables-and-secrets" id="toc-environment-variables-and-secrets" class="nav-link" data-scroll-target="#environment-variables-and-secrets"><span class="header-section-number">3.1</span> Environment variables and secrets</a></li>
+  <li><a href="#where-to-get-thoses-creds" id="toc-where-to-get-thoses-creds" class="nav-link" data-scroll-target="#where-to-get-thoses-creds"><span class="header-section-number">3.2</span> Where to get thoses creds ?</a>
+  <ul class="collapse">
+  <li><a href="#for-llm.lab" id="toc-for-llm.lab" class="nav-link" data-scroll-target="#for-llm.lab"><span class="header-section-number">3.2.1</span> For llm.lab</a></li>
+  <li><a href="#for-qdrant" id="toc-for-qdrant" class="nav-link" data-scroll-target="#for-qdrant"><span class="header-section-number">3.2.2</span> For Qdrant</a></li>
+  </ul></li>
+  <li><a href="#how-to-pass-them-as-environment-variables" id="toc-how-to-pass-them-as-environment-variables" class="nav-link" data-scroll-target="#how-to-pass-them-as-environment-variables"><span class="header-section-number">3.3</span> How to pass them as environment variables</a></li>
+  <li><a href="#attention" id="toc-attention" class="nav-link" data-scroll-target="#attention"><span class="header-section-number">3.4</span> Attention</a></li>
+  </ul></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/AIML4OS/funathon-project2/edit/main/2-rag-intro.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/AIML4OS/funathon-project2/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
@@ -149,8 +210,126 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
+<section id="what-is-a-rag-why-using-a-rag" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> What is a RAG ? Why using a RAG ?</h1>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="img/rag_wf.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="Rag worklow scheme"><img src="img/rag_wf.png" class="img-fluid figure-img" alt="Rag worklow scheme"></a></p>
+<figcaption>Rag worklow scheme</figcaption>
+</figure>
+</div>
+<p><strong>TO COMPLETE</strong></p>
+</section>
+<section id="what-are-we-about-to-learn" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> What are we about to learn ?</h1>
+<p><strong>TO COMPLETE</strong></p>
+</section>
+<section id="technical-requirements-for-this-tutorial" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Technical requirements for this tutorial</h1>
+<ul>
+<li>Connection to :
+<ul>
+<li>A Qdrant vectorial database</li>
+<li><strong>llm.lab</strong>: The SSPCloud’s LLM provider (Ollama/OpenWebUI)</li>
+</ul></li>
+</ul>
+<section id="environment-variables-and-secrets" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="environment-variables-and-secrets"><span class="header-section-number">3.1</span> Environment variables and secrets</h2>
+<p>To connect your SSPCloud VSCode service to <strong>Qdrant</strong> and <strong>llm.lab</strong>, you will need the folowing credentials.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode txt code-with-copy"><code class="sourceCode default"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>QDRANT_URL=https://YOURNAMESPACE-qdrant.user.lab.sspcloud.fr/</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>QDRANT_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxx</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>QDRANT_API_PORT=443</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>LLMLAB_API_KEY=xxxxxxxxxxxxxxxxxxxxxx</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>LLMLAB_URL=https://llm.lab.sspcloud.fr/api</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Make sure to never leak thoses credentials! They will need to be stored as an Onyxia Secret, or alternatively in a <strong>.env file</strong>. Let’s dive in with the second possibility.</p>
+</section>
+<section id="where-to-get-thoses-creds" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="where-to-get-thoses-creds"><span class="header-section-number">3.2</span> Where to get thoses creds ?</h2>
+<section id="for-llm.lab" class="level3" data-number="3.2.1">
+<h3 data-number="3.2.1" class="anchored" data-anchor-id="for-llm.lab"><span class="header-section-number">3.2.1</span> For llm.lab</h3>
+<p>Please verify you are connected to the SSPCloud and then use the following link to reach <strong>llm.lab</strong> UI : https://llm.lab.sspcloud.fr/. Now, go to your account settings (upper right - “Réglages”) / account (“Compte”) / API Keys (“Clés d’API”) =&gt; you are now ready to create your api key!</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="img/api_llmlab.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2" title="Create an API key on llm.lab"><img src="img/api_llmlab.png" class="img-fluid figure-img" alt="Create an API key on llm.lab"></a></p>
+<figcaption>Create an API key on llm.lab</figcaption>
+</figure>
+</div>
+<p>You can now fill your LLMLAB_API_KEY variable.</p>
+</section>
+<section id="for-qdrant" class="level3" data-number="3.2.2">
+<h3 data-number="3.2.2" class="anchored" data-anchor-id="for-qdrant"><span class="header-section-number">3.2.2</span> For Qdrant</h3>
+<p><strong>TO COMPLETE</strong> : Shared qdrant or 1 Qdrant per namespace ?</p>
+<ul>
+<li>Create a Qdrant service <strong>in your personal namespace</strong> as follows</li>
+</ul>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="img/qdrant_service.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3" title="Create a Qdrant service"><img src="img/qdrant_service.png" class="img-fluid figure-img" alt="Create a Qdrant service"></a></p>
+<figcaption>Create a Qdrant service</figcaption>
+</figure>
+</div>
+<ul>
+<li>Copy and save properly your Qdrant token</li>
+</ul>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="img/qdrant_token.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4" title="Get you Qdrant token"><img src="img/qdrant_token.png" class="img-fluid figure-img" alt="Get you Qdrant token"></a></p>
+<figcaption>Get you Qdrant token</figcaption>
+</figure>
+</div>
+<ul>
+<li>Launch you Qdrant service</li>
+</ul>
+</section>
+</section>
+<section id="how-to-pass-them-as-environment-variables" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="how-to-pass-them-as-environment-variables"><span class="header-section-number">3.3</span> How to pass them as environment variables</h2>
+<ul>
+<li><ol type="1">
+<li>Create an empty <strong>.env</strong> file (at your repo’s root)</li>
+</ol></li>
+<li><ol start="2" type="1">
+<li>Write your environment variables as above, and save</li>
+</ol></li>
+<li><ol start="3" type="1">
+<li>Use the folowing code to export theses variables to your environment variables</li>
+</ol></li>
+</ul>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> dotenv <span class="im">import</span> load_dotenv</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>load_dotenv()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<ul>
+<li><ol start="4" type="1">
+<li>Verify all is good:</li>
+</ol></li>
+</ul>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    QDRANT_URL <span class="op">=</span> os.environ[<span class="st">"QDRANT_URL"</span>]</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"All right with QDRANT_URL secret"</span>)</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> <span class="pp">KeyError</span>:</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">ValueError</span>(<span class="st">"QDRANT_URL environment variable not set"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>warn</p>
+</section>
+<section id="attention" class="level2 callout-" data-appearance="simple" data-number="3.4">
+<h2 data-number="3.4" class="anchored" data-anchor-id="attention"><span class="header-section-number">3.4</span> Attention</h2>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Warning
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Do not leak your secrets =&gt; Do not commit your .env file!</p>
+<p>(use your .gitignore config do deal with it)</p>
+</div>
+</div>
 
 
+</section>
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
@@ -561,7 +740,7 @@ ul.task-list li input[type="checkbox"] {
     </div>   
     <div class="nav-footer-center">
       &nbsp;
-    <div class="toc-actions"><ul><li><a href="https://github.com/AIML4OS/funathon-project2/edit/main/2-rag-intro.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/AIML4OS/funathon-project2/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div>
+    <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/AIML4OS/funathon-project2/edit/main/2-rag-intro.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/AIML4OS/funathon-project2/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">
     <li class="nav-item">
@@ -573,6 +752,38 @@ ul.task-list li input[type="checkbox"] {
     </div>
   </div>
 </footer>
+<script>var lightboxQuarto = GLightbox({"closeEffect":"zoom","descPosition":"bottom","loop":false,"openEffect":"zoom","selector":".lightbox"});
+(function() {
+  let previousOnload = window.onload;
+  window.onload = () => {
+    if (previousOnload) {
+      previousOnload();
+    }
+    lightboxQuarto.on('slide_before_load', (data) => {
+      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+      const href = trigger.getAttribute('href');
+      if (href !== null) {
+        const imgEl = window.document.querySelector(`a[href="${href}"] img`);
+        if (imgEl !== null) {
+          const srcAttr = imgEl.getAttribute("src");
+          if (srcAttr && srcAttr.startsWith("data:")) {
+            slideConfig.href = srcAttr;
+          }
+        }
+      } 
+    });
+  
+    lightboxQuarto.on('slide_after_load', (data) => {
+      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(slideNode);
+      }
+    });
+  
+  };
+  
+})();
+          </script>
 
 
 

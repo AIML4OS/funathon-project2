@@ -42,6 +42,41 @@
     "text": "To complete\n\n\n\n\n\n\nNoteAttention\n\n\n\nTo complete\n\n\n\n\n\n\n\n\nTip Exercice 1: To complete\n\n\n\n\n\n\nTo complete.\n\n\n\nCliquer pour voir la réponse\nprint(\"Hello\")\n\n\nHello\n\n\n\nTo complete.\n\n\n\nCliquer pour voir la réponse\nprint(\"Hello\")\n\n\nHello\n\n\n\nTo complete.\n\n\n\nClue here\n\nTo complete."
   },
   {
+    "objectID": "2-rag-intro.html",
+    "href": "2-rag-intro.html",
+    "title": "RAG approach - Introduction",
+    "section": "",
+    "text": "Rag worklow scheme\n\n\nTO COMPLETE"
+  },
+  {
+    "objectID": "2-rag-intro.html#environment-variables-and-secrets",
+    "href": "2-rag-intro.html#environment-variables-and-secrets",
+    "title": "RAG approach - Introduction",
+    "section": "3.1 Environment variables and secrets",
+    "text": "3.1 Environment variables and secrets\nTo connect your SSPCloud VSCode service to Qdrant and llm.lab, you will need the folowing credentials.\nQDRANT_URL=https://YOURNAMESPACE-qdrant.user.lab.sspcloud.fr/\nQDRANT_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxx\nQDRANT_API_PORT=443\nLLMLAB_API_KEY=xxxxxxxxxxxxxxxxxxxxxx\nLLMLAB_URL=https://llm.lab.sspcloud.fr/api\nMake sure to never leak thoses credentials! They will need to be stored as an Onyxia Secret, or alternatively in a .env file. Let’s dive in with the second possibility."
+  },
+  {
+    "objectID": "2-rag-intro.html#where-to-get-thoses-creds",
+    "href": "2-rag-intro.html#where-to-get-thoses-creds",
+    "title": "RAG approach - Introduction",
+    "section": "3.2 Where to get thoses creds ?",
+    "text": "3.2 Where to get thoses creds ?\n\n3.2.1 For llm.lab\nPlease verify you are connected to the SSPCloud and then use the following link to reach llm.lab UI : https://llm.lab.sspcloud.fr/. Now, go to your account settings (upper right - “Réglages”) / account (“Compte”) / API Keys (“Clés d’API”) =&gt; you are now ready to create your api key!\n\n\n\nCreate an API key on llm.lab\n\n\nYou can now fill your LLMLAB_API_KEY variable.\n\n\n3.2.2 For Qdrant\nTO COMPLETE : Shared qdrant or 1 Qdrant per namespace ?\n\nCreate a Qdrant service in your personal namespace as follows\n\n\n\n\nCreate a Qdrant service\n\n\n\nCopy and save properly your Qdrant token\n\n\n\n\nGet you Qdrant token\n\n\n\nLaunch you Qdrant service"
+  },
+  {
+    "objectID": "2-rag-intro.html#how-to-pass-them-as-environment-variables",
+    "href": "2-rag-intro.html#how-to-pass-them-as-environment-variables",
+    "title": "RAG approach - Introduction",
+    "section": "3.3 How to pass them as environment variables",
+    "text": "3.3 How to pass them as environment variables\n\n\nCreate an empty .env file (at your repo’s root)\n\n\nWrite your environment variables as above, and save\n\n\nUse the folowing code to export theses variables to your environment variables\n\n\nfrom dotenv import load_dotenv\nload_dotenv()\n\n\nVerify all is good:\n\n\nimport os\ntry:\n    QDRANT_URL = os.environ[\"QDRANT_URL\"]\n    print(f\"All right with QDRANT_URL secret\")\nexcept KeyError:\n    raise ValueError(\"QDRANT_URL environment variable not set\")\nwarn"
+  },
+  {
+    "objectID": "2-rag-intro.html#attention",
+    "href": "2-rag-intro.html#attention",
+    "title": "RAG approach - Introduction",
+    "section": "3.4 Attention",
+    "text": "3.4 Attention\n\n\n\n\n\n\nWarning\n\n\n\nDo not leak your secrets =&gt; Do not commit your .env file!\n(use your .gitignore config do deal with it)"
+  },
+  {
     "objectID": "index.html",
     "href": "index.html",
     "title": "Project 2: Automatic coding for NACE classification",
