@@ -29,27 +29,42 @@ editor_options:
   <tbody>
     <tr>
       <td><span class="level-button level-beginner">Beginner</span></td>
-      <td>TO COMPLETE.</td>
+      <td>Run the notebook start-to-finish, load the dataset, and connect to Qdrant.</td>
     </tr>
     <tr>
       <td><span class="level-button level-intermediate">Intermediate</span></td>
-      <td>TO COMPLETE.</td>
+      <td>Modify the data query, train a simple classifier, and log results with MLflow.</td>
     </tr>
     <tr>
       <td><span class="level-button level-expert">Expert</span></td>
-      <td>TO COMPLETE.</td>
+      <td>Extend the pipeline with a new embedding/model, deploy a serving endpoint, or integrate additional data sources.</td>
     </tr>
   </tbody>
 </table>
 ```
 
+# What you will learn {.unnumbered}
+
+By following this tutorial, you will learn how to:
+
+- Set up a Python environment and install dependencies for the project.
+- Download and inspect a labeled dataset for NACE classification.
+- Connect to a Qdrant vector database from Python.
+- Explore the solution scripts in the `solutions/` folder.
+- Understand how model training and logging are organized for reproducible experiments.
+
 # Introduction {.unnumbered}
 
-What is the project about? What data, what methods, what skills?
+This project demonstrates an end-to-end pipeline for automatically classifying text into NACE codes. It covers:
+
+- generating and loading labeled data,
+- preprocessing and model training,
+- logging experiments with MLflow,
+- and preparing deployment-ready artifacts.
 
 # Structure of the project
 
-This project has five steps (listed in the banner at the top of the page):
+This project has five main steps (listed in the banner at the top of the page):
 
 - data generation;
 - data preprocessing;
@@ -59,49 +74,58 @@ This project has five steps (listed in the banner at the top of the page):
 
 # Initialization of the project
 
-## Clone the project with `Git` {{< fa brands git-alt >}}
+## Fork this repository in your own GitHub
 
-::: {.callout-note appearance="simple"}
-## Attention
+On the GitHub page of the project [here](https://github.com/AIML4OS/funathon-project2), click **Fork** to create a copy in your own GitHub account.
 
-To get started with the project, begin by opening a [Vscode-python](https://datalab.sspcloud.fr/launcher/ide/vscode-python) service. To avoid problems later, it is imperative to modify two elements of the service configuration:
+Then clone your fork locally using the command below (replace `<YOUR_GITHUB_NAME>` with your username):
 
--   In the *Networking* tab of the configuration, check the box "Enable a custom service port";
--   In the *Kubernetes* tab of the configuration, change the role to `admin`.
-:::
-
-Create a VScode service on SSP Cloud. In the service, open a terminal by clicking on {{< fa brands fa-bars >}}, then `Terminal > New Terminal`. Clone the project repository with:
-
-```         
-git clone https://github.com/AIML4OS/funathon-project2.git
+```bash
+git clone https://github.com/<YOUR_GITHUB_NAME>/funathon-project2.git
+cd funathon-project2
 ```
 
-The project structure is as follows:
+## Setup the environment (quick start)
 
--   The `.qmd` files and the `_quarto.yaml` file are necessary to build the website ;
--   The file `pyproject.toml` describes the dependencies of the project ;
--   The solutions are available in the `solutions` folder;
--   TO BE COMPLETED DEPENDING ON THE PROJECT (`Dockerfile`, `kubernetes`...)/
+Run the following commands in a terminal inside the cloned repo:
 
-## Installation of dependencies
-
-Install the project dependencies by running the following command in the terminal:
-
-```         
+```bash
+# install/update dependencies
 uv sync
+
+# activate the project virtual environment
+source .venv/bin/activate
 ```
 
-::: {.callout-note appearance="simple"}
+> ✅ If you prefer to keep your shell clean, you can also prefix commands with `uv run` (e.g. `uv run python script.py`).
 
-## Attention
+### Select the Python interpreter (VS Code)
 
-For all operations performed from the terminal, it is important that you are located at the root of the Git repository. You can check which folder you are in by looking at the terminal prompt: it should end with `funathon2024_sujet2`. If this is not the case, change your location with `cd`.
+If you are using VS Code, make sure the workspace uses the virtual environment you just created:
+
+1. Open the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`).
+2. Run `>Python: Select Interpreter`.
+3. Choose **Enter interpreter path** and point to:
+
+`/home/onyxia/work/funathon-project2/.venv/bin/python3.31`
+
+## Quick start: run this notebook
+
+1. Open `index.qmd` in VS Code or Quarto.
+2. Run the first code cell (the data download cell) and wait for it to finish.
+3. Confirm you see a small table output (from `annotations.head()`).
+
+## Troubleshooting (common issues)
+
+- If `uv sync` fails, re-run it and check the error message; a missing system package or network issue is most common.
+- If the Qdrant connection fails, ensure your `.env` file contains the correct values for `QDRANT_URL`, `QDRANT_API_KEY`, and `QDRANT_API_PORT`.
+- If a terminal command fails, verify you are in the repository root (`pwd` should end with `funathon-project2`).
 
 
-:::
 
 # Get labelled data
 
+In the following cell we retrieve a small labeled dataset (text + NACE labels) from a remote parquet file using DuckDB.
 
 ```{python}
 #| label: get-data
@@ -112,15 +136,18 @@ con = duckdb.connect(database=":memory:")
 con.execute("INSTALL httpfs;")
 con.execute("LOAD httpfs;")
 
+# You can use the internal S3 endpoint if you have access (uncomment the line below):
 # query_definition = f"SELECT * FROM read_parquet('s3://projet-formation/diffusion/funathon/2026/project2/generation_None_temp08.parquet')"
+
+# Using the public HTTPS endpoint is more likely to work in typical environments:
 query_definition = f"SELECT * FROM read_parquet('https://minio.lab.sspcloud.fr/projet-formation/diffusion/funathon/2026/project2/generation_None_temp08.parquet')"
 annotations = con.sql(query_definition).to_df()
 annotations.head()
 ```
 
+It is also useful to verify the Qdrant connection before running vector indexing or retrieval steps.
 
 ```{python}
-
 #| label: qdrant-client
 
 import os
