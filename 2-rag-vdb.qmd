@@ -79,7 +79,7 @@ Find the documentation [here](https://python-client.qdrant.tech/) to dive deeper
 
 ```{python}
 #| code-fold: true
-#| code-summary: Cliquer pour voir la réponse
+#| code-summary: Click to see the answer
 #| code-overflow: scroll
 
 from qdrant_client import QdrantClient
@@ -99,10 +99,26 @@ for collection in collections.collections:
 
 :::
 
+
+## 2. Get and process NACE data
+
 Time to import our data: the official NACE2.1 definitions!
+
 The data are stored in the s3 storing system of the SSPCloud plateform (uploaded from [Eurostat](https://showvoc.op.europa.eu/#/datasets/ESTAT_Statistical_Classification_of_Economic_Activities_in_the_European_Community_Rev._2.1._%28NACE_2.1%29/downloads))
 
+
+
+::: {.callout-tip collapse="false" icon=false}
+## `<i class="bi bi-book"></i>`{=html} Exercice 2: handle NACE data
+
+0. Import NACE data (please, no dataframe: use the structure below)
+
 ```{python}
+#| code-fold: true
+#| code-summary: Click to see the answer
+#| code-overflow: scroll
+#| output: true
+
 import duckdb
 con = duckdb.connect(database=":memory:")
 
@@ -111,11 +127,16 @@ con.execute("LOAD httpfs;")
 
 path_nace = 'https://minio.lab.sspcloud.fr/projet-formation/diffusion/funathon/2026/project2/NACE_Rev2.1_Structure_Explanatory_Notes_EN.tsv'
 query_definition = f"SELECT * FROM read_csv('{path_nace}')"
-nace_df = con.sql(query_definition).to_df()
-nace_df.head()
+table = con.execute(query_definition).fetch_arrow_table()
+nace = table.to_pylist()
+nace[22]
+
 ```
 
+:::
 
+
+## 3. Embed your NACE items
 
 Fine! 
 For now, let's choose an embedding model (e.g. a large langage model able to transform a text to a _quite_ smart numerical vector).
