@@ -5,51 +5,150 @@ title: RAG approach - Create a vectorial database
 format:
   html:
     number-sections: true
+    output: false
+    warning: false
 ---
-To complete
+
+
+This first part will show you how to build a vectorial database, e.g the "augmented" knowledge aimed to guide your LLM's reponses.
+
+The simplified workflow will be as follows : 
+- 0. Create a proper working environment with all needed connections (__s3__, __qdrant__ and __llm.lab__)
+- 1. Take the NACE2.1 codes definitions (code + title, + inclusions + exclusions in plain text)
+- 2. Concatenate these pieces of information for each unique NACE (one code => 1 text)
+- 3. Embedded all theses texts (1 text => 1 vector point)
+- 4. Update the points into Qdrant (the vectorial database service)
 
 
 
+# 1 - Prepare your environment
 
-
-::: {.callout-note appearance="simple"}
-
-## Attention
-
-To complete
-
-:::
 
 ::: {.callout-tip collapse="false" icon=false}
-## `<i class="bi bi-book"></i>`{=html} Exercice 1: To complete
+## `<i class="bi bi-book"></i>`{=html} Exercice 1: Connections
 
-1. To complete.
-
-```{python}
-#| code-fold: true
-#| code-summary: Cliquer pour voir la réponse
-#| code-overflow: scroll
-
-print("Hello")
-```
-
-2. To complete.
+0. Load your secrets stored in the `.env` file into your environment.
 
 ```{python}
 #| code-fold: true
-#| code-summary: Cliquer pour voir la réponse
+#| code-summary: Click to see the answer
 #| code-overflow: scroll
 
-print("Hello")
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 ```
 
-3. To complete.
+1. Create your __llm.lab__ connection using `openai` client. Please name this client `client_llmlab`.
 
-<details>
-<summary>Clue here</summary>
-To complete.
-</details>
+You will need to use your creds `os.environ["LLMLAB_URL"]` and `os.environ["LLMLAB_API_KEY"]` (see the previous chapter).
+
+More information [here](https://github.com/openai/openai-python).
+
+2. Print all the available models (kindly made available to everyone by the SSPcloud team ❤️)
+
+You can notice the `llm.lab` plateform provides both __generation__ and __embedding__ models.
+
+TO COMPLETE: explanations about openai client
+
+```{python}
+#| code-fold: true
+#| code-summary: Click to see the answer
+#| code-overflow: scroll
+
+from openai import OpenAI
+
+client_llmlab = OpenAI(
+    base_url=os.environ["LLMLAB_URL"],
+    api_key=os.environ["LLMLAB_API_KEY"],
+)
+
+# Print models list
+models = client_llmlab.models.list()
+for model in models.data:
+    print(f"ID: {model.id}")
+
+```
+
+3. Create a connection to your Qdrant server. Please name it `client_qdrant`.
+
+Find the documentation [here](https://python-client.qdrant.tech/) to dive deeper 😉.
+
+4. Check all your existing collections (= databases). Probably not a single one for now.
+
+```{python}
+#| code-fold: true
+#| code-summary: Click to see the answer
+#| code-overflow: scroll
+
+from qdrant_client import QdrantClient
+
+client_qdrant = QdrantClient(
+    url=os.environ["QDRANT_URL"],
+    api_key=os.environ["QDRANT_API_KEY"],
+    port=os.environ["QDRANT_API_PORT"]
+)
+
+collections = client_qdrant.get_collections()
+for collection in collections.collections:
+    print(collection.name)
+
+```
+
 
 :::
+
+
+## 2. Get and process NACE data
+
+Time to import our data: the official NACE2.1 definitions!
+
+The data are stored in the s3 storing system of the SSPCloud plateform (uploaded from [Eurostat](https://showvoc.op.europa.eu/#/datasets/ESTAT_Statistical_Classification_of_Economic_Activities_in_the_European_Community_Rev._2.1._%28NACE_2.1%29/downloads))
+
+
+
+::: {.callout-tip collapse="false" icon=false}
+## `<i class="bi bi-book"></i>`{=html} Exercice 2: handle NACE data
+
+0. Import NACE data (please, no dataframe: use the structure below)
+
+```{python}
+#| code-fold: true
+#| code-summary: Click to see the answer
+#| code-overflow: scroll
+#| output: true
+
+import duckdb
+con = duckdb.connect(database=":memory:")
+
+con.execute("INSTALL httpfs;")
+con.execute("LOAD httpfs;")
+
+path_nace = 'https://minio.lab.sspcloud.fr/projet-formation/diffusion/funathon/2026/project2/NACE_Rev2.1_Structure_Explanatory_Notes_EN.tsv'
+query_definition = f"SELECT * FROM read_csv('{path_nace}')"
+table = con.execute(query_definition).fetch_arrow_table()
+nace = table.to_pylist()
+nace[22]
+
+```
+
+:::
+
+
+## 3. Embed your NACE items
+
+Fine! 
+For now, let's choose an embedding model (e.g. a large langage model able to transform a text to a _quite_ smart numerical vector).
+We will use `Qwen3-Embedding-8B`, available on HuggingFace🤗 (like all other models provided by `llm.lab`)! 
+
+For a later use, we need to know the dimension of the vectors given by our model. Here, the size is 4096 (don't trust me, check yourself on the [hf page](https://huggingface.co/Qwen/Qwen3-Embedding-8B)).
+
+
+```{python}
+# Embedding model parameters
+emb_model = "qwen3-embedding:8b"
+emb_dim = 4096
+```
 
 

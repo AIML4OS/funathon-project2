@@ -19,6 +19,8 @@ jobs:
         QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY }}
         QDRANT_URL: ${{ secrets.QDRANT_URL }}
         QDRANT_API_PORT: ${{ secrets.QDRANT_API_PORT }}
+        LLMLAB_URL: ${{ secrets.LLMLAB_URL }}
+        LLMLAB_API_KEY: ${{ secrets.LLMLAB_API_KEY }}
       
       steps:
 
