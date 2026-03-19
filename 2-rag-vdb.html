@@ -214,7 +214,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ol start="0" type="1">
 <li>Load your secrets stored in the <code>.env</code> file into your environment.</li>
 </ol>
-<div id="68aa91bf" class="cell" data-execution_count="1">
+<div id="894bc73a" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Click to see the answer</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
@@ -233,7 +233,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ol>
 <p>You can notice the <code>llm.lab</code> plateform provides both <strong>generation</strong> and <strong>embedding</strong> models.</p>
 <p>TO COMPLETE: explanations about openai client</p>
-<div id="da2409e9" class="cell" data-execution_count="2">
+<div id="84271085" class="cell" data-execution_count="2">
 <details class="code-fold">
 <summary>Click to see the answer</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> openai <span class="im">import</span> OpenAI</span>
@@ -256,7 +256,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ol start="4" type="1">
 <li>Check all your existing collections (= databases). Probably not a single one for now.</li>
 </ol>
-<div id="183f21d6" class="cell" data-execution_count="3">
+<div id="04e73000" class="cell" data-execution_count="3">
 <details class="code-fold">
 <summary>Click to see the answer</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> qdrant_client <span class="im">import</span> QdrantClient</span>
@@ -294,7 +294,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ol start="0" type="1">
 <li>Import NACE data (please, no dataframe: use the structure below)</li>
 </ol>
-<div id="f9aaf14c" class="cell" data-execution_count="4">
+<div id="6af5195d" class="cell" data-execution_count="4">
 <details class="code-fold">
 <summary>Click to see the answer</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> duckdb</span>
@@ -331,7 +331,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 data-number="1.2" class="anchored" data-anchor-id="embed-your-nace-items"><span class="header-section-number">1.2</span> 3. Embed your NACE items</h2>
 <p>Fine! For now, let’s choose an embedding model (e.g.&nbsp;a large langage model able to transform a text to a <em>quite</em> smart numerical vector). We will use <code>Qwen3-Embedding-8B</code>, available on HuggingFace🤗 (like all other models provided by <code>llm.lab</code>)!</p>
 <p>For a later use, we need to know the dimension of the vectors given by our model. Here, the size is 4096 (don’t trust me, check yourself on the <a href="https://huggingface.co/Qwen/Qwen3-Embedding-8B">hf page</a>).</p>
-<div id="325dab53" class="cell" data-execution_count="5">
+<div id="7ea55bc2" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Embedding model parameters</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>emb_model <span class="op">=</span> <span class="st">"qwen3-embedding:8b"</span></span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>emb_dim <span class="op">=</span> <span class="dv">4096</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
