@@ -160,8 +160,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
-        
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#prepare-your-environment" id="toc-prepare-your-environment" class="nav-link active" data-scroll-target="#prepare-your-environment"><span class="header-section-number">1</span> 1 - Prepare your environment</a>
+  <ul class="collapse">
+  <li><a href="#get-and-process-nace-data" id="toc-get-and-process-nace-data" class="nav-link" data-scroll-target="#get-and-process-nace-data"><span class="header-section-number">1.1</span> 2. Get and process NACE data</a></li>
+  <li><a href="#embed-your-nace-items" id="toc-embed-your-nace-items" class="nav-link" data-scroll-target="#embed-your-nace-items"><span class="header-section-number">1.2</span> 3. Embed your NACE items</a></li>
+  </ul></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/AIML4OS/funathon-project2/edit/main/2-rag-vdb.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/AIML4OS/funathon-project2/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
@@ -185,70 +195,151 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>To complete</p>
-<div class="callout callout-style-simple callout-note callout-titled">
-<div class="callout-header d-flex align-content-center">
+<p>This first part will show you how to build a vectorial database, e.g the “augmented” knowledge aimed to guide your LLM’s reponses.</p>
+<p>The simplified workflow will be as follows : - 0. Create a proper working environment with all needed connections (<strong>s3</strong>, <strong>qdrant</strong> and <strong>llm.lab</strong>) - 1. Take the NACE2.1 codes definitions (code + title, + inclusions + exclusions in plain text) - 2. Concatenate these pieces of information for each unique NACE (one code =&gt; 1 text) - 3. Embedded all theses texts (1 text =&gt; 1 vector point) - 4. Update the points into Qdrant (the vectorial database service)</p>
+<section id="prepare-your-environment" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> 1 - Prepare your environment</h1>
+<div class="callout callout-style-default callout-tip no-icon callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="true" aria-label="Toggle callout">
 <div class="callout-icon-container">
-<i class="callout-icon"></i>
+<i class="callout-icon no-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Note</span>Attention
+<span class="screen-reader-only">Tip</span><i class="bi bi-book"></i> Exercice 1: Connections
 </div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
+<div id="callout-1" class="callout-1-contents callout-collapse collapse show">
 <div class="callout-body-container callout-body">
-<p>To complete</p>
+<ol start="0" type="1">
+<li>Load your secrets stored in the <code>.env</code> file into your environment.</li>
+</ol>
+<div id="aa79994f" class="cell" data-execution_count="1">
+<details class="code-fold">
+<summary>Click to see the answer</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> dotenv <span class="im">import</span> load_dotenv</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>load_dotenv()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<ol type="1">
+<li>Create your <strong>llm.lab</strong> connection using <code>openai</code> client. Please name this client <code>client_llmlab</code>.</li>
+</ol>
+<p>You will need to use your creds <code>os.environ["LLMLAB_URL"]</code> and <code>os.environ["LLMLAB_API_KEY"]</code> (see the previous chapter).</p>
+<p>More information <a href="https://github.com/openai/openai-python">here</a>.</p>
+<ol start="2" type="1">
+<li>Print all the available models (kindly made available to everyone by the SSPcloud team ❤️)</li>
+</ol>
+<p>You can notice the <code>llm.lab</code> plateform provides both <strong>generation</strong> and <strong>embedding</strong> models.</p>
+<p>TO COMPLETE: explanations about openai client</p>
+<div id="84deb248" class="cell" data-execution_count="2">
+<details class="code-fold">
+<summary>Click to see the answer</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> openai <span class="im">import</span> OpenAI</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>client_llmlab <span class="op">=</span> OpenAI(</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    base_url<span class="op">=</span>os.environ[<span class="st">"LLMLAB_URL"</span>],</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    api_key<span class="op">=</span>os.environ[<span class="st">"LLMLAB_API_KEY"</span>],</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Print models list</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>models <span class="op">=</span> client_llmlab.models.<span class="bu">list</span>()</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> model <span class="kw">in</span> models.data:</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"ID: </span><span class="sc">{</span>model<span class="sc">.</span><span class="bu">id</span><span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<ol start="3" type="1">
+<li>Create a connection to your Qdrant server. Please name it <code>client_qdrant</code>.</li>
+</ol>
+<p>Find the documentation <a href="https://python-client.qdrant.tech/">here</a> to dive deeper 😉.</p>
+<ol start="4" type="1">
+<li>Check all your existing collections (= databases). Probably not a single one for now.</li>
+</ol>
+<div id="f61aa903" class="cell" data-execution_count="3">
+<details class="code-fold">
+<summary>Click to see the answer</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> qdrant_client <span class="im">import</span> QdrantClient</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>client_qdrant <span class="op">=</span> QdrantClient(</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    url<span class="op">=</span>os.environ[<span class="st">"QDRANT_URL"</span>],</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    api_key<span class="op">=</span>os.environ[<span class="st">"QDRANT_API_KEY"</span>],</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    port<span class="op">=</span>os.environ[<span class="st">"QDRANT_API_PORT"</span>]</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>collections <span class="op">=</span> client_qdrant.get_collections()</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> collection <span class="kw">in</span> collections.collections:</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(collection.name)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
 </div>
 </div>
+</div>
+</div>
+<section id="get-and-process-nace-data" class="level2" data-number="1.1">
+<h2 data-number="1.1" class="anchored" data-anchor-id="get-and-process-nace-data"><span class="header-section-number">1.1</span> 2. Get and process NACE data</h2>
+<p>Time to import our data: the official NACE2.1 definitions!</p>
+<p>The data are stored in the s3 storing system of the SSPCloud plateform (uploaded from <a href="https://showvoc.op.europa.eu/#/datasets/ESTAT_Statistical_Classification_of_Economic_Activities_in_the_European_Community_Rev._2.1._%28NACE_2.1%29/downloads">Eurostat</a>)</p>
 <div class="callout callout-style-default callout-tip no-icon callout-titled">
 <div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-2-contents" aria-controls="callout-2" aria-expanded="true" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon no-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Tip</span><i class="bi bi-book"></i> Exercice 1: To complete
+<span class="screen-reader-only">Tip</span><i class="bi bi-book"></i> Exercice 2: handle NACE data
 </div>
 <div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
 <div id="callout-2" class="callout-2-contents callout-collapse collapse show">
 <div class="callout-body-container callout-body">
-<ol type="1">
-<li>To complete.</li>
+<ol start="0" type="1">
+<li>Import NACE data (please, no dataframe: use the structure below)</li>
 </ol>
-<div id="ab6b8f5f" class="cell" data-execution_count="2">
+<div id="896454d2" class="cell" data-execution_count="4">
 <details class="code-fold">
-<summary>Cliquer pour voir la réponse</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Hello"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<summary>Click to see the answer</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> duckdb</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>con <span class="op">=</span> duckdb.<span class="ex">connect</span>(database<span class="op">=</span><span class="st">":memory:"</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>con.execute(<span class="st">"INSTALL httpfs;"</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>con.execute(<span class="st">"LOAD httpfs;"</span>)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>path_nace <span class="op">=</span> <span class="st">'https://minio.lab.sspcloud.fr/projet-formation/diffusion/funathon/2026/project2/NACE_Rev2.1_Structure_Explanatory_Notes_EN.tsv'</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>query_definition <span class="op">=</span> <span class="ss">f"SELECT * FROM read_csv('</span><span class="sc">{</span>path_nace<span class="sc">}</span><span class="ss">')"</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>table <span class="op">=</span> con.execute(query_definition).fetch_arrow_table()</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>nace <span class="op">=</span> table.to_pylist()</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>nace[<span class="dv">22</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
-<div class="cell-output cell-output-stdout">
-<pre><code>Hello</code></pre>
+<div class="cell-output cell-output-display" data-execution_count="4">
+<pre><code>{'ORDER_KEY': 230,
+ 'ID': '014',
+ 'CODE': '01.4',
+ 'HEADING': 'Animal production',
+ 'PARENT_ID': '01',
+ 'PARENT_CODE': '01',
+ 'LEVEL': 3,
+ 'Implementation_rule': None,
+ 'Includes': 'This group includes:\\n- farming (husbandry, raising) and breeding of all animals, except aquatic animals',
+ 'IncludesAlso': None,
+ 'Excludes': 'This group excludes:\\n- farm animal boarding and care, see 01.62\\n- production of hides and skins from slaughterhouses, see 10.11'}</code></pre>
 </div>
 </div>
-<ol start="2" type="1">
-<li>To complete.</li>
-</ol>
-<div id="ae218d83" class="cell" data-execution_count="3">
-<details class="code-fold">
-<summary>Cliquer pour voir la réponse</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Hello"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</details>
-<div class="cell-output cell-output-stdout">
-<pre><code>Hello</code></pre>
 </div>
 </div>
-<ol start="3" type="1">
-<li>To complete.</li>
-</ol>
-<details>
-<summary>
-Clue here
-</summary>
-To complete.
-</details>
 </div>
-</div>
+</section>
+<section id="embed-your-nace-items" class="level2" data-number="1.2">
+<h2 data-number="1.2" class="anchored" data-anchor-id="embed-your-nace-items"><span class="header-section-number">1.2</span> 3. Embed your NACE items</h2>
+<p>Fine! For now, let’s choose an embedding model (e.g.&nbsp;a large langage model able to transform a text to a <em>quite</em> smart numerical vector). We will use <code>Qwen3-Embedding-8B</code>, available on HuggingFace🤗 (like all other models provided by <code>llm.lab</code>)!</p>
+<p>For a later use, we need to know the dimension of the vectors given by our model. Here, the size is 4096 (don’t trust me, check yourself on the <a href="https://huggingface.co/Qwen/Qwen3-Embedding-8B">hf page</a>).</p>
+<div id="7acdf54e" class="cell" data-execution_count="5">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Embedding model parameters</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>emb_model <span class="op">=</span> <span class="st">"qwen3-embedding:8b"</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>emb_dim <span class="op">=</span> <span class="dv">4096</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 
 
+</section>
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
@@ -659,7 +750,7 @@ To complete.
     </div>   
     <div class="nav-footer-center">
       &nbsp;
-    <div class="toc-actions"><ul><li><a href="https://github.com/AIML4OS/funathon-project2/edit/main/2-rag-vdb.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/AIML4OS/funathon-project2/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div>
+    <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/AIML4OS/funathon-project2/edit/main/2-rag-vdb.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/AIML4OS/funathon-project2/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">
     <li class="nav-item">

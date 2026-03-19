@@ -25,7 +25,21 @@
     "href": "2-rag-vdb.html",
     "title": "RAG approach - Create a vectorial database",
     "section": "",
-    "text": "To complete\n\n\n\n\n\n\nNoteAttention\n\n\n\nTo complete\n\n\n\n\n\n\n\n\nTip Exercice 1: To complete\n\n\n\n\n\n\nTo complete.\n\n\n\nCliquer pour voir la réponse\nprint(\"Hello\")\n\n\nHello\n\n\n\nTo complete.\n\n\n\nCliquer pour voir la réponse\nprint(\"Hello\")\n\n\nHello\n\n\n\nTo complete.\n\n\n\nClue here\n\nTo complete."
+    "text": "This first part will show you how to build a vectorial database, e.g the “augmented” knowledge aimed to guide your LLM’s reponses.\nThe simplified workflow will be as follows : - 0. Create a proper working environment with all needed connections (s3, qdrant and llm.lab) - 1. Take the NACE2.1 codes definitions (code + title, + inclusions + exclusions in plain text) - 2. Concatenate these pieces of information for each unique NACE (one code =&gt; 1 text) - 3. Embedded all theses texts (1 text =&gt; 1 vector point) - 4. Update the points into Qdrant (the vectorial database service)"
+  },
+  {
+    "objectID": "2-rag-vdb.html#get-and-process-nace-data",
+    "href": "2-rag-vdb.html#get-and-process-nace-data",
+    "title": "RAG approach - Create a vectorial database",
+    "section": "1.1 2. Get and process NACE data",
+    "text": "1.1 2. Get and process NACE data\nTime to import our data: the official NACE2.1 definitions!\nThe data are stored in the s3 storing system of the SSPCloud plateform (uploaded from Eurostat)\n\n\n\n\n\n\nTip Exercice 2: handle NACE data\n\n\n\n\n\n\nImport NACE data (please, no dataframe: use the structure below)\n\n\n\nClick to see the answer\nimport duckdb\ncon = duckdb.connect(database=\":memory:\")\n\ncon.execute(\"INSTALL httpfs;\")\ncon.execute(\"LOAD httpfs;\")\n\npath_nace = 'https://minio.lab.sspcloud.fr/projet-formation/diffusion/funathon/2026/project2/NACE_Rev2.1_Structure_Explanatory_Notes_EN.tsv'\nquery_definition = f\"SELECT * FROM read_csv('{path_nace}')\"\ntable = con.execute(query_definition).fetch_arrow_table()\nnace = table.to_pylist()\nnace[22]\n\n\n{'ORDER_KEY': 230,\n 'ID': '014',\n 'CODE': '01.4',\n 'HEADING': 'Animal production',\n 'PARENT_ID': '01',\n 'PARENT_CODE': '01',\n 'LEVEL': 3,\n 'Implementation_rule': None,\n 'Includes': 'This group includes:\\\\n- farming (husbandry, raising) and breeding of all animals, except aquatic animals',\n 'IncludesAlso': None,\n 'Excludes': 'This group excludes:\\\\n- farm animal boarding and care, see 01.62\\\\n- production of hides and skins from slaughterhouses, see 10.11'}"
+  },
+  {
+    "objectID": "2-rag-vdb.html#embed-your-nace-items",
+    "href": "2-rag-vdb.html#embed-your-nace-items",
+    "title": "RAG approach - Create a vectorial database",
+    "section": "1.2 3. Embed your NACE items",
+    "text": "1.2 3. Embed your NACE items\nFine! For now, let’s choose an embedding model (e.g. a large langage model able to transform a text to a quite smart numerical vector). We will use Qwen3-Embedding-8B, available on HuggingFace🤗 (like all other models provided by llm.lab)!\nFor a later use, we need to know the dimension of the vectors given by our model. Here, the size is 4096 (don’t trust me, check yourself on the hf page).\n\n# Embedding model parameters\nemb_model = \"qwen3-embedding:8b\"\nemb_dim = 4096"
   },
   {
     "objectID": "2-rag-generation.html",
