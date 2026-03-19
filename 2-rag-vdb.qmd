@@ -136,18 +136,45 @@ nace[22]
 1. Build a pipeline (or a class) that will help you handling your NACE documents : 
     - Cleans features ('HEADING', 'Includes', etc.)
     - Checks your data (example: hierarchical coherence)
-    - Creates a structured text for each code, ready to embed. For example: 
+    - Creates a structured text for each code, ready to embed. The best would be to be parametrize whether to include or not each possible feature (e.g : text with or without "Excludes" feature). For example: 
 
 ```markdown
 Code: 23.66 Title: Manufacture of other articles of concrete, cement and plaster Includes: This class includes:\n- manufacture of other articles of concrete, plaster or of compositions based on plaster, cement or artificial stone (e.g. statuary, bas- and haut-reliefs, vases, flowerpots) Excludes: This class excludes:\n- manufacture of precast concrete, cement or artificial stone articles for use in construction, see 23.61
 ```
-    - Creates a payload object, dedicated to __Qdrant's API__, like below:
 
+2. Creates a function (or a method) to build a Qdrant `PointStruct` like dictionnary, like below:
 
+```python
+
+from typing import Optional
+from uuid import uuid5, NAMESPACE_DNS
+
+def to_qdrant_point(
+    code: str,
+    heading: str,
+    text: str,
+    level: int,
+    parent_code: str,
+    embedding_vector: list[float],
+) -> dict:
+    return {
+        "id": str(uuid5(NACE_NAMESPACE, code)), # Strickly standardized id 
+        "vector": embedding_vector,
+        "payload": {
+            "code": code,
+            "heading": heading,
+            "level": self.level,
+            "parent_code": self.parent_code,
+            # Storing the text used for embedding enables inspection and debugging
+            "text": text,
+        },
+    }
+
+```
 
 ```{python}
 #| code-fold: true
-#| code-summary: Click to see the answer
+#| code-summary: Click to see an class-like answer
 #| code-overflow: scroll
 
 from dataclasses import dataclass
@@ -210,45 +237,52 @@ class NaceDocument:
 
     def to_embedding_text(
         self,
-        *,  # Forces all arguments to be keyword-only — prevents positional mistakes with multiple booleans
+        *,
         include_hierarchy: bool = False,
-        parent_chain: list[str] | None = None,
         include_includes_also: bool = False,
         include_excludes: bool = False,
     ) -> str:
-        # Start with the two fields that are always present
-        parts = [f"Code: {self.code}", f"Title: {self.heading}"]
+        parts = []
 
-        # Hierarchy is only meaningful when a parent chain is actually provided
-        if include_hierarchy and parent_chain:
-            # " > " is a common readable separator for hierarchical paths
-            parts.append("Hierarchy: " + " > ".join(parent_chain))
+        # Header (format Markdown avec #)
+        parts.append(f"# Code: {self.code}")
+        parts.append(f"# Title: {self.heading}")
 
-        # includes is included by default — it's the primary semantic content
+        # Includes (section principale)
         if self.includes:
-            parts.append(f"Includes: {self.includes}")
+            parts.append("")
+            parts.append("## Includes:")
+            parts.append(self.includes.strip())
 
-        # includes_also and excludes are opt-in — they add noise for most queries
+        # Includes also (optionnel)
         if include_includes_also and self.includes_also:
-            parts.append(f"Also includes: {self.includes_also}")
-        if include_excludes and self.excludes:
-            parts.append(f"Excludes: {self.excludes}")
+            parts.append("")
+            parts.append("## Also includes:")
+            parts.append(self.includes_also.strip())
 
-        # Newline-separated format is readable and well-handled by most embedding models
-        return "\n".join(parts)
+        # Excludes (optionnel)
+        if include_excludes and self.excludes:
+            parts.append("")
+            parts.append("## Excludes:")
+            parts.append(self.excludes.strip())
+
+        # Nettoyage léger :
+        # - remplace les "\n" échappés par de vrais retours ligne
+        output = "\n".join(parts)
+        output = output.replace("\\n", "\n")
+
+        return output.strip()
 
     def to_qdrant_point(
         self,
         vector: list[float],
         *,  # Same keyword-only pattern as to_embedding_text
-        include_hierarchy: bool = False,
         parent_chain: list[str] | None = None,
         include_includes_also: bool = False,
         include_excludes: bool = False,
     ) -> dict:
         # Build the text here so payload["text"] always matches the embedded vector
         text = self.to_embedding_text(
-            include_hierarchy=include_hierarchy,
             parent_chain=parent_chain,
             include_includes_also=include_includes_also,
             include_excludes=include_excludes,
@@ -269,8 +303,32 @@ class NaceDocument:
         }
 ```
 
+3. Create a text from a single Nace code, with or without `Exludes` field
+
+```{python}
+i = 50
+nace_example = nace[i]
+doc_example = NaceDocument(nace_example)
+text_example = doc_example.to_embedding_text(
+    include_includes_also=True,
+    include_excludes=False,
+)
+text_example
+```
 :::
 
+
+
+::: {.callout-note}
+
+`PointStruct` is a Pydantic model provided by the qdrant_client library that represents a single vector database entry. 
+It bundles together the three components Qdrant needs to store and query a point: 
+    - a unique id, 
+    - a vector (the embedding), 
+    - and a payload (arbitrary metadata as a dict). 
+
+Passing raw dicts directly to the Qdrant API would require manual serialization and validation — PointStruct handles that for you and ensures the data is correctly typed before being sent to the server. It's essentially the contract between your Python code and the Qdrant collection.
+:::
 
 ## 3. Embed your NACE items
 
