@@ -133,6 +133,142 @@ nace[22]
 
 ```
 
+1. Build a pipeline (or a class) that will help you handling your NACE documents : 
+    - Cleans features ('HEADING', 'Includes', etc.)
+    - Checks your data (example: hierarchical coherence)
+    - Creates a structured text for each code, ready to embed. For example: 
+
+```markdown
+Code: 23.66 Title: Manufacture of other articles of concrete, cement and plaster Includes: This class includes:\n- manufacture of other articles of concrete, plaster or of compositions based on plaster, cement or artificial stone (e.g. statuary, bas- and haut-reliefs, vases, flowerpots) Excludes: This class excludes:\n- manufacture of precast concrete, cement or artificial stone articles for use in construction, see 23.61
+```
+    - Creates a payload object, dedicated to __Qdrant's API__, like below:
+
+
+
+```{python}
+#| code-fold: true
+#| code-summary: Click to see the answer
+#| code-overflow: scroll
+
+from dataclasses import dataclass
+from typing import Optional
+from uuid import uuid5, NAMESPACE_DNS
+
+
+# Standalone helper — no reason to make this an instance method
+def _clean(value) -> Optional[str]:
+    """Normalize to stripped single-line string, or None if empty/missing."""
+    if value is None:
+        return None
+    # str() handles non-string values (int, float...) from raw dicts
+    # replace("\n", " ") flattens multiline strings to a single line
+    # split() tokenizes on any whitespace, join(" ") rebuilds with single spaces
+    cleaned = " ".join(str(value).replace("\n", " ").split())
+    # Empty string is falsy in Python — return None instead for consistency
+    return cleaned or None
+
+
+# Dedicated UUID namespace for NACE codes — avoids collisions with other data
+# that might also use NAMESPACE_DNS in the same Qdrant collection
+NACE_NAMESPACE = uuid5(NAMESPACE_DNS, "nace-rev2")
+
+
+@dataclass  # Generates __init__, __repr__, __eq__ from field annotations
+class NaceDocument:
+    code: str
+    heading: str
+    level: int
+    parent_code: Optional[str] = None
+    includes: Optional[str] = None
+    includes_also: Optional[str] = None
+    excludes: Optional[str] = None
+
+    @classmethod  # Alternative constructor — parses raw dict without needing an instance first
+    def from_raw(cls, raw: dict) -> "NaceDocument":
+        # Fail early if any required field is missing or empty
+        for key in ("CODE", "HEADING", "LEVEL"):
+            if not raw.get(key):
+                raise ValueError(f"Missing required field: {key}")
+
+        # Cast to int — LEVEL may come as string from CSV/JSON sources
+        level = int(raw["LEVEL"])
+        # NACE Rev.2 has exactly 4 levels: section, division, group, class
+        if not (1 <= level <= 4):
+            raise ValueError(f"Invalid level: {level}")
+
+        # cls() instead of NaceDocument() — works correctly if the class is subclassed
+        return cls(
+            code=str(raw["CODE"]).strip(),
+            heading=_clean(raw["HEADING"]),
+            level=level,
+            # .get() returns None if key is absent — _clean handles None gracefully
+            parent_code=_clean(raw.get("PARENT_CODE")),
+            includes=_clean(raw.get("Includes")),
+            includes_also=_clean(raw.get("IncludesAlso")),
+            excludes=_clean(raw.get("Excludes")),
+        )
+
+    def to_embedding_text(
+        self,
+        *,  # Forces all arguments to be keyword-only — prevents positional mistakes with multiple booleans
+        include_hierarchy: bool = False,
+        parent_chain: list[str] | None = None,
+        include_includes_also: bool = False,
+        include_excludes: bool = False,
+    ) -> str:
+        # Start with the two fields that are always present
+        parts = [f"Code: {self.code}", f"Title: {self.heading}"]
+
+        # Hierarchy is only meaningful when a parent chain is actually provided
+        if include_hierarchy and parent_chain:
+            # " > " is a common readable separator for hierarchical paths
+            parts.append("Hierarchy: " + " > ".join(parent_chain))
+
+        # includes is included by default — it's the primary semantic content
+        if self.includes:
+            parts.append(f"Includes: {self.includes}")
+
+        # includes_also and excludes are opt-in — they add noise for most queries
+        if include_includes_also and self.includes_also:
+            parts.append(f"Also includes: {self.includes_also}")
+        if include_excludes and self.excludes:
+            parts.append(f"Excludes: {self.excludes}")
+
+        # Newline-separated format is readable and well-handled by most embedding models
+        return "\n".join(parts)
+
+    def to_qdrant_point(
+        self,
+        vector: list[float],
+        *,  # Same keyword-only pattern as to_embedding_text
+        include_hierarchy: bool = False,
+        parent_chain: list[str] | None = None,
+        include_includes_also: bool = False,
+        include_excludes: bool = False,
+    ) -> dict:
+        # Build the text here so payload["text"] always matches the embedded vector
+        text = self.to_embedding_text(
+            include_hierarchy=include_hierarchy,
+            parent_chain=parent_chain,
+            include_includes_also=include_includes_also,
+            include_excludes=include_excludes,
+        )
+        return {
+            # uuid5 is deterministic: same namespace + code always yields the same UUID
+            # stable across runs, valid for Qdrant, no hacky string manipulation needed
+            "id": str(uuid5(NACE_NAMESPACE, self.code)),
+            "vector": vector,
+            "payload": {
+                "code": self.code,
+                "heading": self.heading,
+                "level": self.level,
+                "parent_code": self.parent_code,
+                # Storing the text used for embedding enables inspection and debugging
+                "text": text,
+            },
+        }
+```
+
 :::
 
 

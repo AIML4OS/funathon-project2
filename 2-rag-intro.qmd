@@ -90,13 +90,9 @@ except KeyError:
 ```
 
 
-warn
-
-::: {.callout- appearance="simple"}
+::: {.callout-warning appearance="simple"}
 
 ## Attention
-
-::: {.callout-warning}
 
 Do not leak your secrets => Do not commit your .env file!
 
