@@ -14,7 +14,6 @@ format:
 This first part will show you how to build a vectorial database, e.g the "augmented" knowledge aimed to guide your LLM's reponses.
 
 The simplified workflow will be as follows : 
-
 - 0. Create a proper working environment with all needed connections (__s3__, __qdrant__ and __llm.lab__)
 - 1. Take the NACE2.1 codes definitions (code + title, + inclusions + exclusions in plain text)
 - 2. Concatenate these pieces of information for each unique NACE (one code => 1 text)
