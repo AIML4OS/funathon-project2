@@ -123,15 +123,11 @@ If you are using VS Code, make sure the workspace uses the virtual environment y
 
 
 
-# Get labelled data
+# TODO:
 
 In the following cell we retrieve a small labeled dataset (text + NACE labels) from a remote parquet file using DuckDB.
 
-```{python}
-#| label: get-data
 
-import duckdb
-con = duckdb.connect(database=":memory:")
 
 con.execute("INSTALL httpfs;")
 con.execute("LOAD httpfs;")
