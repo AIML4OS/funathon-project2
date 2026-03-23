@@ -318,44 +318,107 @@ pprint(text_example)
 ```
 
 
-3. One all good, loop it : create a proper text for each NACE code (`with Excludes` field) and store it in a list called `texts_to_embed`
+3. Once all good, loop it : 
+
+- Update your `NaceDocument` class to add a `texts_to_embed` field (proper text for each NACE code, __with Excludes field__)
+- Create all your `NaceDocument` instances 
 
 ```{python}
+#| label: up-for-text
 #| code-fold: true
 #| code-summary: Click to see the answer
 #| code-overflow: scroll
 #| output: true
+from dataclasses import dataclass, field
+from typing import Optional
 
-texts_to_embed = []
+@dataclass
+class NaceDocument:
+    code: str
+    heading: str
+    level: int
+    parent_code: Optional[str] = None
+    includes: Optional[str] = None
+    includes_also: Optional[str] = None
+    excludes: Optional[str] = None
+
+    text_to_embed: str = field(init=False)
+
+    @classmethod
+    def from_raw(cls, raw: dict, include_includes_also=True, include_excludes=False,) -> "NaceDocument":
+        for key in ("CODE", "HEADING", "LEVEL"):
+            if not raw.get(key):
+                raise ValueError(f"Missing required field: {key}")
+
+        level = int(raw["LEVEL"])
+        if not (1 <= level <= 4):
+            raise ValueError(f"Invalid level: {level}")
+
+        obj = cls(
+            code=str(raw["CODE"]).strip(),
+            heading=_clean(raw["HEADING"]),
+            level=level,
+            parent_code=_clean(raw.get("PARENT_CODE")),
+            includes=_clean(raw.get("Includes")),
+            includes_also=_clean(raw.get("IncludesAlso")),
+            excludes=_clean(raw.get("Excludes")),
+        )
+
+        obj.text_to_embed = obj.to_embedding_text(
+            include_includes_also=include_includes_also,
+            include_excludes=include_excludes,
+        )
+
+        return obj
+
+    def to_embedding_text(
+        self,
+        *,
+        include_includes_also: bool = False,
+        include_excludes: bool = False,
+    ) -> str:
+        parts = []
+
+        parts.append(f"# Code: {self.code}")
+        parts.append(f"# Title: {self.heading}")
+
+        if self.includes:
+            parts.append("")
+            parts.append("## Includes:")
+            parts.append(self.includes.strip())
+
+        if include_includes_also and self.includes_also:
+            parts.append("")
+            parts.append("## Also includes:")
+            parts.append(self.includes_also.strip())
+
+        if include_excludes and self.excludes:
+            parts.append("")
+            parts.append("## Excludes:")
+            parts.append(self.excludes.strip())
+
+        output = "\n".join(parts)
+        output = output.replace("\\n", "\n")
+
+        return output.strip()
+
 nace_documents = []
 for nace_code in nace:
-
-    doc = NaceDocument.from_raw(nace_code)
-    
-    texts_to_embed.append(
-        doc.to_embedding_text(
-            include_includes_also=True,
-            include_excludes=True,
+    nace_documents.append(
+        NaceDocument.from_raw(
+            raw=nace_code,
+            include_includes_also=True, 
+            include_excludes=True
         )
     )
     
-    nace_documents.append(doc)
-
-#     payloads.append(
-#         doc.to_qdrant_point(text,
-#             include_includes_also=True,
-#             include_excludes=True,
-# )
-#     ) 
-
-print("\nPrinting first element of texts_to_embed:")
+print("\nPrinting first element of nace_documents:")
 print("\n-----------------------------------------\n")
-print(texts_to_embed[0])
+print(nace_documents[0])
+
 ```
 
 :::
-
-
 
 # Embed your NACE text descriptions
 
@@ -403,30 +466,142 @@ So far, you should see your new empty collection from Qdrant's UI:
 
 ![New Qdrant collection](img/qdrant_new_collection.png)
 
-2. Use your `client_llmlab` and the method `.embeddings.create` to embed your NACE descriptions created earlier. Store your vectors in an `embeddings` object.
+2. Use your `client_llmlab` and the method `.embeddings.create` to embed your NACE descriptions created earlier. 
+
+- Try it on a single text to test the syntaxe
+- When it's ok, update your `NaceDocument` class like previously:
+    - Add a `get_embeddings` method (not called by the constructor) that generates embedding vectors for a list of `NaceDocument` objects.
+    - Store your embeddings in a `embeddings` object.
 
 ```{python}
+#| label: up-nacedocument-emb
 #| code-fold: true
 #| code-summary: Click to see the answer
 #| code-overflow: scroll
 
-embeddings = []
+from dataclasses import dataclass, field
+from typing import Optional, List
 
-for i, text in enumerate(texts_to_embed):
-    try:
-        response = client_llmlab.embeddings.create(
-            model=emb_model,
-            input=text
+@dataclass
+class NaceDocument:
+    code: str
+    heading: str
+    level: int
+    parent_code: Optional[str] = None
+    includes: Optional[str] = None
+    includes_also: Optional[str] = None
+    excludes: Optional[str] = None
+
+    text_to_embed: str = field(init=False)
+
+    @classmethod
+    def from_raw(cls, raw: dict, include_includes_also=True, include_excludes=False,) -> "NaceDocument":
+        for key in ("CODE", "HEADING", "LEVEL"):
+            if not raw.get(key):
+                raise ValueError(f"Missing required field: {key}")
+
+        level = int(raw["LEVEL"])
+        if not (1 <= level <= 4):
+            raise ValueError(f"Invalid level: {level}")
+
+        obj = cls(
+            code=str(raw["CODE"]).strip(),
+            heading=_clean(raw["HEADING"]),
+            level=level,
+            parent_code=_clean(raw.get("PARENT_CODE")),
+            includes=_clean(raw.get("Includes")),
+            includes_also=_clean(raw.get("IncludesAlso")),
+            excludes=_clean(raw.get("Excludes")),
         )
-        embeddings.append(response.data[0].embedding)
 
-        # 
-        if (i + 1) % 10 == 0:
-            print(f"Processed {i + 1}/{len(texts_to_embed)} embeddings")
-    
-    except Exception as e:
-        print(f"Failed to generate embedding for document {i}: {str(e)}")
-        continue
+        obj.text_to_embed = obj.to_embedding_text(
+            include_includes_also=True,
+            include_excludes=False,
+        )
+
+        return obj
+
+    def to_embedding_text(
+        self,
+        *,
+        include_includes_also: bool = False,
+        include_excludes: bool = False,
+    ) -> str:
+        parts = []
+
+        parts.append(f"# Code: {self.code}")
+        parts.append(f"# Title: {self.heading}")
+
+        if self.includes:
+            parts.append("")
+            parts.append("## Includes:")
+            parts.append(self.includes.strip())
+
+        if include_includes_also and self.includes_also:
+            parts.append("")
+            parts.append("## Also includes:")
+            parts.append(self.includes_also.strip())
+
+        if include_excludes and self.excludes:
+            parts.append("")
+            parts.append("## Excludes:")
+            parts.append(self.excludes.strip())
+
+        output = "\n".join(parts)
+        output = output.replace("\\n", "\n")
+
+        return output.strip()
+
+    @staticmethod
+    def get_embeddings(
+        docs: List["NaceDocument"],
+        client_llmlab,
+        emb_model: str,
+    ) -> List[List[float]]:
+        embeddings = []
+
+        for i, doc in enumerate(docs):
+            try:
+                response = client_llmlab.embeddings.create(
+                    model=emb_model,
+                    input=doc.text_to_embed
+                )
+                embeddings.append(response.data[0].embedding)
+
+                if (i + 1) % 10 == 0:
+                    print(f"Processed {i + 1}/{len(docs)} embeddings")
+
+            except Exception as e:
+                print(f"Failed doc {i} ({doc.code}): {str(e)}")
+                continue
+
+        return embeddings
+```
+
+```{python}
+#| label: get-embeddings
+#| code-fold: true
+#| code-summary: Click to see the answer
+#| code-overflow: scroll
+
+# Recreate your NACE documents (that class has been updated)
+nace_documents = []
+for nace_code in nace:
+    nace_documents.append(
+        NaceDocument.from_raw(
+            raw=nace_code,
+            include_includes_also=True, 
+            include_excludes=True
+        )
+    )
+
+embeddings = NaceDocument.get_embeddings(
+    nace_documents,
+    client_llmlab,
+    emb_model,
+)
+
+
 ```
 
 3. Inspect your embeddings:
