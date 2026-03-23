@@ -9,10 +9,12 @@ format:
     warning: false
 ---
 
+# Forwords
 
 This first part will show you how to build a vectorial database, e.g the "augmented" knowledge aimed to guide your LLM's reponses.
 
 The simplified workflow will be as follows : 
+
 - 0. Create a proper working environment with all needed connections (__s3__, __qdrant__ and __llm.lab__)
 - 1. Take the NACE2.1 codes definitions (code + title, + inclusions + exclusions in plain text)
 - 2. Concatenate these pieces of information for each unique NACE (one code => 1 text)
@@ -21,7 +23,7 @@ The simplified workflow will be as follows :
 
 
 
-# 1 - Prepare your environment
+# Prepare your environment
 
 
 ::: {.callout-tip collapse="false" icon=false}
@@ -30,6 +32,7 @@ The simplified workflow will be as follows :
 0. Load your secrets stored in the `.env` file into your environment.
 
 ```{python}
+#| label: dotenv
 #| code-fold: true
 #| code-summary: Click to see the answer
 #| code-overflow: scroll
@@ -53,6 +56,7 @@ You can notice the `llm.lab` plateform provides both __generation__ and __embedd
 TO COMPLETE: explanations about openai client
 
 ```{python}
+#| label: client_llmlab
 #| code-fold: true
 #| code-summary: Click to see the answer
 #| code-overflow: scroll
@@ -78,6 +82,7 @@ Find the documentation [here](https://python-client.qdrant.tech/) to dive deeper
 4. Check all your existing collections (= databases). Probably not a single one for now.
 
 ```{python}
+#| label: client_qdrant
 #| code-fold: true
 #| code-summary: Click to see the answer
 #| code-overflow: scroll
@@ -100,7 +105,7 @@ for collection in collections.collections:
 :::
 
 
-## 2. Get and process NACE data
+# Get and process NACE data
 
 Time to import our data: the official NACE2.1 definitions!
 
@@ -111,9 +116,10 @@ The data are stored in the s3 storing system of the SSPCloud plateform (uploaded
 ::: {.callout-tip collapse="false" icon=false}
 ## `<i class="bi bi-book"></i>`{=html} Exercice 2: handle NACE data
 
-0. Import NACE data (please, no dataframe: use the structure below)
+1. Import NACE data (please, no dataframe: use the structure below)
 
 ```{python}
+#| label: get-nace-data
 #| code-fold: true
 #| code-summary: Click to see the answer
 #| code-overflow: scroll
@@ -129,14 +135,17 @@ path_nace = 'https://minio.lab.sspcloud.fr/projet-formation/diffusion/funathon/2
 query_definition = f"SELECT * FROM read_csv('{path_nace}')"
 table = con.execute(query_definition).fetch_arrow_table()
 nace = table.to_pylist()
+
+nace = nace[:100] # /!\ TO REMOVE
 nace[22]
 
 ```
 
-1. Build a pipeline (or a class) that will help you handling your NACE documents : 
+1. Build a class `NaceDocument` that will help you handling your NACE documents : 
+
     - Cleans features ('HEADING', 'Includes', etc.)
     - Checks your data (example: hierarchical coherence)
-    - Creates a structured text for each code, ready to embed. The best would be to be parametrize whether to include or not each possible feature (e.g : text with or without "Excludes" feature). For example: 
+    - Creates a structured text for each code, ready to embed (for example, with a `to_embedding_text` method). The best would be to be parametrize whether to include or not each possible feature (e.g : text with or without "Excludes" feature). For example: 
 
 ```markdown
 Code: 23.66 Title: Manufacture of other articles of concrete, cement and plaster Includes: This class includes:\n- manufacture of other articles of concrete, plaster or of compositions based on plaster, cement or artificial stone (e.g. statuary, bas- and haut-reliefs, vases, flowerpots) Excludes: This class excludes:\n- manufacture of precast concrete, cement or artificial stone articles for use in construction, see 23.61
@@ -144,6 +153,7 @@ Code: 23.66 Title: Manufacture of other articles of concrete, cement and plaster
 
 
 ```{python}
+#| label: NaceDocument-classe
 #| code-fold: true
 #| code-summary: Click to see an class-like answer
 #| code-overflow: scroll
@@ -153,7 +163,6 @@ from typing import Optional
 from uuid import uuid5, NAMESPACE_DNS
 
 
-# Standalone helper — no reason to make this an instance method
 def _clean(value) -> Optional[str]:
     """Normalize to stripped single-line string, or None if empty/missing."""
     if value is None:
@@ -181,16 +190,15 @@ class NaceDocument:
     includes_also: Optional[str] = None
     excludes: Optional[str] = None
 
-    @classmethod  # Alternative constructor — parses raw dict without needing an instance first
+    @classmethod
     def from_raw(cls, raw: dict) -> "NaceDocument":
-        # Fail early if any required field is missing or empty
         for key in ("CODE", "HEADING", "LEVEL"):
             if not raw.get(key):
                 raise ValueError(f"Missing required field: {key}")
 
         # Cast to int — LEVEL may come as string from CSV/JSON sources
         level = int(raw["LEVEL"])
-        # NACE Rev.2 has exactly 4 levels: section, division, group, class
+        # NACE2.1 has exactly 4 levels: section, division, group, class
         if not (1 <= level <= 4):
             raise ValueError(f"Invalid level: {level}")
 
@@ -331,6 +339,8 @@ for nace_code in nace:
             include_excludes=True,
         )
     )
+    
+    nace_documents.append(doc)
 
 #     payloads.append(
 #         doc.to_qdrant_point(text,
@@ -348,7 +358,7 @@ print(texts_to_embed[0])
 
 
 
-## 3. Embed your NACE text descriptions
+# Embed your NACE text descriptions
 
 Fine! 
 For now, let's choose an embedding model (e.g. a large langage model able to transform a text to a _quite_ smart numerical vector).
@@ -359,7 +369,8 @@ For a later use, we need to know the dimension of the vectors given by our model
 
 ```{python}
 
-# Embedding model parameters
+#| label: embedding_params
+
 emb_model = "qwen3-embedding:8b"
 emb_dim = 4096
 ```
@@ -372,10 +383,10 @@ emb_dim = 4096
 
 ```{python}
 
+#| label: create-collection
 #| code-fold: true
 #| code-summary: Click to see the answer
 #| code-overflow: scroll
-
 
 from qdrant_client.models import Distance, VectorParams
 
@@ -402,7 +413,7 @@ So far, you should see your new empty collection from Qdrant's UI:
 
 embeddings = []
 
-for i, text in enumerate(texts_to_embed[:25]):
+for i, text in enumerate(texts_to_embed):
     try:
         response = client_llmlab.embeddings.create(
             model=emb_model,
@@ -422,6 +433,7 @@ for i, text in enumerate(texts_to_embed[:25]):
 3. Inspect your embeddings:
 
 ```{python}
+#| label: check-embeddings
 #| code-fold: true
 #| code-summary: Click to see the answer
 #| code-overflow: scroll
@@ -436,7 +448,7 @@ print(f"\nLength of each vector: {len(embeddings[0])}")
 
 ```
 
- 
+
 4. Creates a function (or a method) to build a Qdrant `PointStruct` like dictionnary, like below. This structure is required by the Qdrant API.
 
 ```python
@@ -463,32 +475,93 @@ print(f"\nLength of each vector: {len(embeddings[0])}")
 #| output: true
 
 from uuid import uuid5, NAMESPACE_DNS
+from qdrant_client.models import PointStruct
+
 NACE_NAMESPACE = uuid5(NAMESPACE_DNS, "nace-rev2")
 
 def to_qdrant_point(
     nace: NaceDocument,
     text: str,
     vector: list[float],
-    include_includes_also: bool = False,
+    include_includes_also: bool = True,
     include_excludes: bool = False,
-) -> dict:
+) -> PointStruct:
 
-    return {
+    return PointStruct(
         # uuid5 is deterministic: same namespace + code always yields the same UUID
         # stable across runs, valid for Qdrant, no hacky string manipulation needed
-        "id": str(uuid5(NACE_NAMESPACE, self.code)),
-        "vector": vector,
-        "payload": {
-            "code": nace_dict.code,
-            "level": nace_dict.level,
-            "parent_code": nace_dict.parent_code,
-            # Storing the text used for embedding enables inspection and debugging
-            "text": text,
-        },
-    }
+            id=str(uuid5(NACE_NAMESPACE, nace.code)),
+            vector=vector,
+            payload={
+                "code": nace.code,
+                "level": nace.level,
+                "parent_code": nace.parent_code,
+                # Storing the text used for embedding enables inspection and debugging
+                "text": text,
+            }
+    )
 ```
 
 5. Feed your Qrant collection with your embedding vectors, using the payload structure.
+
+```{python}
+
+#| code-fold: true
+#| code-summary: Click to see the answer
+#| code-overflow: scroll
+#| output: true
+
+points = []
+#nace_documents
+for i in range(len(nace_documents)):
+    points.append(
+        to_qdrant_point(
+            nace=nace_documents[i],
+            text=texts_to_embed[i],
+            vector=embeddings[i],
+            include_includes_also = True,
+            include_excludes= False,
+        )
+    )
+
+print("\nCheck the first PointStruct: ")
+print(points[0])
+```
+
+```{python}
+len(embeddings)
+
+```
+
+6. Upload your points into your Qdrant collection, using `client_qdrant.upsert` method. Try to bach it.
+
+```{python}
+
+#| code-fold: true
+#| code-summary: Click to see the answer
+#| code-overflow: scroll
+#| output: true
+
+upload_batch_size = 10
+
+for i in range(0, len(points), upload_batch_size):
+    batch = points[i:i + upload_batch_size]
+    try:
+        client_qdrant.upsert(
+            collection_name=qdrant_collection_name,
+            points=batch
+        )
+        print(f"Uploaded batch {i//upload_batch_size + 1}/{(len(points)-1)//upload_batch_size + 1}")
+    except Exception as e:
+        print(f"Failed to upload batch {i//upload_batch_size + 1}: {str(e)}")
+        continue
+
+```
+
+7. Inspect your Qdrant collection. It should contain 1,047 vectors.
+
+![Qdrant vector store after upsert step](img/qdrant_populated_collection.png)
+
 :::
 
 ::: {.callout-note}
