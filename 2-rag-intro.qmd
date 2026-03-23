@@ -7,6 +7,33 @@ format:
     number-sections: true
 ---
 
+
+
+```{=html}
+<table>
+  <thead>
+    <tr>
+      <th>Technical level</th>
+      <th>Tasks</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><span class="level-button level-beginner">Beginner</span></td>
+      <td>Follow the tutorial and understand given answers.</td>
+    </tr>
+    <tr>
+      <td><span class="level-button level-intermediate">Intermediate</span></td>
+      <td>Try to complete the tutorial without checking answers.</td>
+    </tr>
+    <tr>
+      <td><span class="level-button level-expert">Expert</span></td>
+      <td>Enhance the pipeline and improve results (better models, better embedding strategy, .etc.).</td>
+    </tr>
+  </tbody>
+</table>
+```
+
 # What is a RAG ? Why using a RAG ?
 
 ![Rag worklow scheme](img/rag_wf.png)
