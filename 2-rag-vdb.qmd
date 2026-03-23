@@ -142,35 +142,6 @@ nace[22]
 Code: 23.66 Title: Manufacture of other articles of concrete, cement and plaster Includes: This class includes:\n- manufacture of other articles of concrete, plaster or of compositions based on plaster, cement or artificial stone (e.g. statuary, bas- and haut-reliefs, vases, flowerpots) Excludes: This class excludes:\n- manufacture of precast concrete, cement or artificial stone articles for use in construction, see 23.61
 ```
 
-2. Creates a function (or a method) to build a Qdrant `PointStruct` like dictionnary, like below:
-
-```python
-
-from typing import Optional
-from uuid import uuid5, NAMESPACE_DNS
-
-def to_qdrant_point(
-    code: str,
-    heading: str,
-    text: str,
-    level: int,
-    parent_code: str,
-    embedding_vector: list[float],
-) -> dict:
-    return {
-        "id": str(uuid5(NACE_NAMESPACE, code)), # Strickly standardized id 
-        "vector": embedding_vector,
-        "payload": {
-            "code": code,
-            "heading": heading,
-            "level": self.level,
-            "parent_code": self.parent_code,
-            # Storing the text used for embedding enables inspection and debugging
-            "text": text,
-        },
-    }
-
-```
 
 ```{python}
 #| code-fold: true
@@ -238,7 +209,6 @@ class NaceDocument:
     def to_embedding_text(
         self,
         *,
-        include_hierarchy: bool = False,
         include_includes_also: bool = False,
         include_excludes: bool = False,
     ) -> str:
@@ -277,13 +247,11 @@ class NaceDocument:
         self,
         vector: list[float],
         *,  # Same keyword-only pattern as to_embedding_text
-        parent_chain: list[str] | None = None,
         include_includes_also: bool = False,
         include_excludes: bool = False,
     ) -> dict:
         # Build the text here so payload["text"] always matches the embedded vector
         text = self.to_embedding_text(
-            parent_chain=parent_chain,
             include_includes_also=include_includes_also,
             include_excludes=include_excludes,
         )
@@ -303,21 +271,225 @@ class NaceDocument:
         }
 ```
 
-3. Create a text from a single Nace code, with or without `Exludes` field
+2. Create a text from a single Nace code, with or without `Exludes` field
 
 ```{python}
+#| code-fold: true
+#| code-summary: Click to see the answer
+#| code-overflow: scroll
+#| output: true
+
+
+from pprint import pprint
+
 i = 50
+print("Printing index i:")
+pprint(i)
+
+print("\nPrinting raw NACE example:")
 nace_example = nace[i]
-doc_example = NaceDocument(nace_example)
+pprint(nace_example)
+
+print("\nPrinting processed NaceDocument:")
+doc_example = NaceDocument.from_raw(nace_example)
+pprint(doc_example)
+
+print("\nPrinting text to embed (with exlusions):")
+text_example = doc_example.to_embedding_text(
+    include_includes_also=True,
+    include_excludes=True,
+)
+pprint(text_example)
+
+print("\nPrinting text to embed (WITHOUT exlusions):")
 text_example = doc_example.to_embedding_text(
     include_includes_also=True,
     include_excludes=False,
 )
-text_example
+pprint(text_example)
+
 ```
+
+
+3. One all good, loop it : create a proper text for each NACE code (`with Excludes` field) and store it in a list called `texts_to_embed`
+
+```{python}
+#| code-fold: true
+#| code-summary: Click to see the answer
+#| code-overflow: scroll
+#| output: true
+
+texts_to_embed = []
+nace_documents = []
+for nace_code in nace:
+
+    doc = NaceDocument.from_raw(nace_code)
+    
+    texts_to_embed.append(
+        doc.to_embedding_text(
+            include_includes_also=True,
+            include_excludes=True,
+        )
+    )
+
+#     payloads.append(
+#         doc.to_qdrant_point(text,
+#             include_includes_also=True,
+#             include_excludes=True,
+# )
+#     ) 
+
+print("\nPrinting first element of texts_to_embed:")
+print("\n-----------------------------------------\n")
+print(texts_to_embed[0])
+```
+
 :::
 
 
+
+## 3. Embed your NACE text descriptions
+
+Fine! 
+For now, let's choose an embedding model (e.g. a large langage model able to transform a text to a _quite_ smart numerical vector).
+We will use `Qwen3-Embedding-8B`, available on HuggingFace🤗 (like all other models provided by `llm.lab`)! 
+
+For a later use, we need to know the dimension of the vectors given by our model. Here, the size is 4096 (don't trust me, check yourself on the [hf page](https://huggingface.co/Qwen/Qwen3-Embedding-8B)).
+
+
+```{python}
+
+# Embedding model parameters
+emb_model = "qwen3-embedding:8b"
+emb_dim = 4096
+```
+
+
+::: {.callout-tip collapse="false" icon=false}
+## `<i class="bi bi-book"></i>`{=html} Exercice 3: create a Qdrant vector store and feed it with embedded NACE text descriptions
+
+1. Use your `client_qdrant` and the method `recreate_collection` to create an new Qdrant collection (e.g: a new vector database). For example, call it __nace-collection__.
+
+```{python}
+
+#| code-fold: true
+#| code-summary: Click to see the answer
+#| code-overflow: scroll
+
+
+from qdrant_client.models import Distance, VectorParams
+
+qdrant_collection_name = "nace-collection"
+client_qdrant.recreate_collection(
+    collection_name=qdrant_collection_name,
+    vectors_config=VectorParams(
+        size=emb_dim,
+        distance=Distance.COSINE
+    )
+)
+```
+
+So far, you should see your new empty collection from Qdrant's UI:
+
+![New Qdrant collection](img/qdrant_new_collection.png)
+
+2. Use your `client_llmlab` and the method `.embeddings.create` to embed your NACE descriptions created earlier. Store your vectors in an `embeddings` object.
+
+```{python}
+#| code-fold: true
+#| code-summary: Click to see the answer
+#| code-overflow: scroll
+
+embeddings = []
+
+for i, text in enumerate(texts_to_embed[:25]):
+    try:
+        response = client_llmlab.embeddings.create(
+            model=emb_model,
+            input=text
+        )
+        embeddings.append(response.data[0].embedding)
+
+        # 
+        if (i + 1) % 10 == 0:
+            print(f"Processed {i + 1}/{len(texts_to_embed)} embeddings")
+    
+    except Exception as e:
+        print(f"Failed to generate embedding for document {i}: {str(e)}")
+        continue
+```
+
+3. Inspect your embeddings:
+
+```{python}
+#| code-fold: true
+#| code-summary: Click to see the answer
+#| code-overflow: scroll
+#| output: true
+
+print("\nPrinting first element of embeddings:")
+print(embeddings[0])
+
+print(f"\nNumber of vectors: {len(embeddings)}")
+
+print(f"\nLength of each vector: {len(embeddings[0])}")
+
+```
+
+ 
+4. Creates a function (or a method) to build a Qdrant `PointStruct` like dictionnary, like below. This structure is required by the Qdrant API.
+
+```python
+
+{
+    "id": ..., # Strickly standardized id 
+    "vector": ..., # embedding_vector
+    "payload": {
+        "code": ...,
+        "heading": ...,
+        "level": ...,
+        "parent_code": ...,
+        "text": text, # to help inspection in Qdrant's UI
+    },
+}
+
+```
+
+```{python}
+
+#| code-fold: true
+#| code-summary: Click to see the answer
+#| code-overflow: scroll
+#| output: true
+
+from uuid import uuid5, NAMESPACE_DNS
+NACE_NAMESPACE = uuid5(NAMESPACE_DNS, "nace-rev2")
+
+def to_qdrant_point(
+    nace: NaceDocument,
+    text: str,
+    vector: list[float],
+    include_includes_also: bool = False,
+    include_excludes: bool = False,
+) -> dict:
+
+    return {
+        # uuid5 is deterministic: same namespace + code always yields the same UUID
+        # stable across runs, valid for Qdrant, no hacky string manipulation needed
+        "id": str(uuid5(NACE_NAMESPACE, self.code)),
+        "vector": vector,
+        "payload": {
+            "code": nace_dict.code,
+            "level": nace_dict.level,
+            "parent_code": nace_dict.parent_code,
+            # Storing the text used for embedding enables inspection and debugging
+            "text": text,
+        },
+    }
+```
+
+5. Feed your Qrant collection with your embedding vectors, using the payload structure.
+:::
 
 ::: {.callout-note}
 
@@ -330,19 +502,14 @@ It bundles together the three components Qdrant needs to store and query a point
 Passing raw dicts directly to the Qdrant API would require manual serialization and validation — PointStruct handles that for you and ensures the data is correctly typed before being sent to the server. It's essentially the contract between your Python code and the Qdrant collection.
 :::
 
-## 3. Embed your NACE items
+::: {.callout-important}
 
-Fine! 
-For now, let's choose an embedding model (e.g. a large langage model able to transform a text to a _quite_ smart numerical vector).
-We will use `Qwen3-Embedding-8B`, available on HuggingFace🤗 (like all other models provided by `llm.lab`)! 
+## Limitations of the teaching approach
 
-For a later use, we need to know the dimension of the vectors given by our model. Here, the size is 4096 (don't trust me, check yourself on the [hf page](https://huggingface.co/Qwen/Qwen3-Embedding-8B)).
+Please note that this workflow is __not optimized at all__.
 
+Here, we intentionally adopt a step-by-step approach to support learning. In a production-ready setup, however, the workflow would be batched and asynchronous, with embeddings fed into the Qdrant store as soon as they are generated.
 
-```{python}
-# Embedding model parameters
-emb_model = "qwen3-embedding:8b"
-emb_dim = 4096
-```
+Advanced users are welcome to give it a try.
 
-
+:::
