@@ -44,6 +44,8 @@ format:
   html:
     theme:
       light: [cosmo, custom.scss]
+    grid:
+      body-width: 1100px
     toc: true
     reference-location: margin
     code-copy: true

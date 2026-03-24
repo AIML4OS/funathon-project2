@@ -4,7 +4,7 @@ title: RAG approach - Create a vectorial database
 
 format:
   html:
-    number-sections: true
+    number-sections: false
     output: false
     warning: false
 ---
@@ -14,6 +14,7 @@ format:
 This first part will show you how to build a vectorial database, e.g the "augmented" knowledge aimed to guide your LLM's reponses.
 
 The simplified workflow will be as follows : 
+
 - 0. Create a proper working environment with all needed connections (__s3__, __qdrant__ and __llm.lab__)
 - 1. Take the NACE2.1 codes definitions (code + title, + inclusions + exclusions in plain text)
 - 2. Concatenate these pieces of information for each unique NACE (one code => 1 text)
@@ -28,7 +29,10 @@ The simplified workflow will be as follows :
 ::: {.callout-tip collapse="false" icon=false}
 ## `<i class="bi bi-book"></i>`{=html} Exercice 1: Connections
 
-0. Load your secrets stored in the `.env` file into your environment.
+### Question 0 : 
+
+- Load your secrets stored in the `.env` file into your environment.
+
 
 ```{python}
 #| label: dotenv
@@ -42,13 +46,18 @@ from dotenv import load_dotenv
 load_dotenv()
 ```
 
-1. Create your __llm.lab__ connection using `openai` client. Please name this client `client_llmlab`.
+
+### Question 1 : 
+
+- Create your __llm.lab__ connection using `openai` client. Please name this client `client_llmlab`.
 
 You will need to use your creds `os.environ["LLMLAB_URL"]` and `os.environ["LLMLAB_API_KEY"]` (see the previous chapter).
 
 More information [here](https://github.com/openai/openai-python).
 
-2. Print all the available models (kindly made available to everyone by the SSPcloud team ❤️)
+### Question 2
+
+- Print all the available models (kindly made available to everyone by the SSPcloud team ❤️)
 
 You can notice the `llm.lab` plateform provides both __generation__ and __embedding__ models.
 
@@ -59,6 +68,7 @@ TO COMPLETE: explanations about openai client
 #| code-fold: true
 #| code-summary: Click to see the answer
 #| code-overflow: scroll
+#| output: true
 
 from openai import OpenAI
 
@@ -74,11 +84,13 @@ for model in models.data:
 
 ```
 
-3. Create a connection to your Qdrant server. Please name it `client_qdrant`.
+### Question 3
+
+- Create a connection to your Qdrant server. Please name it `client_qdrant`.
+- Check all your existing collections (= databases). Probably not a single one for now.
 
 Find the documentation [here](https://python-client.qdrant.tech/) to dive deeper 😉.
 
-4. Check all your existing collections (= databases). Probably not a single one for now.
 
 ```{python}
 #| label: client_qdrant
@@ -99,23 +111,23 @@ for collection in collections.collections:
     print(collection.name)
 
 ```
-
-
 :::
+
+
 
 
 # Get and process NACE data
 
 Time to import our data: the official NACE2.1 definitions!
 
-The data are stored in the s3 storing system of the SSPCloud plateform (uploaded from [Eurostat](https://showvoc.op.europa.eu/#/datasets/ESTAT_Statistical_Classification_of_Economic_Activities_in_the_European_Community_Rev._2.1._%28NACE_2.1%29/downloads))
-
-
+The data are stored in the s3 storage system of the SSPCloud plateform (uploaded from [Eurostat](https://showvoc.op.europa.eu/#/datasets/ESTAT_Statistical_Classification_of_Economic_Activities_in_the_European_Community_Rev._2.1._%28NACE_2.1%29/downloads))
 
 ::: {.callout-tip collapse="false" icon=false}
 ## `<i class="bi bi-book"></i>`{=html} Exercice 2: handle NACE data
 
-1. Import NACE data (please, no dataframe: use the structure below)
+### Question 1
+
+- Import NACE data (for example, as a list of dictionnaries with the structure below)
 
 ```{python}
 #| label: import-nace-data
@@ -135,26 +147,49 @@ query_definition = f"SELECT * FROM read_csv('{path_nace}')"
 table = con.execute(query_definition).fetch_arrow_table()
 nace = table.to_pylist()
 
-nace = nace[:100] # /!\ TO REMOVE
 nace[22]
 
 ```
 
-1. Build a class `NaceDocument` that will help you handling your NACE documents : 
+### Question 2
+
+- Build a class `NaceDocument` that will help you handling your NACE documents : 
 
     - Cleans features ('HEADING', 'Includes', etc.)
     - Checks your data (example: hierarchical coherence)
-    - Creates a structured text for each code, ready to embed (for example, with a `to_embedding_text` method). The best would be to be parametrize whether to include or not each possible feature (e.g : text with or without "Excludes" feature). This text coul be stored in a new attribute `text_to_embed`. For example: 
+    - Creates a structured text for each code :
+        - example: attribute `text_to_embed`, created by a `to_embedding_text` method, 
+        - this text will be ready to be embedded, 
+        - Best would be to be parametrize whether to include or not each possible field (e.g : text with or without "Excludes" feature). 
+
+See an example of a cleanned and ready for embedding text : 
 
 ```markdown
-Code: 23.66 Title: Manufacture of other articles of concrete, cement and plaster Includes: This class includes:\n- manufacture of other articles of concrete, plaster or of compositions based on plaster, cement or artificial stone (e.g. statuary, bas- and haut-reliefs, vases, flowerpots) Excludes: This class excludes:\n- manufacture of precast concrete, cement or artificial stone articles for use in construction, see 23.61
+# Code: 03.11
+# Title: Marine fishing
+
+## Includes:
+This class includes:
+- fishing on a commercial basis in ocean and coastal waters
+- taking of marine crustaceans and molluscs
+- whaling
+- taking of marine aquatic animals (e.g. turtles, sea squirts, tunicates, sea urchins)
+
+## Also includes:
+This class also includes:
+- gathering of other marine organisms and materials (e.g. natural pearls, sponges, coral, seaweed, algae)
+
+## Also includes:
+
+This class also includes:
+- gathering of other marine organisms and materials (e.g. natural pearls, sponges, coral, seaweed, algae)
 ```
 
 
 ```{python}
 #| label: NaceDocument-class
 #| code-fold: true
-#| code-summary: Click to see an class-like answer
+#| code-summary: Click to see the answer
 #| code-overflow: scroll
 
 from dataclasses import dataclass, field
@@ -255,9 +290,12 @@ for nace_code in nace:
 
 ```
 
-2. Create a text from a single Nace code, with or without `Exludes` field
+### Question 3
+
+- Create a text from a single Nace code example, with or without `Exludes` field
 
 ```{python}
+#| label: text-example
 #| code-fold: true
 #| code-summary: Click to see the answer
 #| code-overflow: scroll
@@ -294,26 +332,8 @@ pprint(doc_example.text_to_embed)
 
 ```
 
-
-3. Once all good, add a text_to_embed field and loop it : 
-
-- Update your `NaceDocument` class to add a `texts_to_embed` field (proper text for each NACE code, __with Excludes field__)
-- Create all your `NaceDocument` instances 
-
-```{python}
-#| label: up-for-text
-#| code-fold: true
-#| code-summary: Click to see the answer
-#| code-overflow: scroll
-#| output: true
-
-print("\nPrinting first element of nace_documents:")
-print("\n-----------------------------------------\n")
-print(nace_documents[0])
-
-```
-
 :::
+
 
 # Embed your NACE text descriptions
 
@@ -336,7 +356,9 @@ emb_dim = 4096
 ::: {.callout-tip collapse="false" icon=false}
 ## `<i class="bi bi-book"></i>`{=html} Exercice 3: create a Qdrant vector store and feed it with embedded NACE text descriptions
 
-1. Use your `client_qdrant` and the method `recreate_collection` to create an new Qdrant collection (e.g: a new vector database). For example, call it __nace-collection__.
+### Question 1 : 
+
+- Use your `client_qdrant` and the method `recreate_collection` to create an new Qdrant collection (e.g: a new vector database). For example, call it __nace-collection__.
 
 ```{python}
 
@@ -361,13 +383,15 @@ So far, you should see your new empty collection from Qdrant's UI:
 
 ![New Qdrant collection](img/qdrant_new_collection.png)
 
-2. Use your `client_llmlab` and the method `.embeddings.create` to embed your NACE descriptions created earlier. 
+### Question 2
 
-- When it's ok, update your `NaceDocument` class like previously:
+Use your `client_llmlab` and the method `.embeddings.create` to embed your NACE descriptions created earlier. 
+
+- a) Update your `NaceDocument` class like previously:
     - Add a `get_embeddings` method (not called by the constructor) that generates an embedding vector for a `NaceDocument` instance.
-    - The method stores the embeddings in a `vector` field.
-- Try it on a couple of Nace documents (not to launch 1,047 requests to llm.lab)
-- Inspect your embedding vectors
+    - The method stores the embeddings in a new `vector` attribute.
+- b) Try it on a couple of Nace documents (not to launch 1,047 requests)
+- c) Inspect your embedding vectors
 
 ```{python}
 #| label: up-nacedocument-emb
@@ -502,8 +526,9 @@ for nace_doc in nace_documents:
 
 ```
 
+### Question 3
 
-3. Inspect your embeddings:
+- Inspect your embeddings
 
 ```{python}
 #| label: check-embeddings
@@ -522,8 +547,9 @@ print(f"\nLength of this vector: {len(nace_documents[0].vector)}")
 
 ```
 
+### Question 4
 
-4. Creates a new method to build a Qdrant `PointStruct` like dictionnary (see below). This structure is required by the Qdrant API.
+- Creates a new method to build a Qdrant `PointStruct` like dictionnary (see below). This structure is required by the Qdrant API.
 
 ```python
 
@@ -542,11 +568,10 @@ print(f"\nLength of this vector: {len(nace_documents[0].vector)}")
 ```
 
 ```{python}
-
+#| label: up-nacedocument-points
 #| code-fold: true
 #| code-summary: Click to see the answer
 #| code-overflow: scroll
-#| output: true
 
 
 from dataclasses import dataclass, field
@@ -672,8 +697,9 @@ class NaceDocument:
 
 ```
 
+### Question 5
 
-5. Recreate your Nace documents, all your embeddings and generate all points (PointStruc).
+- Recreate your Nace documents, all your embeddings and generate all points (PointStruc).
 
 ::: {.callout-caution}
 
@@ -687,12 +713,13 @@ class NaceDocument:
 
 ```{python}
 
+#| label: gen-all-points
 #| code-fold: true
 #| code-summary: Click to see the answer
 #| code-overflow: scroll
 #| output: true
 
-sample_size = 10  # /!\ TO REMOVE
+sample_size = 10  # /!\ Do not use a sample (it's just to build the notebook)
 
 nace_points = []
 
@@ -717,6 +744,7 @@ for nace_code in nace[:sample_size]:
 
 ```{python}
 
+#| label: check-point
 #| code-fold: true
 #| code-summary: Click to see the answer
 #| code-overflow: scroll
@@ -727,16 +755,19 @@ print(nace_points[0])
 
 ```
 
-6. Upload your points into your Qdrant collection, using `client_qdrant.upsert` method. Try to bach it.
+### Question 6
+
+- Upload your points into your Qdrant collection, using `client_qdrant.upsert` method. Try to bach it.
 
 ```{python}
 
+#| label: feed-qdrant
 #| code-fold: true
 #| code-summary: Click to see the answer
 #| code-overflow: scroll
 #| output: true
 
-upload_batch_size = 2
+upload_batch_size = 10
 
 for i in range(0, len(nace_points), upload_batch_size):
     batch = nace_points[i:i + upload_batch_size]
@@ -752,7 +783,9 @@ for i in range(0, len(nace_points), upload_batch_size):
 
 ```
 
-7. Inspect your Qdrant collection. It should contain 1,047 vectors.
+### Question 7
+
+- Inspect your Qdrant collection. It should contain 1,047 vectors.
 
 ![Qdrant vector store after upsert step](img/qdrant_populated_collection.png)
 
