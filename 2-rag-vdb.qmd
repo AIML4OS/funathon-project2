@@ -118,7 +118,7 @@ The data are stored in the s3 storing system of the SSPCloud plateform (uploaded
 1. Import NACE data (please, no dataframe: use the structure below)
 
 ```{python}
-#| label: get-nace-data
+#| label: import-nace-data
 #| code-fold: true
 #| code-summary: Click to see the answer
 #| code-overflow: scroll
@@ -144,7 +144,7 @@ nace[22]
 
     - Cleans features ('HEADING', 'Includes', etc.)
     - Checks your data (example: hierarchical coherence)
-    - Creates a structured text for each code, ready to embed (for example, with a `to_embedding_text` method). The best would be to be parametrize whether to include or not each possible feature (e.g : text with or without "Excludes" feature). For example: 
+    - Creates a structured text for each code, ready to embed (for example, with a `to_embedding_text` method). The best would be to be parametrize whether to include or not each possible feature (e.g : text with or without "Excludes" feature). This text coul be stored in a new attribute `text_to_embed`. For example: 
 
 ```markdown
 Code: 23.66 Title: Manufacture of other articles of concrete, cement and plaster Includes: This class includes:\n- manufacture of other articles of concrete, plaster or of compositions based on plaster, cement or artificial stone (e.g. statuary, bas- and haut-reliefs, vases, flowerpots) Excludes: This class excludes:\n- manufacture of precast concrete, cement or artificial stone articles for use in construction, see 23.61
@@ -152,15 +152,13 @@ Code: 23.66 Title: Manufacture of other articles of concrete, cement and plaster
 
 
 ```{python}
-#| label: NaceDocument-classe
+#| label: NaceDocument-class
 #| code-fold: true
 #| code-summary: Click to see an class-like answer
 #| code-overflow: scroll
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
-from uuid import uuid5, NAMESPACE_DNS
-
 
 def _clean(value) -> Optional[str]:
     """Normalize to stripped single-line string, or None if empty/missing."""
@@ -172,165 +170,6 @@ def _clean(value) -> Optional[str]:
     cleaned = " ".join(str(value).replace("\n", " ").split())
     # Empty string is falsy in Python — return None instead for consistency
     return cleaned or None
-
-
-# Dedicated UUID namespace for NACE codes — avoids collisions with other data
-# that might also use NAMESPACE_DNS in the same Qdrant collection
-NACE_NAMESPACE = uuid5(NAMESPACE_DNS, "nace-rev2")
-
-
-@dataclass  # Generates __init__, __repr__, __eq__ from field annotations
-class NaceDocument:
-    code: str
-    heading: str
-    level: int
-    parent_code: Optional[str] = None
-    includes: Optional[str] = None
-    includes_also: Optional[str] = None
-    excludes: Optional[str] = None
-
-    @classmethod
-    def from_raw(cls, raw: dict) -> "NaceDocument":
-        for key in ("CODE", "HEADING", "LEVEL"):
-            if not raw.get(key):
-                raise ValueError(f"Missing required field: {key}")
-
-        # Cast to int — LEVEL may come as string from CSV/JSON sources
-        level = int(raw["LEVEL"])
-        # NACE2.1 has exactly 4 levels: section, division, group, class
-        if not (1 <= level <= 4):
-            raise ValueError(f"Invalid level: {level}")
-
-        # cls() instead of NaceDocument() — works correctly if the class is subclassed
-        return cls(
-            code=str(raw["CODE"]).strip(),
-            heading=_clean(raw["HEADING"]),
-            level=level,
-            # .get() returns None if key is absent — _clean handles None gracefully
-            parent_code=_clean(raw.get("PARENT_CODE")),
-            includes=_clean(raw.get("Includes")),
-            includes_also=_clean(raw.get("IncludesAlso")),
-            excludes=_clean(raw.get("Excludes")),
-        )
-
-    def to_embedding_text(
-        self,
-        *,
-        include_includes_also: bool = False,
-        include_excludes: bool = False,
-    ) -> str:
-        parts = []
-
-        # Header (format Markdown avec #)
-        parts.append(f"# Code: {self.code}")
-        parts.append(f"# Title: {self.heading}")
-
-        # Includes (section principale)
-        if self.includes:
-            parts.append("")
-            parts.append("## Includes:")
-            parts.append(self.includes.strip())
-
-        # Includes also (optionnel)
-        if include_includes_also and self.includes_also:
-            parts.append("")
-            parts.append("## Also includes:")
-            parts.append(self.includes_also.strip())
-
-        # Excludes (optionnel)
-        if include_excludes and self.excludes:
-            parts.append("")
-            parts.append("## Excludes:")
-            parts.append(self.excludes.strip())
-
-        # Nettoyage léger :
-        # - remplace les "\n" échappés par de vrais retours ligne
-        output = "\n".join(parts)
-        output = output.replace("\\n", "\n")
-
-        return output.strip()
-
-    def to_qdrant_point(
-        self,
-        vector: list[float],
-        *,  # Same keyword-only pattern as to_embedding_text
-        include_includes_also: bool = False,
-        include_excludes: bool = False,
-    ) -> dict:
-        # Build the text here so payload["text"] always matches the embedded vector
-        text = self.to_embedding_text(
-            include_includes_also=include_includes_also,
-            include_excludes=include_excludes,
-        )
-        return {
-            # uuid5 is deterministic: same namespace + code always yields the same UUID
-            # stable across runs, valid for Qdrant, no hacky string manipulation needed
-            "id": str(uuid5(NACE_NAMESPACE, self.code)),
-            "vector": vector,
-            "payload": {
-                "code": self.code,
-                "heading": self.heading,
-                "level": self.level,
-                "parent_code": self.parent_code,
-                # Storing the text used for embedding enables inspection and debugging
-                "text": text,
-            },
-        }
-```
-
-2. Create a text from a single Nace code, with or without `Exludes` field
-
-```{python}
-#| code-fold: true
-#| code-summary: Click to see the answer
-#| code-overflow: scroll
-#| output: true
-
-
-from pprint import pprint
-
-i = 50
-print("Printing index i:")
-pprint(i)
-
-print("\nPrinting raw NACE example:")
-nace_example = nace[i]
-pprint(nace_example)
-
-print("\nPrinting processed NaceDocument:")
-doc_example = NaceDocument.from_raw(nace_example)
-pprint(doc_example)
-
-print("\nPrinting text to embed (with exlusions):")
-text_example = doc_example.to_embedding_text(
-    include_includes_also=True,
-    include_excludes=True,
-)
-pprint(text_example)
-
-print("\nPrinting text to embed (WITHOUT exlusions):")
-text_example = doc_example.to_embedding_text(
-    include_includes_also=True,
-    include_excludes=False,
-)
-pprint(text_example)
-
-```
-
-
-3. Once all good, loop it : 
-
-- Update your `NaceDocument` class to add a `texts_to_embed` field (proper text for each NACE code, __with Excludes field__)
-- Create all your `NaceDocument` instances 
-
-```{python}
-#| label: up-for-text
-#| code-fold: true
-#| code-summary: Click to see the answer
-#| code-overflow: scroll
-#| output: true
-from dataclasses import dataclass, field
-from typing import Optional
 
 @dataclass
 class NaceDocument:
@@ -412,6 +251,62 @@ for nace_code in nace:
         )
     )
     
+
+
+```
+
+2. Create a text from a single Nace code, with or without `Exludes` field
+
+```{python}
+#| code-fold: true
+#| code-summary: Click to see the answer
+#| code-overflow: scroll
+#| output: true
+
+
+from pprint import pprint
+
+i = 50
+print("Printing index i:")
+pprint(i)
+
+print("\nPrinting raw NACE example:")
+nace_example = nace[i]
+pprint(nace_example)
+
+print("\nPrinting processed NaceDocument:")
+doc_example = NaceDocument.from_raw(nace_example)
+pprint(doc_example)
+
+print("\nPrinting text to embed (with exlusions):")
+_ = doc_example.to_embedding_text(
+    include_includes_also=True,
+    include_excludes=True,
+)
+pprint(doc_example.text_to_embed)
+
+print("\nPrinting text to embed (WITHOUT exlusions):")
+_ = doc_example.to_embedding_text(
+    include_includes_also=True,
+    include_excludes=False,
+)
+pprint(doc_example.text_to_embed)
+
+```
+
+
+3. Once all good, add a text_to_embed field and loop it : 
+
+- Update your `NaceDocument` class to add a `texts_to_embed` field (proper text for each NACE code, __with Excludes field__)
+- Create all your `NaceDocument` instances 
+
+```{python}
+#| label: up-for-text
+#| code-fold: true
+#| code-summary: Click to see the answer
+#| code-overflow: scroll
+#| output: true
+
 print("\nPrinting first element of nace_documents:")
 print("\n-----------------------------------------\n")
 print(nace_documents[0])
@@ -468,10 +363,11 @@ So far, you should see your new empty collection from Qdrant's UI:
 
 2. Use your `client_llmlab` and the method `.embeddings.create` to embed your NACE descriptions created earlier. 
 
-- Try it on a single text to test the syntaxe
 - When it's ok, update your `NaceDocument` class like previously:
-    - Add a `get_embeddings` method (not called by the constructor) that generates embedding vectors for a list of `NaceDocument` objects.
-    - Store your embeddings in a `embeddings` object.
+    - Add a `get_embeddings` method (not called by the constructor) that generates an embedding vector for a `NaceDocument` instance.
+    - The method stores the embeddings in a `vector` field.
+- Try it on a couple of Nace documents (not to launch 1,047 requests to llm.lab)
+- Inspect your embedding vectors
 
 ```{python}
 #| label: up-nacedocument-emb
@@ -481,6 +377,7 @@ So far, you should see your new empty collection from Qdrant's UI:
 
 from dataclasses import dataclass, field
 from typing import Optional, List
+
 
 @dataclass
 class NaceDocument:
@@ -493,9 +390,15 @@ class NaceDocument:
     excludes: Optional[str] = None
 
     text_to_embed: str = field(init=False)
+    vector: Optional[List[float]] = field(default=None, init=False)
 
     @classmethod
-    def from_raw(cls, raw: dict, include_includes_also=True, include_excludes=False,) -> "NaceDocument":
+    def from_raw(
+        cls,
+        raw: dict,
+        include_includes_also=True,
+        include_excludes=False,
+    ) -> "NaceDocument":
         for key in ("CODE", "HEADING", "LEVEL"):
             if not raw.get(key):
                 raise ValueError(f"Missing required field: {key}")
@@ -515,8 +418,8 @@ class NaceDocument:
         )
 
         obj.text_to_embed = obj.to_embedding_text(
-            include_includes_also=True,
-            include_excludes=False,
+            include_includes_also=include_includes_also,
+            include_excludes=include_excludes,
         )
 
         return obj
@@ -552,30 +455,22 @@ class NaceDocument:
 
         return output.strip()
 
-    @staticmethod
     def get_embeddings(
-        docs: List["NaceDocument"],
+        self,
         client_llmlab,
         emb_model: str,
-    ) -> List[List[float]]:
-        embeddings = []
+    ) -> List[float]:
+        try:
+            response = client_llmlab.embeddings.create(
+                model=emb_model,
+                input=self.text_to_embed
+            )
 
-        for i, doc in enumerate(docs):
-            try:
-                response = client_llmlab.embeddings.create(
-                    model=emb_model,
-                    input=doc.text_to_embed
-                )
-                embeddings.append(response.data[0].embedding)
+            self.vector = response.data[0].embedding
+            return self.vector
 
-                if (i + 1) % 10 == 0:
-                    print(f"Processed {i + 1}/{len(docs)} embeddings")
-
-            except Exception as e:
-                print(f"Failed doc {i} ({doc.code}): {str(e)}")
-                continue
-
-        return embeddings
+        except Exception as e:
+            raise RuntimeError(f"Embedding failed for doc {self.code}: {str(e)}")
 ```
 
 ```{python}
@@ -585,8 +480,11 @@ class NaceDocument:
 #| code-overflow: scroll
 
 # Recreate your NACE documents (that class has been updated)
+
+sample_size = 10
+
 nace_documents = []
-for nace_code in nace:
+for nace_code in nace[:sample_size]:
     nace_documents.append(
         NaceDocument.from_raw(
             raw=nace_code,
@@ -595,14 +493,15 @@ for nace_code in nace:
         )
     )
 
-embeddings = NaceDocument.get_embeddings(
-    nace_documents,
-    client_llmlab,
-    emb_model,
-)
+for nace_doc in nace_documents:
+    nace_doc.get_embeddings(
+        client_llmlab,
+        emb_model,
+    )
 
 
 ```
+
 
 3. Inspect your embeddings:
 
@@ -613,17 +512,18 @@ embeddings = NaceDocument.get_embeddings(
 #| code-overflow: scroll
 #| output: true
 
-print("\nPrinting first element of embeddings:")
-print(embeddings[0])
+print("\nPrinting the firstdocument:")
+print(nace_documents[0])
 
-print(f"\nNumber of vectors: {len(embeddings)}")
+print("\nPrinting the embeddgin vector of the first document:")
+print(nace_documents[0].vector)
 
-print(f"\nLength of each vector: {len(embeddings[0])}")
+print(f"\nLength of this vector: {len(nace_documents[0].vector)}")
 
 ```
 
 
-4. Creates a function (or a method) to build a Qdrant `PointStruct` like dictionnary, like below. This structure is required by the Qdrant API.
+4. Creates a new method to build a Qdrant `PointStruct` like dictionnary (see below). This structure is required by the Qdrant API.
 
 ```python
 
@@ -648,35 +548,142 @@ print(f"\nLength of each vector: {len(embeddings[0])}")
 #| code-overflow: scroll
 #| output: true
 
+
+from dataclasses import dataclass, field
+from typing import Optional, List
 from uuid import uuid5, NAMESPACE_DNS
 from qdrant_client.models import PointStruct
 
 NACE_NAMESPACE = uuid5(NAMESPACE_DNS, "nace-rev2")
 
-def to_qdrant_point(
-    nace: NaceDocument,
-    text: str,
-    vector: list[float],
-    include_includes_also: bool = True,
-    include_excludes: bool = False,
-) -> PointStruct:
+@dataclass
+class NaceDocument:
+    code: str
+    heading: str
+    level: int
+    parent_code: Optional[str] = None
+    includes: Optional[str] = None
+    includes_also: Optional[str] = None
+    excludes: Optional[str] = None
 
-    return PointStruct(
-        # uuid5 is deterministic: same namespace + code always yields the same UUID
-        # stable across runs, valid for Qdrant, no hacky string manipulation needed
-            id=str(uuid5(NACE_NAMESPACE, nace.code)),
-            vector=vector,
+    text_to_embed: str = field(init=False)
+    vector: Optional[List[float]] = field(default=None, init=False)
+
+    @classmethod
+    def from_raw(
+        cls,
+        raw: dict,
+        include_includes_also=True,
+        include_excludes=False,
+    ) -> "NaceDocument":
+        for key in ("CODE", "HEADING", "LEVEL"):
+            if not raw.get(key):
+                raise ValueError(f"Missing required field: {key}")
+
+        level = int(raw["LEVEL"])
+        if not (1 <= level <= 4):
+            raise ValueError(f"Invalid level: {level}")
+
+        obj = cls(
+            code=str(raw["CODE"]).strip(),
+            heading=_clean(raw["HEADING"]),
+            level=level,
+            parent_code=_clean(raw.get("PARENT_CODE")),
+            includes=_clean(raw.get("Includes")),
+            includes_also=_clean(raw.get("IncludesAlso")),
+            excludes=_clean(raw.get("Excludes")),
+        )
+
+        obj.text_to_embed = obj.to_embedding_text(
+            include_includes_also=include_includes_also,
+            include_excludes=include_excludes,
+        )
+
+        return obj
+
+    def to_embedding_text(
+        self,
+        *,
+        include_includes_also: bool = False,
+        include_excludes: bool = False,
+    ) -> str:
+        parts = []
+
+        parts.append(f"# Code: {self.code}")
+        parts.append(f"# Title: {self.heading}")
+
+        if self.includes:
+            parts.append("")
+            parts.append("## Includes:")
+            parts.append(self.includes.strip())
+
+        if include_includes_also and self.includes_also:
+            parts.append("")
+            parts.append("## Also includes:")
+            parts.append(self.includes_also.strip())
+
+        if include_excludes and self.excludes:
+            parts.append("")
+            parts.append("## Excludes:")
+            parts.append(self.excludes.strip())
+
+        output = "\n".join(parts)
+        output = output.replace("\\n", "\n")
+
+        return output.strip()
+
+    def get_embeddings(
+        self,
+        client_llmlab,
+        emb_model: str,
+    ) -> List[float]:
+        try:
+            response = client_llmlab.embeddings.create(
+                model=emb_model,
+                input=self.text_to_embed
+            )
+
+            self.vector = response.data[0].embedding
+            return self.vector
+
+        except Exception as e:
+            raise RuntimeError(f"Embedding failed for doc {self.code}: {str(e)}")
+
+    def to_qdrant_point(
+        self,
+    ) -> PointStruct:
+
+        if not hasattr(self, "vector") or self.vector is None:
+            raise ValueError("vector is missing or Null")
+        return PointStruct(
+            # uuid5 is deterministic: same namespace + code always yields the same UUID
+            # stable across runs, valid for Qdrant, no hacky string manipulation needed
+            id=str(uuid5(NACE_NAMESPACE, self.code)),
+            vector=self.vector,
             payload={
-                "code": nace.code,
-                "level": nace.level,
-                "parent_code": nace.parent_code,
+                "code": self.code,
+                "level": self.level,
+                "parent_code": self.parent_code,
                 # Storing the text used for embedding enables inspection and debugging
-                "text": text,
+                "text": self.text_to_embed,
             }
-    )
+        )
+
+
 ```
 
-5. Feed your Qrant collection with your embedding vectors, using the payload structure.
+
+5. Recreate your Nace documents, all your embeddings and generate all points (PointStruc).
+
+::: {.callout-caution}
+
+### Production standards
+
+- Batching
+- Semaphore
+- Retry
+
+:::
 
 ```{python}
 
@@ -685,25 +692,38 @@ def to_qdrant_point(
 #| code-overflow: scroll
 #| output: true
 
-points = []
-#nace_documents
-for i in range(len(nace_documents)):
-    points.append(
-        to_qdrant_point(
-            nace=nace_documents[i],
-            text=texts_to_embed[i],
-            vector=embeddings[i],
-            include_includes_also = True,
-            include_excludes= False,
-        )
+sample_size = 10  # /!\ TO REMOVE
+
+nace_points = []
+
+for nace_code in nace[:sample_size]:
+    nace_doc = NaceDocument.from_raw(
+        raw=nace_code,
+        include_includes_also=True, 
+        include_excludes=True
     )
 
-print("\nCheck the first PointStruct: ")
-print(points[0])
+    nace_doc.get_embeddings(
+        client_llmlab,
+        emb_model,
+    )
+
+    nace_points.append(
+        nace_doc.to_qdrant_point()
+    )
+
+
 ```
 
 ```{python}
-len(embeddings)
+
+#| code-fold: true
+#| code-summary: Click to see the answer
+#| code-overflow: scroll
+#| output: true
+
+print("\Check the first PointStruct:")
+print(nace_points[0])
 
 ```
 
@@ -716,16 +736,16 @@ len(embeddings)
 #| code-overflow: scroll
 #| output: true
 
-upload_batch_size = 10
+upload_batch_size = 2
 
-for i in range(0, len(points), upload_batch_size):
-    batch = points[i:i + upload_batch_size]
+for i in range(0, len(nace_points), upload_batch_size):
+    batch = nace_points[i:i + upload_batch_size]
     try:
         client_qdrant.upsert(
             collection_name=qdrant_collection_name,
             points=batch
         )
-        print(f"Uploaded batch {i//upload_batch_size + 1}/{(len(points)-1)//upload_batch_size + 1}")
+        print(f"Uploaded batch {i//upload_batch_size + 1}/{(len(nace_points)-1)//upload_batch_size + 1}")
     except Exception as e:
         print(f"Failed to upload batch {i//upload_batch_size + 1}: {str(e)}")
         continue
