@@ -1,7 +1,11 @@
 ---
 title: "Project 2: Automatic coding for NACE classification"
 lang: en-US
-author: 
+author:
+- name: Théo FERRY
+  email: theo.ferry@insee.fr
+  affiliations: 
+      - name: "[Insee](https://www.insee.fr/fr/accueil)"
 - name: Julien PRAMIL
   email: julien.pramil@insee.fr
   affiliations: 
