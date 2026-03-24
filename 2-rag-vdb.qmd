@@ -1,6 +1,6 @@
 ---
 lang: en-EN
-title: RAG approach - Create a vectorial database
+title: RAG pipeline approach - Create a vector database
 
 format:
   html:
@@ -9,19 +9,22 @@ format:
     warning: false
 ---
 
-# Forwords
+# Forewords
 
-This first part will show you how to build a vectorial database, e.g the "augmented" knowledge aimed to guide your LLM's reponses.
+This first part will show you how to build a vector database, e.g the "augmented" knowledge aimed to guide your LLM's responses.
 
 The simplified workflow will be as follows : 
 
 - 0. Create a proper working environment with all needed connections (__s3__, __qdrant__ and __llm.lab__)
-- 1. Take the NACE2.1 codes definitions (code + title, + inclusions + exclusions in plain text)
+- 1. Take the NACE2.1 code definitions (code + title, + inclusions + exclusions in plain text)
 - 2. Concatenate these pieces of information for each unique NACE (one code => 1 text)
-- 3. Embedded all theses texts (1 text => 1 vector point)
-- 4. Update the points into Qdrant (the vectorial database service)
+- 3. Embedded all these texts (1 text => 1 vector point)
+- 4. Update the points into Qdrant (the vector database service)
 
 
+```
+Raw Data → Clean Documents → Embeddings → Vector DB (Qdrant)
+```
 
 # Prepare your environment
 
@@ -53,15 +56,17 @@ load_dotenv()
 
 You will need to use your creds `os.environ["LLMLAB_URL"]` and `os.environ["LLMLAB_API_KEY"]` (see the previous chapter).
 
-More information [here](https://github.com/openai/openai-python).
+More information [here](https://github.com/openai/openai-python) about `OpenAI API`.
 
 ### Question 2
 
 - Print all the available models (kindly made available to everyone by the SSPcloud team ❤️)
 
-You can notice the `llm.lab` plateform provides both __generation__ and __embedding__ models.
+You can notice the `llm.lab` platform provides both __generation__ and __embedding__ models.
 
-TO COMPLETE: explanations about openai client
+::: {.callout-tip}
+The OpenAI API provides a standard way to interact with language models for text generation and embeddings. Here, instead of OpenAI’s cloud, we connect to a remote Ollama server (the *famous* `llm.lab` from the even more famous `SSPCloud`), which hosts the models. The API interface stays the same, so you can generate text or create embeddings with calls like `.completions.create()` or .`embeddings.create()` while all computation happens on your Ollama server.
+:::
 
 ```{python}
 #| label: client_llmlab
@@ -120,14 +125,14 @@ for collection in collections.collections:
 
 Time to import our data: the official NACE2.1 definitions!
 
-The data are stored in the s3 storage system of the SSPCloud plateform (uploaded from [Eurostat](https://showvoc.op.europa.eu/#/datasets/ESTAT_Statistical_Classification_of_Economic_Activities_in_the_European_Community_Rev._2.1._%28NACE_2.1%29/downloads))
+The data are stored in the s3 storage system of the SSPCloud platform (uploaded from [Eurostat](https://showvoc.op.europa.eu/#/datasets/ESTAT_Statistical_Classification_of_Economic_Activities_in_the_European_Community_Rev._2.1._%28NACE_2.1%29/downloads))
 
 ::: {.callout-tip collapse="false" icon=false}
-## `<i class="bi bi-book"></i>`{=html} Exercice 2: handle NACE data
+## `<i class="bi bi-book"></i>`{=html} Exercice 2: handling NACE data
 
 ### Question 1
 
-- Import NACE data (for example, as a list of dictionnaries with the structure below)
+- Import NACE data (for example, as a list of dictionaries with the structure below)
 
 ```{python}
 #| label: import-nace-data
@@ -153,16 +158,16 @@ nace[22]
 
 ### Question 2
 
-- Build a class `NaceDocument` that will help you handling your NACE documents : 
+- Build a class `NaceDocument` that will help you handle your NACE documents : 
 
     - Cleans features ('HEADING', 'Includes', etc.)
     - Checks your data (example: hierarchical coherence)
     - Creates a structured text for each code :
-        - example: attribute `text_to_embed`, created by a `to_embedding_text` method, 
+        - example: attribute `text`, created by a `to_embedding_text` method, 
         - this text will be ready to be embedded, 
-        - Best would be to be parametrize whether to include or not each possible field (e.g : text with or without "Excludes" feature). 
+        - It would be best to parametrize whether to include or not each possible field (e.g : text with or without "Excludes" feature). 
 
-See an example of a cleanned and ready for embedding text : 
+See an example of a cleaned and ready text for embedding: 
 
 ```markdown
 # Code: 03.11
@@ -216,10 +221,10 @@ class NaceDocument:
     includes_also: Optional[str] = None
     excludes: Optional[str] = None
 
-    text_to_embed: str = field(init=False)
+    text: str = field(init=False)
 
     @classmethod
-    def from_raw(cls, raw: dict, include_includes_also=True, include_excludes=False,) -> "NaceDocument":
+    def from_raw(cls, raw: dict, with_includes_also=True, with_excludes=False,) -> "NaceDocument":
         for key in ("CODE", "HEADING", "LEVEL"):
             if not raw.get(key):
                 raise ValueError(f"Missing required field: {key}")
@@ -238,9 +243,9 @@ class NaceDocument:
             excludes=_clean(raw.get("Excludes")),
         )
 
-        obj.text_to_embed = obj.to_embedding_text(
-            include_includes_also=include_includes_also,
-            include_excludes=include_excludes,
+        obj.text = obj.to_embedding_text(
+            with_includes_also=with_includes_also,
+            with_excludes=with_excludes,
         )
 
         return obj
@@ -248,8 +253,8 @@ class NaceDocument:
     def to_embedding_text(
         self,
         *,
-        include_includes_also: bool = False,
-        include_excludes: bool = False,
+        with_includes_also: bool = False,
+        with_excludes: bool = False,
     ) -> str:
         parts = []
 
@@ -261,12 +266,12 @@ class NaceDocument:
             parts.append("## Includes:")
             parts.append(self.includes.strip())
 
-        if include_includes_also and self.includes_also:
+        if with_includes_also and self.includes_also:
             parts.append("")
             parts.append("## Also includes:")
             parts.append(self.includes_also.strip())
 
-        if include_excludes and self.excludes:
+        if with_excludes and self.excludes:
             parts.append("")
             parts.append("## Excludes:")
             parts.append(self.excludes.strip())
@@ -281,8 +286,8 @@ for nace_code in nace:
     nace_documents.append(
         NaceDocument.from_raw(
             raw=nace_code,
-            include_includes_also=True, 
-            include_excludes=True
+            with_includes_also=True, 
+            with_excludes=True
         )
     )
     
@@ -292,7 +297,7 @@ for nace_code in nace:
 
 ### Question 3
 
-- Create a text from a single Nace code example, with or without `Exludes` field
+- Create a text from a single Nace code example, with or without `Excludes` field
 
 ```{python}
 #| label: text-example
@@ -308,27 +313,33 @@ i = 50
 print("Printing index i:")
 pprint(i)
 
-print("\nPrinting raw NACE example:")
+print("=============================================")
+print("=============================================")
+
+# print("\nPrinting raw NACE example:")
 nace_example = nace[i]
-pprint(nace_example)
+# pprint(nace_example)
 
-print("\nPrinting processed NaceDocument:")
+# print("\nPrinting processed NaceDocument:")
 doc_example = NaceDocument.from_raw(nace_example)
-pprint(doc_example)
+#pprint(doc_example)
 
-print("\nPrinting text to embed (with exlusions):")
+print("\nPrinting text to embed (WITH exclusions):")
 _ = doc_example.to_embedding_text(
-    include_includes_also=True,
-    include_excludes=True,
+    with_includes_also=True,
+    with_excludes=True,
 )
-pprint(doc_example.text_to_embed)
+print(doc_example.text)
 
-print("\nPrinting text to embed (WITHOUT exlusions):")
+print("=============================================")
+print("=============================================")
+
+print("\nPrinting text to embed (WITHOUT exclusions):")
 _ = doc_example.to_embedding_text(
-    include_includes_also=True,
-    include_excludes=False,
+    with_includes_also=True,
+    with_excludes=False,
 )
-pprint(doc_example.text_to_embed)
+print(doc_example.text)
 
 ```
 
@@ -338,7 +349,7 @@ pprint(doc_example.text_to_embed)
 # Embed your NACE text descriptions
 
 Fine! 
-For now, let's choose an embedding model (e.g. a large langage model able to transform a text to a _quite_ smart numerical vector).
+For now, let's choose an embedding model (e.g. a large language model able to transform text to __meaningful__ numerical vector).
 We will use `Qwen3-Embedding-8B`, available on HuggingFace🤗 (like all other models provided by `llm.lab`)! 
 
 For a later use, we need to know the dimension of the vectors given by our model. Here, the size is 4096 (don't trust me, check yourself on the [hf page](https://huggingface.co/Qwen/Qwen3-Embedding-8B)).
@@ -358,7 +369,7 @@ emb_dim = 4096
 
 ### Question 1 : 
 
-- Use your `client_qdrant` and the method `recreate_collection` to create an new Qdrant collection (e.g: a new vector database). For example, call it __nace-collection__.
+- Use your `client_qdrant` and the method `recreate_collection` to create a new Qdrant collection (e.g: a new vector database). For example, call it __nace-collection__.
 
 ```{python}
 
@@ -369,9 +380,9 @@ emb_dim = 4096
 
 from qdrant_client.models import Distance, VectorParams
 
-qdrant_collection_name = "nace-collection"
+COLLECTION_NAME = "nace-collection"
 client_qdrant.recreate_collection(
-    collection_name=qdrant_collection_name,
+    collection_name=COLLECTION_NAME,
     vectors_config=VectorParams(
         size=emb_dim,
         distance=Distance.COSINE
@@ -413,15 +424,15 @@ class NaceDocument:
     includes_also: Optional[str] = None
     excludes: Optional[str] = None
 
-    text_to_embed: str = field(init=False)
+    text: str = field(init=False)
     vector: Optional[List[float]] = field(default=None, init=False)
 
     @classmethod
     def from_raw(
         cls,
         raw: dict,
-        include_includes_also=True,
-        include_excludes=False,
+        with_includes_also=True,
+        with_excludes=False,
     ) -> "NaceDocument":
         for key in ("CODE", "HEADING", "LEVEL"):
             if not raw.get(key):
@@ -441,9 +452,9 @@ class NaceDocument:
             excludes=_clean(raw.get("Excludes")),
         )
 
-        obj.text_to_embed = obj.to_embedding_text(
-            include_includes_also=include_includes_also,
-            include_excludes=include_excludes,
+        obj.text = obj.to_embedding_text(
+            with_includes_also=with_includes_also,
+            with_excludes=with_excludes,
         )
 
         return obj
@@ -451,8 +462,8 @@ class NaceDocument:
     def to_embedding_text(
         self,
         *,
-        include_includes_also: bool = False,
-        include_excludes: bool = False,
+        with_includes_also: bool = False,
+        with_excludes: bool = False,
     ) -> str:
         parts = []
 
@@ -464,12 +475,12 @@ class NaceDocument:
             parts.append("## Includes:")
             parts.append(self.includes.strip())
 
-        if include_includes_also and self.includes_also:
+        if with_includes_also and self.includes_also:
             parts.append("")
             parts.append("## Also includes:")
             parts.append(self.includes_also.strip())
 
-        if include_excludes and self.excludes:
+        if with_excludes and self.excludes:
             parts.append("")
             parts.append("## Excludes:")
             parts.append(self.excludes.strip())
@@ -487,7 +498,7 @@ class NaceDocument:
         try:
             response = client_llmlab.embeddings.create(
                 model=emb_model,
-                input=self.text_to_embed
+                input=self.text
             )
 
             self.vector = response.data[0].embedding
@@ -512,8 +523,8 @@ for nace_code in nace[:sample_size]:
     nace_documents.append(
         NaceDocument.from_raw(
             raw=nace_code,
-            include_includes_also=True, 
-            include_excludes=True
+            with_includes_also=True, 
+            with_excludes=True
         )
     )
 
@@ -537,10 +548,10 @@ for nace_doc in nace_documents:
 #| code-overflow: scroll
 #| output: true
 
-print("\nPrinting the firstdocument:")
+print("\nPrinting the first document:")
 print(nace_documents[0])
 
-print("\nPrinting the embeddgin vector of the first document:")
+print("\nPrinting the embedding vector of the first document:")
 print(nace_documents[0].vector)
 
 print(f"\nLength of this vector: {len(nace_documents[0].vector)}")
@@ -549,12 +560,12 @@ print(f"\nLength of this vector: {len(nace_documents[0].vector)}")
 
 ### Question 4
 
-- Creates a new method to build a Qdrant `PointStruct` like dictionnary (see below). This structure is required by the Qdrant API.
+- Creates a new method to build a Qdrant `PointStruct` like dictionary (see below). This structure is required by the Qdrant API.
 
 ```python
 
 {
-    "id": ..., # Strickly standardized id 
+    "id": ..., # strictly standardized id 
     "vector": ..., # embedding_vector
     "payload": {
         "code": ...,
@@ -591,15 +602,15 @@ class NaceDocument:
     includes_also: Optional[str] = None
     excludes: Optional[str] = None
 
-    text_to_embed: str = field(init=False)
+    text: str = field(init=False)
     vector: Optional[List[float]] = field(default=None, init=False)
 
     @classmethod
     def from_raw(
         cls,
         raw: dict,
-        include_includes_also=True,
-        include_excludes=False,
+        with_includes_also=True,
+        with_excludes=False,
     ) -> "NaceDocument":
         for key in ("CODE", "HEADING", "LEVEL"):
             if not raw.get(key):
@@ -619,9 +630,9 @@ class NaceDocument:
             excludes=_clean(raw.get("Excludes")),
         )
 
-        obj.text_to_embed = obj.to_embedding_text(
-            include_includes_also=include_includes_also,
-            include_excludes=include_excludes,
+        obj.text = obj.to_embedding_text(
+            with_includes_also=with_includes_also,
+            with_excludes=with_excludes,
         )
 
         return obj
@@ -629,8 +640,8 @@ class NaceDocument:
     def to_embedding_text(
         self,
         *,
-        include_includes_also: bool = False,
-        include_excludes: bool = False,
+        with_includes_also: bool = False,
+        with_excludes: bool = False,
     ) -> str:
         parts = []
 
@@ -642,12 +653,12 @@ class NaceDocument:
             parts.append("## Includes:")
             parts.append(self.includes.strip())
 
-        if include_includes_also and self.includes_also:
+        if with_includes_also and self.includes_also:
             parts.append("")
             parts.append("## Also includes:")
             parts.append(self.includes_also.strip())
 
-        if include_excludes and self.excludes:
+        if with_excludes and self.excludes:
             parts.append("")
             parts.append("## Excludes:")
             parts.append(self.excludes.strip())
@@ -665,7 +676,7 @@ class NaceDocument:
         try:
             response = client_llmlab.embeddings.create(
                 model=emb_model,
-                input=self.text_to_embed
+                input=self.text
             )
 
             self.vector = response.data[0].embedding
@@ -690,7 +701,7 @@ class NaceDocument:
                 "level": self.level,
                 "parent_code": self.parent_code,
                 # Storing the text used for embedding enables inspection and debugging
-                "text": self.text_to_embed,
+                "text": self.text,
             }
         )
 
@@ -726,8 +737,8 @@ nace_points = []
 for nace_code in nace[:sample_size]:
     nace_doc = NaceDocument.from_raw(
         raw=nace_code,
-        include_includes_also=True, 
-        include_excludes=True
+        with_includes_also=True, 
+        with_excludes=True
     )
 
     nace_doc.get_embeddings(
@@ -757,7 +768,7 @@ print(nace_points[0])
 
 ### Question 6
 
-- Upload your points into your Qdrant collection, using `client_qdrant.upsert` method. Try to bach it.
+- Upload your points into your Qdrant collection, using `client_qdrant.upsert` method. Try to batch it.
 
 ```{python}
 
@@ -773,7 +784,7 @@ for i in range(0, len(nace_points), upload_batch_size):
     batch = nace_points[i:i + upload_batch_size]
     try:
         client_qdrant.upsert(
-            collection_name=qdrant_collection_name,
+            collection_name=COLLECTION_NAME,
             points=batch
         )
         print(f"Uploaded batch {i//upload_batch_size + 1}/{(len(nace_points)-1)//upload_batch_size + 1}")
@@ -788,6 +799,18 @@ for i in range(0, len(nace_points), upload_batch_size):
 - Inspect your Qdrant collection. It should contain 1,047 vectors.
 
 ![Qdrant vector store after upsert step](img/qdrant_populated_collection.png)
+
+```{python}
+
+#| label: check-collection
+#| code-fold: true
+#| code-summary: Click to see the answer
+#| code-overflow: scroll
+#| output: false
+
+count = client_qdrant.count(collection_name=COLLECTION_NAME)
+print(count)
+```
 
 :::
 
@@ -811,5 +834,18 @@ Please note that this workflow is __not optimized at all__.
 Here, we intentionally adopt a step-by-step approach to support learning. In a production-ready setup, however, the workflow would be batched and asynchronous, with embeddings fed into the Qdrant store as soon as they are generated.
 
 Advanced users are welcome to give it a try.
+
+Below, please find a non-exhaustive list of good practices for production-grade workflows : 
+
+- __Batching__: Process multiple documents per request to reduce overhead and improve throughput.
+- __Concurrency Limits__: Restrict the number of simultaneous requests to avoid overwhelming the server.
+- __Retries__: Implement automatic retries for transient network failures or server timeouts.
+- __Progressive Saves__: Save embeddings or processed points incrementally to avoid losing work in case of interruption.
+- __Logging__: Record progress, errors, and metadata for monitoring and debugging.
+- __Monitoring & Alerts__: Track performance metrics, request latency, and error rates.
+- __Validation & Sanity Checks__: Ensure embeddings are generated correctly and vectors are valid before inserting into your vector store.
+- __Resource Management__: Release memory and close connections appropriately to avoid leaks in long-running pipelines.
+- __Idempotency__: Use deterministic IDs for points (e.g., uuid5) so retries or reprocessing don’t create duplicates.
+- __Security & Secrets__: Keep API keys and sensitive data secure and never hardcode them in your code.
 
 :::
