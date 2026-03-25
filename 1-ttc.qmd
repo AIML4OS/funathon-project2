@@ -378,23 +378,86 @@ If a code appears only in the validation or test set and the encoder has never s
 `transform()` will raise an error.
 </details>
 
-3. Define a `TrainingConfig` and launch training. The validation set is passed directly to
-   monitor early stopping.
+3. Define a `TrainingConfig` and launch training on a subsample of the data. The validation
+   set is passed directly to monitor early stopping.
+
+::: {.callout-note appearance="simple"}
+## Note
+For the purposes of this tutorial, we train on a **small subsample** of the data so that
+training completes in a few minutes on CPU (e.g. TRAIN_FRAC = 0.05). A model trained on the full dataset is available
+on MLflow and will be loaded in the next step.
+:::
+
+```{python}
+from torchTextClassifiers.model import TextClassificationModule
+import pytorch_lightning as pl
+import torch
+TRAIN_FRAC = 0.002
+VAL_FRAC = 0.002
+
+X_train_small = X_train[:int(len(X_train) * TRAIN_FRAC)]
+y_train_small = y_train[:int(len(y_train) * TRAIN_FRAC)]
+X_val_small   = X_val[:int(len(X_val) * VAL_FRAC)]
+y_val_small   = y_val[:int(len(y_val) * VAL_FRAC)]
+print("Création du module...")
+module = TextClassificationModule(
+    model=ttc.pytorch_model,
+    loss=torch.nn.CrossEntropyLoss(),
+    optimizer=torch.optim.Adam,
+    optimizer_params={"lr": 1e-3},
+    scheduler=None,
+    scheduler_params=None,
+    scheduler_interval="epoch",
+)
+print("Module créé")
+
+print("Création du Trainer...")
+trainer = pl.Trainer(max_epochs=2, enable_progress_bar=True)
+print("Trainer créé")
+
+print("Lancement fit...")
+from torchTextClassifiers.dataset import TextClassificationDataset
+
+dataset = TextClassificationDataset(
+    texts=X_train_small.tolist(),
+    categorical_variables=None,
+    labels=y_train_small,
+    tokenizer=tokenizer,
+)
+dataloader = dataset.create_dataloader(batch_size=256, num_workers=0, shuffle=True)
+
+trainer.fit(module, dataloader)
+print("Fit terminé")
+print("Fit terminé")
+```
+
 ```{python}
 #| code-fold: true
 #| code-summary: Cliquer pour voir la réponse
 #| code-overflow: scroll
+# Subsample for fast training
+TRAIN_FRAC = 0.002
+VAL_FRAC = 0.002
+
+X_train_small = X_train[:int(len(X_train) * TRAIN_FRAC)]
+y_train_small = y_train[:int(len(y_train) * TRAIN_FRAC)]
+X_val_small   = X_val[:int(len(X_val) * VAL_FRAC)]
+y_val_small   = y_val[:int(len(y_val) * VAL_FRAC)]
+
+print(f"Len X_train: {len(X_train_small)}")
+print(f"Len y_train: {len(y_train_small)}")
+
 training_config = TrainingConfig(
     lr=1e-3,
     batch_size=256,
-    num_epochs=20,
-    patience_early_stopping=5,
-    num_workers=0,
+    num_epochs=5,
+    patience_early_stopping=3,
+    num_workers=8,
 )
 
 ttc.train(
-    X_train=X_train,
-    y_train=y_train,
+    X_train=X_train_small,
+    y_train=y_train_small,
     X_val=X_val,
     y_val=y_val,
     training_config=training_config,
@@ -402,12 +465,31 @@ ttc.train(
 )
 ```
 
+4. The model trained above only saw a fraction of the data. For production-quality predictions,
+   load the **pretrained model** trained on the full dataset, available on MLflow.
+```{python}
+#| code-fold: true
+#| code-summary: Cliquer pour voir la réponse
+#| code-overflow: scroll
+import mlflow
+
+MLFLOW_TRACKING_URI = os.environ["MLFLOW_TRACKING_URI"]
+RUN_ID = os.environ["MLFLOW_RUN_ID"]
+
+mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+
+ttc_full = mlflow.pytorch.load_model(f"runs:/{RUN_ID}/model")
+ttc_full.eval()
+print("Pretrained model loaded successfully.")
+```
 
 <details>
 <summary>Clue here</summary>
-Setting `num_workers=0` avoids multiprocessing issues in notebook environments. You can
-increase it on a multi-core server to speed up data loading.
+The `MLFLOW_TRACKING_URI` and `MLFLOW_RUN_ID` environment variables should be set in your
+`.env` file. The pretrained model was trained on the full dataset with the same architecture
+and tokenizer as above.
 </details>
+
 
 :::
 
