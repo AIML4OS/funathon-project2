@@ -36,30 +36,25 @@ Each row contains a short text description (`label`) and the corresponding NAF c
 import s3fs
 import os
 from dotenv import load_dotenv
-import polars as pl
 
 load_dotenv(override=True)
 ```
 
-2. Instantiate a `s3fs.S3FileSystem` pointing to the SSP Cloud MinIO endpoint, then read
-   the parquet file into a Polars DataFrame. Print the first rows and the total number of
-   observations.
+2. Use DuckDB to load the parquet file directly from a public URL into a pandas DataFrame.
+   Print the first rows and the total number of observations.
 ```{python}
 #| code-fold: true
 #| code-summary: Cliquer pour voir la réponse
 #| code-overflow: scroll
-OUTPUT_PATH = "projet-ape/synthetic_data_test/naive/NAF2025_FR/"
-FILE_NAME = "generation_gpt-oss-120b_temp14_French_fewshot6_exhaustive.parquet"
+import duckdb
+import pandas as pd
 
-fs = s3fs.S3FileSystem(
-    client_kwargs={'endpoint_url': 'https://minio.lab.sspcloud.fr'},
-    key=os.environ["AWS_ACCESS_KEY_ID"],
-    secret=os.environ["AWS_SECRET_ACCESS_KEY"],
-    token=os.environ["AWS_SESSION_TOKEN"]
-)
+con = duckdb.connect(database=":memory:")
+con.execute("INSTALL httpfs;")
+con.execute("LOAD httpfs;")
 
-with fs.open(os.path.join(OUTPUT_PATH, FILE_NAME), 'rb') as f:
-    df = pl.read_parquet(f)
+query = "SELECT * FROM read_parquet('https://minio.lab.sspcloud.fr/projet-formation/diffusion/funathon/2026/project2/generation_None_temp08.parquet')"
+df = con.sql(query).df()
 
 print(df.head())
 print(f"Total rows: {len(df)}")
@@ -70,7 +65,7 @@ print(f"Total rows: {len(df)}")
 #| code-fold: true
 #| code-summary: Cliquer pour voir la réponse
 #| code-overflow: scroll
-n_classes = df['code'].n_unique()
+n_classes = df['code'].nunique()
 print(f"Number of unique NAF codes: {n_classes}")
 ```
 
@@ -108,12 +103,12 @@ final evaluation is truly unbiased.
 #| code-summary: Cliquer pour voir la réponse
 #| code-overflow: scroll
 def train_val_test_split(
-    df: pl.DataFrame,
+    df: pd.DataFrame,
     train_frac: float = 0.7,
     val_frac: float = 0.15,
     seed: int = 42,
-) -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame]:
-    df = df.sample(fraction=1.0, shuffle=True, seed=seed)
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    df = df.sample(frac=1.0, random_state=seed).reset_index(drop=True)
     n = len(df)
     n_train = int(n * train_frac)
     n_val = int(n * val_frac)
