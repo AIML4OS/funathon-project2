@@ -6,44 +6,93 @@ format:
   html:
     number-sections: true
 ---
-To complete
+
+This chapter introduces a baseline supervised classifier for text classification using PyTorch and TorchText. It is useful to compare with RAG results and check whether a simple traditional pipeline is enough for your task.
 
 ::: {.callout-note appearance="simple"}
 
 ## Attention
 
-To complete
+- Use the same labeled dataset from `generation_None_temp08.parquet` to keep comparisons fair.
+- Preprocess text consistently for training and inference (lowercase, tokenization, padding/truncation).
+- Use GPU if available; otherwise set `device='cpu'` and smaller epochs for fast iteration.
 
 :::
 
 ::: {.callout-tip collapse="false" icon=false}
-## `<i class="bi bi-book"></i>`{=html} Exercice 1: To complete
+## `<i class="bi bi-book"></i>`{=html} Exercice 1: Prepare and train a TorchText classifier
 
-1. To complete.
-
-```{python}
-#| code-fold: true
-#| code-summary: Cliquer pour voir la réponse
-#| code-overflow: scroll
-
-print("Hello")
-```
-
-2. To complete.
+1. Load dataset and split into train/validation/test.
 
 ```{python}
 #| code-fold: true
-#| code-summary: Cliquer pour voir la réponse
+#| code-summary: Click to see the answer
 #| code-overflow: scroll
 
-print("Hello")
+import pandas as pd
+from sklearn.model_selection import train_test_split
+
+annotations = pd.read_parquet('https://minio.lab.sspcloud.fr/projet-formation/diffusion/funathon/2026/project2/generation_None_temp08.parquet')
+train_df, test_df = train_test_split(annotations, test_size=0.2, random_state=42)
+train_df, val_df = train_test_split(train_df, test_size=0.1, random_state=42)
+print('Train', len(train_df), 'Val', len(val_df), 'Test', len(test_df))
 ```
 
-3. To complete.
+2. Define a TorchText Dataset and DataLoader, with simple tokenizer and vocab.
+
+```{python}
+#| code-fold: true
+#| code-summary: Click to see the answer
+#| code-overflow: scroll
+
+import torch
+from torchtext.data.utils import get_tokenizer
+from torchtext.vocab import build_vocab_from_iterator
+
+tokenizer = get_tokenizer('basic_english')
+def yield_tokens(data_iter):
+    for text in data_iter:
+        yield tokenizer(str(text))
+
+vocab = build_vocab_from_iterator(yield_tokens(train_df['text']), specials=['<unk>'])
+vocab.set_default_index(vocab['<unk>'])
+
+text_pipeline = lambda x: vocab(tokenizer(str(x)))
+label_pipeline = lambda x: int(x)
+
+# Generate sample batch for sanity check
+sample_input = text_pipeline(train_df['text'].iloc[0])
+print('Sample', sample_input)
+```
+
+3. Train a small neural network and evaluate accuracy.
+
+```{python}
+#| code-fold: true
+#| code-summary: Click to see the answer
+#| code-overflow: scroll
+
+import torch.nn as nn
+
+class SimpleTextClassifier(nn.Module):
+    def __init__(self, vocab_size, embed_dim, num_class):
+        super().__init__()
+        self.embedding = nn.Embedding(vocab_size, embed_dim)
+        self.fc = nn.Linear(embed_dim, num_class)
+
+    def forward(self, text_batch):
+        embedded = self.embedding(text_batch).mean(dim=1)
+        return self.fc(embedded)
+
+model = SimpleTextClassifier(len(vocab), 128, annotations['label'].nunique())
+print(model)
+```
+
+4. Add an evaluation clue.
 
 <details>
 <summary>Clue here</summary>
-To complete.
+After training, compute `accuracy = correct / total` on validation and test sets and compare against RAG accuracy in the last notebook.
 </details>
 
 :::

@@ -14,4 +14,7 @@ dependencies = [
     "pyarrow>=23.0.1",
     "qdrant-client>=1.17.0",
     "quarto>=0.1.0",
+    "scikit-learn>=1.8.0",
+    "torch>=2.10.0",
+    "torchtext>=0.6.0",
 ]

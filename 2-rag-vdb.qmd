@@ -5,19 +5,21 @@ title: RAG approach - Create a vectorial database
 format:
   html:
     number-sections: true
-    output: false
-    warning: false
+execute:
+  output: false
+  warning: false
 ---
 
 
 This first part will show you how to build a vectorial database, e.g the "augmented" knowledge aimed to guide your LLM's reponses.
 
-The simplified workflow will be as follows : 
-- 0. Create a proper working environment with all needed connections (__s3__, __qdrant__ and __llm.lab__)
-- 1. Take the NACE2.1 codes definitions (code + title, + inclusions + exclusions in plain text)
-- 2. Concatenate these pieces of information for each unique NACE (one code => 1 text)
-- 3. Embedded all theses texts (1 text => 1 vector point)
-- 4. Update the points into Qdrant (the vectorial database service)
+The simplified workflow will be as follows:
+
+0. Create a proper working environment with all needed connections (__s3__, __qdrant__ and __llm.lab__)
+1. Take the NACE2.1 codes definitions (code + title, + inclusions + exclusions in plain text)
+2. Concatenate these pieces of information for each unique NACE (one code => 1 text)
+3. Embed all these texts (1 text => 1 vector point)
+4. Update the points into Qdrant (the vectorial database service)
 
 
 
@@ -48,9 +50,9 @@ More information [here](https://github.com/openai/openai-python).
 
 2. Print all the available models (kindly made available to everyone by the SSPcloud team ❤️)
 
-You can notice the `llm.lab` plateform provides both __generation__ and __embedding__ models.
+You can notice the `llm.lab` platform provides both __generation__ and __embedding__ models.
 
-TO COMPLETE: explanations about openai client
+The OpenAI Python client is compatible with llm.lab via `base_url` and `api_key`; this allows you to use a uniform API across providers for model listing, embeddings, and generation.
 
 ```{python}
 #| code-fold: true
@@ -100,7 +102,7 @@ for collection in collections.collections:
 :::
 
 
-## 2. Get and process NACE data
+# 2. Get and process NACE data
 
 Time to import our data: the official NACE2.1 definitions!
 
@@ -136,7 +138,7 @@ nace[22]
 :::
 
 
-## 3. Embed your NACE items
+# 3. Embed your NACE items
 
 Fine! 
 For now, let's choose an embedding model (e.g. a large langage model able to transform a text to a _quite_ smart numerical vector).

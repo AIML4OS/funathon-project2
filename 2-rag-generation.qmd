@@ -6,8 +6,26 @@ format:
   html:
     number-sections: true
 ---
-To complete
 
+This notebook completes the RAG pipeline by loading labeled data, retrieving context from Qdrant, and generating final answers from a query.
+
+## Why do we need the generation step?
+
+Retrieval alone is not enough. Here's why we need generation:
+
+- **Raw retrieval returns documents, not answers**: Qdrant gives us relevant chunks, but a user wants a clear, coherent response tailored to their question.
+- **Synthesis across multiple documents**: The LLM can read 5+ retrieved chunks and synthesize a unified answer, not just return the closest match.
+- **Natural language output**: Generation models (GPT-like) produce human-readable text that directly addresses the user's intent.
+- **Reasoning and inference**: The LLM can combine retrieved facts with its own reasoning to make predictions or classifications.
+- **Evaluation**: In our case, we compare the LLM's predicted labels against ground truth to measure RAG quality.
+
+## In this notebook, you will:
+
+- Load and inspect prediction examples (`generation_None_temp08.parquet`)
+- Connect to Qdrant and verify collections are available
+- Build a retrieval + generation function that queries Qdrant and sends retrieved context to an LLM
+- Compare predicted labels with ground truth for evaluation
+- Understand how retrieval quality affects final generation quality
 
 # Get labelled data
 
@@ -51,38 +69,59 @@ collections = client_qdrant.get_collections()
 
 ## Attention
 
-To complete
+- Ensure your `.env` contains `QDRANT_URL`, `QDRANT_API_KEY`, `QDRANT_API_PORT`, `LLMLAB_URL`, and `LLMLAB_API_KEY`.
+- Make sure the Qdrant collection containing NACE vectors is available before running RAG inference.
+- Adjust batch sizes to avoid rate limits during embedding or generation calls.
 
 :::
 
 ::: {.callout-tip collapse="false" icon=false}
-## `<i class="bi bi-book"></i>`{=html} Exercice 1: To complete
+## `<i class="bi bi-book"></i>`{=html} Exercice 1: Build a retrieval + generation loop
 
-1. To complete.
-
-```{python}
-#| code-fold: true
-#| code-summary: Cliquer pour voir la réponse
-#| code-overflow: scroll
-
-print("Hello")
-```
-
-2. To complete.
+1. Instantiate llm.lab and qdrant clients, then load Qdrant collection metadata.
 
 ```{python}
 #| code-fold: true
-#| code-summary: Cliquer pour voir la réponse
+#| code-summary: Click to see the answer
 #| code-overflow: scroll
 
-print("Hello")
+from openai import OpenAI
+from qdrant_client import QdrantClient
+import os
+
+client_llmlab = OpenAI(base_url=os.environ['LLMLAB_URL'], api_key=os.environ['LLMLAB_API_KEY'])
+client_qdrant = QdrantClient(url=os.environ['QDRANT_URL'], api_key=os.environ['QDRANT_API_KEY'], port=os.environ['QDRANT_API_PORT'])
+print(client_qdrant.get_collections())
 ```
 
-3. To complete.
+2. Implement a simple retriever that accepts a user query and returns top-5 metadata items from the NACE collection.
+
+```{python}
+#| code-fold: true
+#| code-summary: Click to see the answer
+#| code-overflow: scroll
+
+def retrieve_context(query_text, collection_name='nace_vdb', limit=5):
+    embedding = client_llmlab.embeddings.create(model='qwen3-embedding:8b', input=query_text).data[0].embedding
+    # Search in Qdrant for nearest neighbors
+    results = client_qdrant.search(
+        collection_name=collection_name,
+        query_vector=embedding,
+        limit=limit
+    )
+    # Extract payload (text content) from results
+    context = [hit.payload for hit in results]
+    return context
+
+context = retrieve_context('What does NACE section C include?')
+print(context)
+```
+
+3. Compose a prompt from retrieved context and query; send it to a generation model, then compare with label in `annotations`.
 
 <details>
 <summary>Clue here</summary>
-To complete.
+Use the retrieved text as "context" and ask the model to predict category or answer a Q&A item, then validate against sample rows in `annotations`.
 </details>
 
 :::

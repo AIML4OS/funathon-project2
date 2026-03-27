@@ -11,11 +11,65 @@ format:
 
 ![Rag worklow scheme](img/rag_wf.png)
 
-__TO COMPLETE__
+A Retrieval-Augmented Generation (RAG) pipeline combines a fast semantic search layer (vector database + embeddings) with a generation model (LLM). It is designed to:
+
+- reduce hallucinations by grounding output in retrieved facts
+- provide up-to-date domain knowledge without retraining the LLM
+- scale to large knowledge bases by retrieving only the most relevant items per query
+
+In this tutorial, the “retrieval” stage is handled by Qdrant and the “generation” stage by the SSPCloud `llm.lab` OpenAI-compatible API.
+
+
+## How RAG works (step-by-step)
+
+1. Query input
+   - User submits a natural language question, e.g. "What classifies as NACE section C?"
+2. Query embedding
+   - Use an embedding model (`qwen3-embedding:8b`) to encode the question into a vector of size 4096.
+3. Vector search
+   - Query Qdrant collection using the question vector to retrieve nearest neighbors (top-N contextual docs).
+   - Qdrant computes a distance/similarity score between query vector and each stored vector. Common metrics include:
+     - cosine similarity (most common, compares angle between vectors; 1=identical)
+     - dot product (fast, works well with normalized embeddings)
+     - Euclidean/L2 distance (straight-line distance in vector space)
+   - In the notebook, you can configure `distance='Cosine'` when creating the collection.
+4. Context assembly
+   - Extract `payload` from retrieved points and concatenate into a single prompt section.
+5. Prompt construction
+   - Build a final prompt:
+     - system instruction (task definition)
+     - retrieved context
+     - user query
+6. LLM generation
+   - Send prompt to a generation model (`gpt-4o-mini` or similar) via `client_llmlab.responses.create(...)` or `client_llmlab.chat.completions.create(...)`.
+7. Post-processing
+   - Parse output and optionally apply business rules (e.g., label mapping, thresholding).
+8. Evaluation
+   - Compare against ground truth labels and measure metrics (accuracy, F1, precision/recall).
+
+### Simple pseudocode
+
+```python
+query_text = "Describe NACE code 47.11"
+query_vector = llm_lab.embeddings.create(model='qwen3-embedding:8b', input=query_text).data[0].embedding
+hits = qdrant_client.search(collection_name='nace_vdb', query_vector=query_vector, limit=5)
+context = "\n".join([hit.payload['text'] for hit in hits])
+prompt = f"Use the following context to answer question:\n{context}\nQuestion: {query_text}\nAnswer:"
+result = llm_lab.chat.completions.create(model='gpt-4o-mini', messages=[{'role':'user','content':prompt}])
+print(result.choices[0].message.content)
+```
 
 # What are we about to learn ?
 
-__TO COMPLETE__
+In this set of notebooks you will learn how to build a complete RAG workflow end-to-end:
+
+- Set up secure access (Qdrant + llm.lab credentials) from `.env`
+- Load and preprocess source data (NACE 2.1 descriptions and project-specific labeling data)
+- Embed text into vectors using `qwen3-embedding:8b`
+- Create and manage a Qdrant collection with vector points + metadata
+- Query Qdrant to retrieve documents for a natural-language question
+- Compose a context prompt and generate final predictions with text-generation models
+- Evaluate results and iterate quickly on prompts and retrieval strategy
 
 # Technical requirements for this tutorial
 
@@ -25,7 +79,7 @@ __TO COMPLETE__
 
 ## Environment variables and secrets
 
-To connect your SSPCloud VSCode service to __Qdrant__ and __llm.lab__, you will need the folowing credentials.
+To connect your SSPCloud VSCode service to __Qdrant__ and __llm.lab__, you will need the following credentials.
 
 ```txt
 QDRANT_URL=https://YOURNAMESPACE-qdrant.user.lab.sspcloud.fr/
@@ -35,11 +89,11 @@ LLMLAB_API_KEY=xxxxxxxxxxxxxxxxxxxxxx
 LLMLAB_URL=https://llm.lab.sspcloud.fr/api
 ```
 
-Make sure to never leak thoses credentials!
+Make sure to never leak these credentials!
 They will need to be stored as an Onyxia Secret, or alternatively in a __.env file__.
 Let's dive in with the second possibility.
 
-## Where to get thoses creds ?
+## Where to get these creds?
 
 ### For llm.lab
 
@@ -68,7 +122,7 @@ __TO COMPLETE__ : Shared qdrant or 1 Qdrant per namespace ?
 
 - 1. Create an empty __.env__ file (at your repo's root)
 - 2. Write your environment variables as above, and save
-- 3. Use the folowing code to export theses variables to your environment variables
+- 3. Use the following code to export these variables to your environment variables
 
 
 ```python
@@ -90,16 +144,12 @@ except KeyError:
 ```
 
 
-warn
-
-::: {.callout- appearance="simple"}
+::: {.callout-warning appearance="simple"}
 
 ## Attention
 
-::: {.callout-warning}
+Do not leak your secrets! Do not commit your `.env` file.
 
-Do not leak your secrets => Do not commit your .env file!
-
-(use your .gitignore config do deal with it)
+Use your `.gitignore` config to deal with it.
 
 :::
