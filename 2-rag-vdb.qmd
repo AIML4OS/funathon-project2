@@ -380,7 +380,7 @@ emb_dim = 4096
 
 from qdrant_client.models import Distance, VectorParams
 
-COLLECTION_NAME = "nace-collection"
+COLLECTION_NAME = "nace-collection-test"
 client_qdrant.recreate_collection(
     collection_name=COLLECTION_NAME,
     vectors_config=VectorParams(

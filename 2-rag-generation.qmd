@@ -1,15 +1,252 @@
 ---
 lang: en-EN
-title: RAG approach - Generate predictions
+title: RAG pipeline approach - Create a vector database
 
 format:
   html:
-    number-sections: true
+    number-sections: false
+    output: false
+    warning: false
 ---
-To complete
 
 
-# Get labelled data
+
+# Forewords
+
+This first part will show you how query a LLM for automatic coding, using the context knowledge from our vector database (here, descriptions of NACE 2.1 codes).
+
+The simplified workflow will be as follows : 
+
+- 0. Create a proper working environment with all needed connections (__s3__, __qdrant__ and __llm.lab__)
+- 1. Embed activity descriptions (plain text => vectors)
+- 2. Retrieved X similar points from your vector database (X = retreiver limit))
+- 3. Create a prompt template and feed it with retried payloads information
+- 4. Generate a structured LLM response
+- 5. Loop it and create your metrics to analyse your workflow's precision
+
+
+
+```{python}
+#| label: settings-generation
+#| echo: false
+
+import os
+from dotenv import load_dotenv
+from openai import OpenAI
+from qdrant_client import QdrantClient
+
+load_dotenv()
+
+client_llmlab = OpenAI(
+    base_url=os.environ["LLMLAB_URL"],
+    api_key=os.environ["LLMLAB_API_KEY"],
+)
+
+
+client_qdrant = QdrantClient(
+    url=os.environ["QDRANT_URL"],
+    api_key=os.environ["QDRANT_API_KEY"],
+    port=os.environ["QDRANT_API_PORT"]
+)
+
+
+```
+
+# First try on a single activity label
+
+
+
+::: {.callout-tip collapse="false" icon=false}
+## `<i class="bi bi-book"></i>`{=html} Exercice 1: Connections
+
+### Question 1 : 
+
+- Use the following example of activity description and embed it using `client_llmlab.embeddings.create` method.
+
+```{python}
+#| label: model-names
+EMB_MODEL_NAME = "qwen3-embedding:8b"
+GEN_MODEL_NAME = "gpt-oss:20b"
+```
+
+```{python}
+#| label: activity-example
+activity = "Installation, maintenance and repair of residential air conditioning systems for private customers"
+```
+
+
+
+```{python}
+#| label: collection-name
+
+COLLECTION_NAME = "nace-collection"
+RETRIEVER_LIMIT = 5
+```
+
+```{python}
+#| label: embed-question
+#| code-fold: true
+#| code-summary: Click to see the answer
+#| code-overflow: scroll
+
+response = client_llmlab.embeddings.create(
+    model=EMB_MODEL_NAME,
+    input=activity
+)
+
+search_embedding = response.data[0].embedding
+
+print(f"Vector created of length: {len(search_embedding)}")
+
+```
+
+### Question 2
+
+- Use Qdrant API to search some similar points in your vectore store (`client_qdrant.query_points` method).
+  - limit the number of vectors to retrieve at __5__
+  - Check the retrieved codes 
+
+```{python}
+#| label: search-example
+#| code-fold: true
+#| code-summary: Click to see the answer
+#| code-overflow: scroll
+
+# qdrant_results_descriptions = []
+# qdrant_results_codes = []
+
+points = client_qdrant.query_points(
+    collection_name=COLLECTION_NAME,
+    query=search_embedding,
+    limit=RETRIEVER_LIMIT,
+)
+    
+descriptions_retrieved = []
+codes_retrieved = []
+
+for point in points.model_dump()["points"]:
+    descriptions_retrieved.append(retrieved_vectors["payload"]["text"])
+    codes_retrieved.append(retrieved_vectors["payload"]["code"])
+
+print(
+    f"✓ Vector searches completed: {len(descriptions_retrieved)} codes and descriptions retrieved\n"
+)
+
+print("nCheck the first code retrieved ==============\n")
+print(descriptions_retrieved[0])
+```
+
+### Question 3
+
+
+- Create a system prompt and a user prompt templates, ready to be compiled with retrieved information.
+    - The system prompt gives general instructions
+    - The user prompt gives specific instructions:
+        - The activity description the LLM must code
+        - The proposed NACE codes (with descriptions) the LLM must choose between
+        - Json output schema (to ease responses handling) 
+
+```{python}
+#| label: create-prompt
+#| code-fold: true
+#| code-summary: Click to see the answer
+#| code-overflow: scroll
+#| 
+SYSTEM_PROMPT = """
+You are an expert in the Statistical Classification of Economic Activities in the European Community (NACE).
+
+Your task is to classify the main economic activity of a company into the NACE 2.1 classification system, based strictly on:
+- the textual description of the company's activity.
+- a restricted list of candidate NACE codes and their explanatory notes
+
+You must follow the instructions rigorously and return only the requested JSON output.
+"""
+
+USER_PROMPT_TEMPLATE = """
+
+# Company main activity:
+{activity}
+
+# Candidate NACE codes and their explanatory notes:
+{proposed_nace_descriptions}
+
+========
+
+# Instructions:
+1. You MUST select the NACE code strictly from the provided candidate list. No external codes are allowed.
+2. If multiple activities are mentioned, ONLY consider the first one.
+3. If the description is unclear or insufficient to determine a classification, return:
+- "nace2025": null
+- "codable": false
+4. The selected code MUST belong to this list:
+[{proposed_nace_codes}]
+5. Provide a realistic confidence score between 0.00 and 1.00 (two decimal places max).
+6. Your response MUST be a valid JSON object following the schema below.
+
+- "codable": <boolean>,
+- "nace2025": <string or null>,
+- "confidence": <float>
+
+7. DO NOT include any explanation, reasoning, or additional text.
+
+"""
+
+```
+
+
+
+### Question 4
+
+- Compile the prompt template and lauch LLM's inference (using `client_llmlab.chat.completions.create`).
+
+```{python}
+GEN_MODEL_NAME = "gpt-oss:20b"
+TEMPERATURE = 0.1
+```
+
+```{python}
+#| label: inference-example
+#| code-fold: true
+#| code-summary: Click to see the answer
+#| code-overflow: scroll
+
+user_prompt = USER_PROMPT_TEMPLATE.format(
+    activity=activity,
+    proposed_nace_descriptions="## " + "\n\n## ".join(description),
+    proposed_nace_codes=codes_list
+)
+
+for activitie, description, codes_list in zip(activities, qdrant_results_descriptions, qdrant_results_codes):
+    user_prompts.append(
+    )
+
+
+for user_prompt in tqdm(user_prompts, desc="Augmented generation!"):
+    response = client_llmlab.chat.completions.create(
+        model=GEN_MODEL_NAME,
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt}
+        ],
+        temperature=TEMPERATURE,
+        response_format={"type": "json_object"}
+    )
+
+    llm_responses.append(response.choices[0].message.content)
+
+print(
+    f"✓ Augmented generation completed: {len(llm_responses)} results, "
+)
+
+
+
+```
+
+
+
+:::
+
+
 
 ```{python}
 #| label: get-data
