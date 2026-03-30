@@ -1,6 +1,6 @@
 ---
 lang: en-EN
-title: RAG pipeline approach - Create a vector database
+title: RAG pipeline approach - Query a LLM for automatic coding
 
 format:
   html:
@@ -9,22 +9,44 @@ format:
     warning: false
 ---
 
-
-
 # Forewords
 
-This first part will show you how query a LLM for automatic coding, using the context knowledge from our vector database (here, descriptions of NACE 2.1 codes).
+This second tutorial builds on the vector database created in part 1. You will learn how to use it to **automatically classify free-text activity labels** into the NACE 2.1 nomenclature, and then **evaluate the quality of the pipeline** at each stage.
 
-The simplified workflow will be as follows : 
+## RAG pipeline overview
 
-- 0. Create a proper working environment with all needed connections (__s3__, __qdrant__ and __llm.lab__)
-- 1. Embed activity descriptions (plain text => vectors)
-- 2. Retrieved X similar points from your vector database (X = retreiver limit))
-- 3. Create a prompt template and feed it with retried payloads information
-- 4. Generate a structured LLM response
-- 5. Loop it and create your metrics to analyse your workflow's precision
+The automated coding workflow is broken down into five steps:
 
+```
+Raw text label
+      │
+      ▼
+ [1] Embedding       ← transform the label into a dense vector
+      │
+      ▼
+ [2] Retrieval       ← find the k nearest neighbours in Qdrant
+      │
+      ▼
+ [3] Augmentation    ← inject retrieved candidates into a structured prompt
+      │
+      ▼
+ [4] Generation      ← LLM inference with a JSON-constrained output
+      │
+      ▼
+ [5] Evaluation      ← compare predictions against reference codes
+```
 
+The **RAG** acronym specifically refers to the combination of steps 2 (**R**etrieval) and 4 (**G**eneration): instead of asking the LLM to code from memory — which would be unreliable for fine-grained nomenclatures — we supply it with the most semantically relevant candidates from the vector store.
+
+## Prerequisites
+
+- Completion of **tutorial 1** (creation of the `nace-collection` Qdrant collection)
+- Access to the following services: **LLM Lab**, **Qdrant**
+- Python libraries: `openai`, `qdrant-client`, `duckdb`, `pandas`, `tqdm`, `matplotlib`
+
+---
+
+# Connections and global parameters
 
 ```{python}
 #| label: settings-generation
@@ -42,26 +64,47 @@ client_llmlab = OpenAI(
     api_key=os.environ["LLMLAB_API_KEY"],
 )
 
-
 client_qdrant = QdrantClient(
     url=os.environ["QDRANT_URL"],
     api_key=os.environ["QDRANT_API_KEY"],
     port=os.environ["QDRANT_API_PORT"]
 )
-
-
 ```
 
-# First try on a single activity label
+```{python}
+#| label: global-params
 
+# Models
+EMB_MODEL_NAME = "qwen3-embedding:8b"   # Embedding model
+GEN_MODEL_NAME = "gpt-oss:20b"          # Generative model
 
+# Qdrant
+COLLECTION_NAME = "nace-collection"
+RETRIEVER_LIMIT = 5    # Number of candidates returned by the vector search
+
+# Generation
+TEMPERATURE = 0.1      # Low temperature → more deterministic, reproducible outputs
+```
+
+::: {.callout-note}
+**Why a low temperature?**
+Temperature controls the degree of randomness in generation. For a closed-list classification task, we want stable and reproducible answers: a value between `0.0` and `0.2` is recommended. Higher values are better suited to creative tasks.
+:::
+
+---
+
+# First attempt on a single activity label
+
+Before processing in bulk, it is essential to validate each pipeline component individually.
 
 ::: {.callout-tip collapse="false" icon=false}
-## `<i class="bi bi-book"></i>`{=html} Exercice 1: Connections
+## `<i class="bi bi-book"></i>`{=html} Exercise 1: Test the pipeline on a single example
 
-### Question 1 : 
+### Question 1 — Embed an activity label
 
-- Use the following example of activity description and embed it using `client_llmlab.embeddings.create` method.
+**Embedding** is the process of transforming a text into a high-dimensional numerical vector that captures its semantics. Two semantically similar texts will have vectors that are close to each other in the vector space. This property is what enables nearest-neighbour search.
+
+Use `client_llmlab.embeddings.create` to embed the activity label below.
 
 ```{python}
 #| label: model-names
@@ -74,11 +117,8 @@ GEN_MODEL_NAME = "gpt-oss:20b"
 activity = "Installation, maintenance and repair of residential air conditioning systems for private customers"
 ```
 
-
-
 ```{python}
 #| label: collection-name
-
 COLLECTION_NAME = "nace-collection"
 RETRIEVER_LIMIT = 5
 ```
@@ -97,14 +137,19 @@ response = client_llmlab.embeddings.create(
 search_embedding = response.data[0].embedding
 
 print(f"Vector created of length: {len(search_embedding)}")
-
 ```
 
-### Question 2
+::: {.callout-note}
+**Vector dimension:** the vector size depends on the embedding model and is fixed at collection creation time (tutorial 1). You must use the **same embedding model** at every stage of the pipeline.
+:::
 
-- Use Qdrant API to search some similar points in your vectore store (`client_qdrant.query_points` method).
-  - limit the number of vectors to retrieve at __5__
-  - Check the retrieved codes 
+---
+
+### Question 2 — Retrieval: search for NACE candidates
+
+**Retrieval** consists of querying the Qdrant vector store to find the `k` NACE codes whose descriptions are semantically closest to the label being coded.
+
+Use `client_qdrant.query_points` with `limit=RETRIEVER_LIMIT` and inspect the results.
 
 ```{python}
 #| label: search-example
@@ -112,15 +157,12 @@ print(f"Vector created of length: {len(search_embedding)}")
 #| code-summary: Click to see the answer
 #| code-overflow: scroll
 
-# qdrant_results_descriptions = []
-# qdrant_results_codes = []
-
 points = client_qdrant.query_points(
     collection_name=COLLECTION_NAME,
     query=search_embedding,
     limit=RETRIEVER_LIMIT,
 )
-    
+
 descriptions_retrieved = []
 codes_retrieved = []
 
@@ -129,29 +171,33 @@ for point in points.model_dump()["points"]:
     codes_retrieved.append(point["payload"]["code"])
 
 print(
-    f"✓ Vector searches completed: {len(descriptions_retrieved)} codes and descriptions retrieved\n"
+    f"✓ Vector search completed: {len(descriptions_retrieved)} codes and descriptions retrieved\n"
 )
-
-print("nCheck the first code retrieved ==============\n")
+print("Check the first code retrieved ==============\n")
 print(descriptions_retrieved[0])
 ```
 
-### Question 3
+::: {.callout-note}
+**Retriever accuracy:** the retrieval step is critical. If the correct code is not among the `k` returned candidates, the LLM cannot select it. You will compute this metric in Part 3.
+:::
 
+---
 
-- Create a system prompt and a user prompt templates, ready to be compiled with retrieved information.
-    - The system prompt gives general instructions
-    - The user prompt gives specific instructions:
-        - The activity description the LLM must code
-        - The proposed NACE codes (with descriptions) the LLM must choose between
-        - Json output schema (to ease responses handling) 
+### Question 3 — Prompt construction
+
+Prompt quality is a key driver of LLM precision. We distinguish:
+
+- The **system prompt**: defines the model's general role and behaviour.
+- The **user prompt**: contains request-specific information (label to code, candidates, output format instructions).
+
+Constraining the output to **JSON format** is a best practice: it simplifies automatic parsing and reduces format hallucinations.
 
 ```{python}
 #| label: create-prompt
 #| code-fold: true
 #| code-summary: Click to see the answer
 #| code-overflow: scroll
-#| 
+
 SYSTEM_PROMPT = """
 You are an expert in the Statistical Classification of Economic Activities in the European Community (NACE).
 
@@ -190,12 +236,22 @@ USER_PROMPT_TEMPLATE = """
 7. DO NOT include any explanation, reasoning, or additional text.
 
 """
-
 ```
 
-### Question 4
+::: {.callout-tip}
+**Prompt engineering best practices for classification:**
 
-- Compile the prompt template and lauch LLM's inference (using `client_llmlab.chat.completions.create`).
+- **Constrain the candidate list** (instruction 4): prevents the LLM from inventing a code outside the nomenclature.
+- **Handle uncertainty explicitly** (instruction 3): an ambiguous label should return `codable: false` rather than a random code.
+- **Require a confidence score**: useful for filtering unreliable predictions in production.
+- **Forbid explanations** (instruction 7): reduces the risk of malformed JSON output.
+:::
+
+---
+
+### Question 4 — LLM inference
+
+Compile the prompt with the retrieved candidates and run inference.
 
 ```{python}
 GEN_MODEL_NAME = "gpt-oss:20b"
@@ -208,12 +264,13 @@ TEMPERATURE = 0.1
 #| code-summary: Click to see the answer
 #| code-overflow: scroll
 
+import json
+
 user_prompt = USER_PROMPT_TEMPLATE.format(
     activity=activity,
     proposed_nace_descriptions="## " + "\n\n## ".join(descriptions_retrieved),
-    proposed_nace_codes=codes_retrieved
+    proposed_nace_codes=", ".join(codes_retrieved)
 )
-
 
 response = client_llmlab.chat.completions.create(
     model=GEN_MODEL_NAME,
@@ -225,34 +282,376 @@ response = client_llmlab.chat.completions.create(
     response_format={"type": "json_object"}
 )
 
-llm_response = response.choices[0].message.content
-
-print(llm_response)
-
+llm_response = json.loads(response.choices[0].message.content)
+print(json.dumps(llm_response, indent=2))
 ```
 
 :::
 
+---
 
-# Inference and evaluation on multiple activities.
+# Inference on multiple activities
 
-Next, let's use some synthetic data.
-We will: 
-- make the automatic classification on a sample of activities
-- build some metrics to qualify our coding process
+Next, let's use some synthetic data. We will:
 
+- run automatic classification on a sample of labelled activities,
+- build metrics to evaluate the quality of the coding process.
+
+## Load the data
 
 ```{python}
 #| label: get-data
 
 import duckdb
+import pandas as pd
+
 con = duckdb.connect(database=":memory:")
 
 con.execute("INSTALL httpfs;")
 con.execute("LOAD httpfs;")
 
-query_definition = f"SELECT * FROM read_parquet('https://minio.lab.sspcloud.fr/projet-formation/diffusion/funathon/2026/project2/generation_None_temp08.parquet')"
+query_definition = """
+SELECT *
+FROM read_parquet(
+  'https://minio.lab.sspcloud.fr/projet-formation/diffusion/funathon/2026/project2/generation_None_temp08.parquet'
+)
+USING SAMPLE 10
+"""
 
-annotations = con.sql(query_definition).to_df()
-annotations.head()
+annotations = (
+    con.sql(query_definition)
+    .to_df()
+    .to_dict(orient="records")
+)
+print(f"Dataset loaded: {len(annotations)} rows")
+print(f"Keys: {list(annotations[0].keys())}")
+annotations[:2]
 ```
+
+::: {.callout-note}
+**Dataset structure:**
+Each row contains a free-text activity label (`activity`) and its reference NACE 2.1 code (`nace_code`), produced by human annotation or a larger model. These reference codes will serve as the **gold standard** for evaluation.
+:::
+
+## Utility function: a full pipeline call
+
+Before looping, we encapsulate steps 1–4 into a reusable function.
+
+```{python}
+#| label: pipeline-function
+
+def run_rag_pipeline(activity: str) -> dict:
+    """
+    Run the full RAG pipeline for a single activity label.
+
+    Parameters
+    ----------
+    activity : str
+        Free-text economic activity label to be coded.
+
+    Returns
+    -------
+    dict with keys:
+        - nace2025 (str | None) : predicted NACE code
+        - codable (bool)        : True if the label could be coded
+        - confidence (float)    : confidence score (0–1)
+        - retrieved_codes (list): candidates returned by the retriever
+    """
+    # --- Step 1: Embedding ---
+    emb_response = client_llmlab.embeddings.create(
+        model=EMB_MODEL_NAME,
+        input=activity
+    )
+    embedding = emb_response.data[0].embedding
+
+    # --- Step 2: Retrieval ---
+    points = client_qdrant.query_points(
+        collection_name=COLLECTION_NAME,
+        query=embedding,
+        limit=RETRIEVER_LIMIT,
+    )
+    descriptions_retrieved = []
+    codes_retrieved = []
+    for point in points.model_dump()["points"]:
+        descriptions_retrieved.append(point["payload"]["text"])
+        codes_retrieved.append(point["payload"]["code"])
+
+    # --- Step 3: Prompt construction ---
+    user_prompt = USER_PROMPT_TEMPLATE.format(
+        activity=activity,
+        proposed_nace_descriptions="## " + "\n\n## ".join(descriptions_retrieved),
+        proposed_nace_codes=", ".join(codes_retrieved)
+    )
+
+    # --- Step 4: LLM inference ---
+    gen_response = client_llmlab.chat.completions.create(
+        model=GEN_MODEL_NAME,
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt}
+        ],
+        temperature=TEMPERATURE,
+        response_format={"type": "json_object"}
+    )
+
+    result = json.loads(gen_response.choices[0].message.content)
+    # Keep retrieved candidates for retriever evaluation
+    result["retrieved_codes"] = codes_retrieved
+
+    return result
+```
+
+## Inference loop
+
+::: {.callout-tip collapse="false" icon=false}
+## `<i class="bi bi-book"></i>`{=html} Exercise 2: Code all activities in the dataset
+
+Apply `run_rag_pipeline` to every row of the `annotations` DataFrame. Store the results in a new DataFrame called `results`.
+
+```{python}
+#| label: batch-inference
+#| code-fold: true
+#| code-summary: Click to see the answer
+#| code-overflow: scroll
+
+from tqdm import tqdm
+
+records = []
+
+for row in tqdm(annotations, total=len(annotations), desc="Coding"):
+    activity_label = row["label"]
+    true_code      = row["code"]
+
+    try:
+        pred = run_rag_pipeline(activity_label)
+    except Exception as e:
+        pred = {
+            "nace2025":       None,
+            "codable":        False,
+            "confidence":     0.0,
+            "retrieved_codes": []
+        }
+        print(f"⚠ Error for '{activity_label[:60]}...': {e}")
+
+    records.append({
+        "activity":        activity_label,
+        "true_code":       true_code,
+        "pred_code":       pred.get("nace2025"),
+        "codable":         pred.get("codable", False),
+        "confidence":      pred.get("confidence", 0.0),
+        "retrieved_codes": pred.get("retrieved_codes", []),
+    })
+
+results = pd.DataFrame(records)
+print(f"\n✓ Inference complete: {len(results)} activities processed")
+results.head()
+```
+
+::: {.callout-note}
+**Robustness:** LLM calls can occasionally fail (timeout, malformed JSON). The `try/except` block ensures the loop does not stop and that every error is logged.
+:::
+
+:::
+
+---
+
+# Pipeline evaluation
+
+Evaluating a RAG pipeline requires examining each stage independently, not just the final output. We define three complementary metrics below.
+
+```
+              ┌────────────────────────────────────────────────┐
+              │             EVALUATION METRICS                  │
+              ├──────────────────┬─────────────────────────────┤
+              │ Retriever@k      │ Is the correct code among    │
+              │ accuracy         │ the k retrieved candidates?  │
+              ├──────────────────┼─────────────────────────────┤
+              │ LLM accuracy     │ When the retriever succeeded,│
+              │ (conditional)    │ does the LLM pick the right  │
+              │                  │ code?                        │
+              ├──────────────────┼─────────────────────────────┤
+              │ Pipeline         │ Is the final predicted code  │
+              │ accuracy         │ correct? (end-to-end)        │
+              └──────────────────┴─────────────────────────────┘
+```
+
+These three metrics are related by:
+
+$$\text{Pipeline accuracy} = \text{Retriever@k} \times \text{LLM accuracy (conditional)}$$
+
+This decomposition is key for diagnosing where errors originate and deciding which component to improve.
+
+## Prepare evaluation columns
+
+```{python}
+#| label: eval-columns
+
+# Is the true code among the retriever's candidates?
+results["retriever_hit"] = results.apply(
+    lambda row: row["true_code"] in row["retrieved_codes"], axis=1
+)
+
+# Is the predicted code correct?
+results["pipeline_correct"] = results["pred_code"] == results["true_code"]
+
+# Did the LLM pick the right code, given that the retriever found it?
+results["llm_correct_given_retriever"] = results.apply(
+    lambda row: row["pipeline_correct"] if row["retriever_hit"] else None,
+    axis=1
+)
+```
+
+::: {.callout-tip collapse="false" icon=false}
+## `<i class="bi bi-book"></i>`{=html} Exercise 3: Compute evaluation metrics
+
+### Question 1 — Retriever accuracy (Retriever@k)
+
+**Retriever@k accuracy** measures the proportion of cases where the reference code is present among the `k` candidates returned by Qdrant. It is the **theoretical ceiling** of the pipeline: if the retriever misses the correct code, the LLM cannot recover it.
+
+$$\text{Retriever@k} = \frac{\text{# cases where the true code is in the k candidates}}{\text{total # cases}}$$
+
+```{python}
+#| label: retriever-accuracy
+#| code-fold: true
+#| code-summary: Click to see the answer
+
+retriever_accuracy = results["retriever_hit"].mean()
+print(f"Retriever@{RETRIEVER_LIMIT} accuracy: {retriever_accuracy:.1%}")
+print(f"  → {results['retriever_hit'].sum()} / {len(results)} correctly retrieved")
+```
+
+---
+
+### Question 2 — Conditional LLM accuracy
+
+**Conditional LLM accuracy** measures the generative model's ability to select the correct code **among cases where the retriever successfully returned the target code**. This metric isolates the LLM's own contribution to the pipeline.
+
+$$\text{LLM accuracy} = \frac{\text{# correct predictions (retriever succeeded)}}{\text{# cases where retriever succeeded}}$$
+
+```{python}
+#| label: llm-accuracy
+#| code-fold: true
+#| code-summary: Click to see the answer
+
+retriever_success = results[results["retriever_hit"] == True]
+llm_accuracy = retriever_success["pipeline_correct"].mean()
+
+print(f"LLM accuracy (conditional on retriever): {llm_accuracy:.1%}")
+print(f"  → {retriever_success['pipeline_correct'].sum()} / {len(retriever_success)} correctly coded by the LLM")
+```
+
+---
+
+### Question 3 — End-to-end pipeline accuracy
+
+**End-to-end pipeline accuracy** is the final metric: the proportion of activity labels that are correctly coded, regardless of which component caused a potential failure.
+
+Verify empirically that the multiplicative decomposition holds:
+
+$$\text{Pipeline accuracy} = \text{Retriever@k} \times \text{LLM accuracy}$$
+
+```{python}
+#| label: pipeline-accuracy
+#| code-fold: true
+#| code-summary: Click to see the answer
+
+pipeline_accuracy = results["pipeline_correct"].mean()
+
+print(f"Pipeline accuracy (end-to-end)          : {pipeline_accuracy:.1%}")
+print(f"  → {results['pipeline_correct'].sum()} / {len(results)} correctly coded")
+print()
+print(f"Cross-check: Retriever@k × LLM = {retriever_accuracy:.3f} × {llm_accuracy:.3f} = {retriever_accuracy * llm_accuracy:.1%}")
+```
+
+---
+
+### Question 4 — Summary dashboard and error decomposition
+
+Produce a summary table of all metrics and analyse the distribution of errors by source (retriever vs. LLM).
+
+```{python}
+#| label: dashboard
+#| code-fold: true
+#| code-summary: Click to see the answer
+
+n_total          = len(results)
+n_retriever_miss = (~results["retriever_hit"]).sum()
+n_llm_miss       = (results["retriever_hit"] & ~results["pipeline_correct"]).sum()
+n_correct        = results["pipeline_correct"].sum()
+
+print("=" * 52)
+print("      DASHBOARD — RAG PIPELINE NACE 2.1")
+print("=" * 52)
+print(f"  Activities processed        : {n_total:>6}")
+print(f"  Correctly coded             : {n_correct:>6}  ({pipeline_accuracy:.1%})")
+print()
+print(f"  Retriever@{RETRIEVER_LIMIT} accuracy        : {retriever_accuracy:>6.1%}")
+print(f"  LLM accuracy (conditional)  : {llm_accuracy:>6.1%}")
+print(f"  Pipeline accuracy           : {pipeline_accuracy:>6.1%}")
+print()
+print(f"  Retriever errors            : {n_retriever_miss:>6}  ({n_retriever_miss/n_total:.1%})")
+print(f"  LLM errors                  : {n_llm_miss:>6}  ({n_llm_miss/n_total:.1%})")
+print("=" * 52)
+```
+
+::: {.callout-note}
+**How to interpret the error decomposition:**
+
+- If **retriever errors dominate** → improve the embedding model, increase `k`, or enrich NACE descriptions in the vector store.
+- If **LLM errors dominate** → refine the prompt, switch to a more capable generative model, or lower the temperature further.
+:::
+
+:::
+
+## Confidence score analysis
+
+The confidence score produced by the LLM can serve as a **quality signal** to filter unreliable predictions in production, at the cost of reduced coverage.
+
+```{python}
+#| label: confidence-analysis
+
+import matplotlib.pyplot as plt
+
+fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+
+# --- Left: confidence distribution by correctness ---
+results.boxplot(
+    column="confidence",
+    by="pipeline_correct",
+    ax=axes[0]
+)
+axes[0].set_title("Confidence distribution\nby pipeline correctness")
+axes[0].set_xlabel("Prediction correct")
+axes[0].set_ylabel("Confidence score")
+axes[0].set_xticklabels(["Incorrect (False)", "Correct (True)"])
+
+# --- Right: precision and coverage vs confidence threshold ---
+thresholds = [i / 10 for i in range(1, 10)]
+precisions = []
+coverages  = []
+
+for t in thresholds:
+    subset = results[results["confidence"] >= t]
+    if len(subset) > 0:
+        precisions.append(subset["pipeline_correct"].mean())
+        coverages.append(len(subset) / len(results))
+    else:
+        precisions.append(None)
+        coverages.append(0.0)
+
+axes[1].plot(thresholds, precisions, marker="o", label="Precision",  color="steelblue")
+axes[1].plot(thresholds, coverages,  marker="s", label="Coverage",   color="coral", linestyle="--")
+axes[1].set_title("Precision and coverage\nvs. confidence threshold")
+axes[1].set_xlabel("Confidence threshold")
+axes[1].set_ylabel("Value")
+axes[1].legend()
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig("confidence_analysis.png", dpi=120, bbox_inches="tight")
+plt.show()
+```
+
+::: {.callout-note}
+**Precision / coverage trade-off:** raising the confidence threshold increases precision (the retained predictions are more likely to be correct) but reduces coverage (fewer labels are automatically coded, the rest requiring manual review). Choosing the right threshold depends on the operational constraints of your use case.
+:::
