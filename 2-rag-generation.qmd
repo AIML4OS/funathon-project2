@@ -125,8 +125,8 @@ descriptions_retrieved = []
 codes_retrieved = []
 
 for point in points.model_dump()["points"]:
-    descriptions_retrieved.append(retrieved_vectors["payload"]["text"])
-    codes_retrieved.append(retrieved_vectors["payload"]["code"])
+    descriptions_retrieved.append(point["payload"]["text"])
+    codes_retrieved.append(point["payload"]["code"])
 
 print(
     f"✓ Vector searches completed: {len(descriptions_retrieved)} codes and descriptions retrieved\n"
@@ -193,8 +193,6 @@ USER_PROMPT_TEMPLATE = """
 
 ```
 
-
-
 ### Question 4
 
 - Compile the prompt template and lauch LLM's inference (using `client_llmlab.chat.completions.create`).
@@ -212,40 +210,36 @@ TEMPERATURE = 0.1
 
 user_prompt = USER_PROMPT_TEMPLATE.format(
     activity=activity,
-    proposed_nace_descriptions="## " + "\n\n## ".join(description),
-    proposed_nace_codes=codes_list
-)
-
-for activitie, description, codes_list in zip(activities, qdrant_results_descriptions, qdrant_results_codes):
-    user_prompts.append(
-    )
-
-
-for user_prompt in tqdm(user_prompts, desc="Augmented generation!"):
-    response = client_llmlab.chat.completions.create(
-        model=GEN_MODEL_NAME,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": user_prompt}
-        ],
-        temperature=TEMPERATURE,
-        response_format={"type": "json_object"}
-    )
-
-    llm_responses.append(response.choices[0].message.content)
-
-print(
-    f"✓ Augmented generation completed: {len(llm_responses)} results, "
+    proposed_nace_descriptions="## " + "\n\n## ".join(descriptions_retrieved),
+    proposed_nace_codes=codes_retrieved
 )
 
 
+response = client_llmlab.chat.completions.create(
+    model=GEN_MODEL_NAME,
+    messages=[
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": user_prompt}
+    ],
+    temperature=TEMPERATURE,
+    response_format={"type": "json_object"}
+)
+
+llm_response = response.choices[0].message.content
+
+print(llm_response)
 
 ```
 
-
-
 :::
 
+
+# Inference and evaluation on multiple activities.
+
+Next, let's use some synthetic data.
+We will: 
+- make the automatic classification on a sample of activities
+- build some metrics to qualify our coding process
 
 
 ```{python}
@@ -257,71 +251,8 @@ con = duckdb.connect(database=":memory:")
 con.execute("INSTALL httpfs;")
 con.execute("LOAD httpfs;")
 
-# query_definition = f"SELECT * FROM read_parquet('s3://projet-formation/diffusion/funathon/2026/project2/generation_None_temp08.parquet')"
 query_definition = f"SELECT * FROM read_parquet('https://minio.lab.sspcloud.fr/projet-formation/diffusion/funathon/2026/project2/generation_None_temp08.parquet')"
+
 annotations = con.sql(query_definition).to_df()
 annotations.head()
 ```
-
-
-```{python}
-
-#| label: qdrant-client
-
-import os
-from dotenv import load_dotenv
-from qdrant_client import QdrantClient
-
-load_dotenv()
-
-client_qdrant = QdrantClient(
-    url=os.environ["QDRANT_URL"],
-    api_key=os.environ["QDRANT_API_KEY"],
-    port=os.environ["QDRANT_API_PORT"]
-)
-
-collections = client_qdrant.get_collections()
-```
-
-
-::: {.callout-note appearance="simple"}
-
-## Attention
-
-To complete
-
-:::
-
-::: {.callout-tip collapse="false" icon=false}
-## `<i class="bi bi-book"></i>`{=html} Exercice 1: To complete
-
-1. To complete.
-
-```{python}
-#| code-fold: true
-#| code-summary: Cliquer pour voir la réponse
-#| code-overflow: scroll
-
-print("Hello")
-```
-
-2. To complete.
-
-```{python}
-#| code-fold: true
-#| code-summary: Cliquer pour voir la réponse
-#| code-overflow: scroll
-
-print("Hello")
-```
-
-3. To complete.
-
-<details>
-<summary>Clue here</summary>
-To complete.
-</details>
-
-:::
-
-
