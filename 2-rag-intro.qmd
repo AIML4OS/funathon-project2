@@ -7,8 +7,6 @@ format:
     number-sections: true
 ---
 
-
-
 ```{=html}
 <table>
   <thead>
@@ -20,109 +18,135 @@ format:
   <tbody>
     <tr>
       <td><span class="level-button level-beginner">Beginner</span></td>
-      <td>Follow the tutorial and understand given answers.</td>
+      <td>Follow the tutorial and understand the provided answers.</td>
     </tr>
     <tr>
       <td><span class="level-button level-intermediate">Intermediate</span></td>
-      <td>Try to complete the tutorial without checking answers.</td>
+      <td>Try to complete the exercises without checking the answers.</td>
     </tr>
     <tr>
       <td><span class="level-button level-expert">Expert</span></td>
-      <td>Enhance the pipeline and improve results (better models, better embedding strategy, .etc.).</td>
+      <td>Enhance the pipeline and improve results: better models, richer embeddings, prompt tuning, etc.</td>
     </tr>
   </tbody>
 </table>
 ```
 
-# What is a RAG ? Why using a RAG ?
+# What is a RAG, and why use one?
 
-![Rag worklow scheme](img/rag_wf.png)
+## The problem: classifying free-text labels
 
-__TO COMPLETE__
+Statistical agencies routinely receive free-text descriptions of economic activities — from business registration forms, surveys, or administrative records — that need to be assigned a code from a standardised nomenclature such as **NACE 2.1**. This nomenclature contains hundreds of codes, each associated with a precise definition and scope notes.
 
-# What are we about to learn ?
+Doing this manually is expensive and inconsistent. Automating it with a language model is appealing, but a naive approach — asking the model "what is the NACE code for this activity?" — has a major weakness: **LLMs do not reliably memorise fine-grained nomenclatures**. They may confuse similar codes, invent non-existent ones, or produce codes that belong to an older version of the classification.
 
-__TO COMPLETE__
+## The solution: Retrieval-Augmented Generation
 
-# Technical requirements for this tutorial
+**RAG (Retrieval-Augmented Generation)** addresses this by splitting the task into two stages:
 
-- Connection to :
-  - A Qdrant vectorial database 
-  - __llm.lab__: The SSPCloud's LLM provider (Ollama/OpenWebUI)
+1. **Retrieve** — find the NACE codes whose descriptions are semantically closest to the input label, using a vector database.
+2. **Generate** — ask the LLM to pick the best code *from the retrieved shortlist*, not from memory.
 
-## Environment variables and secrets
+This approach combines the semantic power of embedding models with the reasoning ability of generative models, while keeping the LLM anchored to a controlled list of valid options.
 
-To connect your SSPCloud VSCode service to __Qdrant__ and __llm.lab__, you will need the folowing credentials.
+![RAG workflow: Part 1 builds the vector index from NACE definitions; Part 2 runs the inference pipeline on new activity labels.](img/rag_wf.png)
+
+## Why not fine-tune a model instead?
+
+Fine-tuning is another common approach, but it has significant drawbacks for this use case:
+
+- **Rigidity**: if the nomenclature is updated, the model must be re-trained.
+- **Data requirements**: fine-tuning requires a large annotated dataset.
+- **Cost**: training runs are expensive and time-consuming.
+
+RAG, by contrast, only requires updating the vector database when the nomenclature changes — no retraining needed.
+
+---
+
+# What will you learn in this tutorial?
+
+This tutorial is divided into two notebooks that map directly to the two parts of the workflow above.
+
+**Tutorial 1 — Building the vector database** (`2-rag-vdb.qmd`)
+
+- Embed all NACE 2.1 code descriptions using an embedding model
+- Store the resulting vectors in a **Qdrant** collection
+- Understand what a vector database is and how nearest-neighbour search works
+
+**Tutorial 2 — Running and evaluating the RAG pipeline** (`2-rag-generation.qmd`)
+
+- Embed a free-text activity label and retrieve the `k` closest NACE candidates
+- Build a structured prompt and run LLM inference to select the final code
+- Evaluate the pipeline at each stage: retriever accuracy, conditional LLM accuracy, end-to-end accuracy
+- Analyse the confidence score as a quality signal for production filtering
+
+::: {.callout-note}
+Both notebooks share the same infrastructure (Qdrant + llm.lab) and the same global parameters. Tutorial 1 must be completed before Tutorial 2, as it creates the vector collection that the pipeline depends on.
+:::
+
+---
+
+# Technical requirements
+
+## Services
+
+You will need access to two services hosted on the SSPCloud:
+
+| Service | Role |
+|---------|------|
+| **Qdrant** | Vector database storing NACE embeddings |
+| **llm.lab** | LLM provider (embedding model + generative model) |
+
+## Credentials
+
+Create a `.env` file at the root of your repository with the following variables:
 
 ```txt
 QDRANT_URL=https://YOURNAMESPACE-qdrant.user.lab.sspcloud.fr/
-QDRANT_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxx
+QDRANT_API_KEY=xxxxxxxxxxxxxxxxxxxx
 QDRANT_API_PORT=443
-LLMLAB_API_KEY=xxxxxxxxxxxxxxxxxxxxxx
+LLMLAB_API_KEY=xxxxxxxxxxxxxxxxxxxx
 LLMLAB_URL=https://llm.lab.sspcloud.fr/api
 ```
 
-Make sure to never leak thoses credentials!
-They will need to be stored as an Onyxia Secret, or alternatively in a __.env file__.
-Let's dive in with the second possibility.
+::: {.callout-warning}
+**Never commit your `.env` file.** Add it to your `.gitignore` immediately. Leaking API keys can expose your services to unauthorised use.
+:::
 
-## Where to get thoses creds ?
+### Getting your llm.lab API key
 
-### For llm.lab
+1. Go to the llm.lab interface and sign in with your SSPCloud account.
+2. Open **Settings** (top right) → **Account** → **API Keys**.
+3. Generate a new key and copy it into `LLMLAB_API_KEY`.
 
-Please verify you are connected to the SSPCloud and then use the following link to reach __llm.lab__ UI : https://llm.lab.sspcloud.fr/.
-Now, go to your account settings (upper right - "Réglages") / account ("Compte") / API Keys ("Clés d'API") => you are now ready to create your api key!
+![Creating an API key on llm.lab](img/api_llmlab.png)
 
-![Create an API key on llm.lab](img/api_llmlab.png)
+### Getting your Qdrant credentials
 
-You can now fill your LLMLAB_API_KEY variable.
+1. Launch a **Qdrant** service in your personal SSPCloud namespace.
 
-### For Qdrant
+![Creating a Qdrant service on SSPCloud](img/qdrant_service.png)
 
-__TO COMPLETE__ : Shared qdrant or 1 Qdrant per namespace ?
+2. Copy the generated token and save it as `QDRANT_API_KEY`. The URL follows the pattern `https://YOURNAMESPACE-qdrant.user.lab.sspcloud.fr/`.
 
-- Create a Qdrant service __in your personal namespace__ as follows
+![Retrieving the Qdrant token](img/qdrant_token.png)
 
-![Create a Qdrant service](img/qdrant_service.png)
+## Loading credentials in Python
 
-- Copy and save properly your Qdrant token
-
-![Get you Qdrant token](img/qdrant_token.png)
-
-- Launch you Qdrant service
-
-## How to pass them as environment variables
-
-- 1. Create an empty __.env__ file (at your repo's root)
-- 2. Write your environment variables as above, and save
-- 3. Use the folowing code to export theses variables to your environment variables
-
+Once your `.env` file is ready, load the variables at the start of each notebook:
 
 ```python
 from dotenv import load_dotenv
 load_dotenv()
 ```
 
-
-
-- 4. Verify all is good:
+To verify that a variable was loaded correctly:
 
 ```python
 import os
 try:
     QDRANT_URL = os.environ["QDRANT_URL"]
-    print(f"All right with QDRANT_URL secret")
+    print("QDRANT_URL loaded successfully")
 except KeyError:
-    raise ValueError("QDRANT_URL environment variable not set")
+    raise ValueError("QDRANT_URL is not set — check your .env file")
 ```
-
-
-::: {.callout-warning appearance="simple"}
-
-## Attention
-
-Do not leak your secrets => Do not commit your .env file!
-
-(use your .gitignore config do deal with it)
-
-:::
