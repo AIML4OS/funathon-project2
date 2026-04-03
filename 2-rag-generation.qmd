@@ -84,6 +84,9 @@ RETRIEVER_LIMIT = 5    # Number of candidates returned by the vector search
 
 # Generation
 TEMPERATURE = 0.1      # Low temperature → more deterministic, reproducible outputs
+
+# Evaluation
+SAMPLE_SIZE = 50       # Number of activities to evaluate (increase for more robust results)
 ```
 
 ::: {.callout-note}
@@ -95,7 +98,7 @@ Temperature controls the degree of randomness in generation. For a closed-list c
 
 # First attempt on a single activity label
 
-Before processing in bulk, it is essential to validate each pipeline component individually.
+Before running the pipeline on the full dataset, test each component step by step.
 
 ::: {.callout-tip collapse="false" icon=false}
 ## `<i class="bi bi-book"></i>`{=html} Exercise 1: Test the pipeline on a single example
@@ -107,20 +110,10 @@ Before processing in bulk, it is essential to validate each pipeline component i
 Use `client_llmlab.embeddings.create` to embed the activity label below.
 
 ```{python}
-#| label: model-names
-EMB_MODEL_NAME = "qwen3-embedding:8b"
-GEN_MODEL_NAME = "gpt-oss:20b"
-```
-
-```{python}
 #| label: activity-example
+#| output: true
 activity = "Installation, maintenance and repair of residential air conditioning systems for private customers"
-```
-
-```{python}
-#| label: collection-name
-COLLECTION_NAME = "nace-collection"
-RETRIEVER_LIMIT = 5
+print(f"Activity to code: {activity}")
 ```
 
 ```{python}
@@ -185,7 +178,7 @@ print(descriptions_retrieved[0])
 
 ### Question 3 — Prompt construction
 
-Prompt quality is a key driver of LLM precision. We distinguish:
+The quality of the prompt directly affects the LLM's output. A RAG prompt typically has two parts:
 
 - The **system prompt**: defines the model's general role and behaviour.
 - The **user prompt**: contains request-specific information (label to code, candidates, output format instructions).
@@ -251,12 +244,22 @@ USER_PROMPT_TEMPLATE = """
 
 ### Question 4 — LLM inference
 
-Compile the prompt with the retrieved candidates and run inference.
+Compile the prompt with the retrieved candidates and run inference. The steps are:
 
-```{python}
-GEN_MODEL_NAME = "gpt-oss:20b"
-TEMPERATURE = 0.1
+1. Format `USER_PROMPT_TEMPLATE` by injecting `activity`, `descriptions_retrieved` and `codes_retrieved`.
+2. Call [client_llmlab.chat.completions.create](https://developers.openai.com/api/reference/python/resources/chat/subresources/completions/methods/create) with the system and user messages.
+3. Parse the response content with `json.loads`.
+
+::: {.callout-tip}
+**Constraining the output to JSON.** The OpenAI-compatible API accepts a `response_format` parameter that forces the model to return valid JSON:
+
+```python
+response_format={"type": "json_object"}
 ```
+
+This eliminates free-text preambles and makes parsing reliable. The expected keys (`nace2025`, `codable`, `confidence`) are described in the system prompt.
+:::
+
 
 ```{python}
 #| label: inference-example
@@ -311,12 +314,12 @@ con = duckdb.connect(database=":memory:")
 con.execute("INSTALL httpfs;")
 con.execute("LOAD httpfs;")
 
-query_definition = """
+query_definition = f"""
 SELECT *
 FROM read_parquet(
   'https://minio.lab.sspcloud.fr/projet-formation/diffusion/funathon/2026/project2/generation_None_temp08.parquet'
 )
-USING SAMPLE 50
+USING SAMPLE {SAMPLE_SIZE}
 """
 
 annotations = (
@@ -407,7 +410,11 @@ def run_rag_pipeline(activity: str) -> dict:
 ::: {.callout-tip collapse="false" icon=false}
 ## `<i class="bi bi-book"></i>`{=html} Exercise 2: Code all activities in the dataset
 
-Apply `run_rag_pipeline` to every row of the `annotations` DataFrame. Store the results in a new DataFrame called `results`.
+Apply `run_rag_pipeline` to every row of the `annotations` list. Store the results in a DataFrame called `results`.
+
+::: {.callout-note}
+The default sample size is `SAMPLE_SIZE = 50`, which keeps inference fast and avoids consuming too many resources. Each call to the pipeline involves two API requests (embedding + generation), so larger samples will take proportionally longer. Feel free to increase `SAMPLE_SIZE` in the global parameters to get more robust evaluation metrics.
+:::
 
 ```{python}
 #| label: batch-inference
@@ -458,29 +465,29 @@ results.head()
 
 # Pipeline evaluation
 
-Evaluating a RAG pipeline requires examining each stage independently, not just the final output. We define three complementary metrics below.
+To understand where the pipeline succeeds or fails, we evaluate each stage separately. Three metrics are useful here.
 
 ```
-              ┌────────────────────────────────────────────────┐
+              ┌─────────────────────────────────────────────────┐
               │             EVALUATION METRICS                  │
-              ├──────────────────┬─────────────────────────────┤
+              ├──────────────────┬──────────────────────────────┤
               │ Retriever@k      │ Is the correct code among    │
               │ accuracy         │ the k retrieved candidates?  │
-              ├──────────────────┼─────────────────────────────┤
+              ├──────────────────┼──────────────────────────────┤
               │ LLM accuracy     │ When the retriever succeeded,│
               │ (conditional)    │ does the LLM pick the right  │
               │                  │ code?                        │
-              ├──────────────────┼─────────────────────────────┤
+              ├──────────────────┼──────────────────────────────┤
               │ Pipeline         │ Is the final predicted code  │
               │ accuracy         │ correct? (end-to-end)        │
-              └──────────────────┴─────────────────────────────┘
+              └──────────────────┴──────────────────────────────┘
 ```
 
 These three metrics are related by:
 
 $$\text{Pipeline accuracy} = \text{Retriever@k} \times \text{LLM accuracy (conditional)}$$
 
-This decomposition is key for diagnosing where errors originate and deciding which component to improve.
+This decomposition helps pinpoint whether errors come from the retriever or the LLM, and guides improvement efforts.
 
 ::: {.callout-tip collapse="false" icon=false}
 ## `<i class="bi bi-book"></i>`{=html} Exercise 3: Compute evaluation metrics
@@ -513,13 +520,33 @@ results["llm_correct_given_retriever"] = results.apply(
 )
 ```
 
+```{python}
+#| label: eval-columns-preview
+#| echo: false
+#| output: true
+
+results[["activity", "true_code", "pred_code", "retriever_hit", "pipeline_correct"]].head()
+```
+
 ---
 
 ### Question 1 — Retriever accuracy (Retriever@k)
 
 **Retriever@k accuracy** measures the proportion of cases where the reference code is present among the `k` candidates returned by Qdrant. It is the **theoretical ceiling** of the pipeline: if the retriever misses the correct code, the LLM cannot recover it.
 
-$$\text{Retriever@k} = \frac{\text{# cases where the true code is in the k candidates}}{\text{total # cases}}$$
+$$\text{Retriever@k} = \frac{N_\text{hit}}{N}$$
+
+where $N_\text{hit}$ is the number of activities for which the true code is among the $k$ retrieved candidates, and $N$ is the total number of activities.
+
+Using the `retriever_hit` column, compute the proportion of rows where the retriever returned the true code. Store the result in a variable called `retriever_accuracy`.
+
+```{python}
+#| label: retriever-accuracy-hint
+#| echo: false
+#| output: true
+
+results["retriever_hit"].value_counts().rename({True: "Retriever found true code", False: "Retriever missed"})
+```
 
 ```{python}
 #| label: retriever-accuracy
@@ -535,9 +562,21 @@ print(f"  → {results['retriever_hit'].sum()} / {len(results)} correctly retrie
 
 ### Question 2 — Conditional LLM accuracy
 
-**Conditional LLM accuracy** measures the generative model's ability to select the correct code **among cases where the retriever successfully returned the target code**. This metric isolates the LLM's own contribution to the pipeline.
+**Conditional LLM accuracy** measures how often the LLM picks the right code **when the retriever already returned it as a candidate**. This metric isolates the LLM's own contribution to the pipeline.
 
-$$\text{LLM accuracy} = \frac{\text{# correct predictions (retriever succeeded)}}{\text{# cases where retriever succeeded}}$$
+$$\text{LLM accuracy} = \frac{N_{\text{correct} \mid \text{hit}}}{N_\text{hit}}$$
+
+where $N_{\text{correct} \mid \text{hit}}$ is the number of correct predictions in the subset where the retriever succeeded.
+
+Filter `results` to keep only the rows where `retriever_hit` is `True`, then compute the proportion of `pipeline_correct` in that subset. Store the result in `llm_accuracy`.
+
+```{python}
+#| label: llm-accuracy-hint
+#| echo: false
+#| output: true
+
+results[results["retriever_hit"]]["pipeline_correct"].value_counts().rename({True: "LLM correct", False: "LLM wrong"})
+```
 
 ```{python}
 #| label: llm-accuracy
@@ -555,11 +594,19 @@ print(f"  → {retriever_success['pipeline_correct'].sum()} / {len(retriever_suc
 
 ### Question 3 — End-to-end pipeline accuracy
 
-**End-to-end pipeline accuracy** is the final metric: the proportion of activity labels that are correctly coded, regardless of which component caused a potential failure.
-
-Verify empirically that the multiplicative decomposition holds:
+**End-to-end pipeline accuracy** is the proportion of activity labels that are correctly coded, regardless of which component failed.
 
 $$\text{Pipeline accuracy} = \text{Retriever@k} \times \text{LLM accuracy}$$
+
+Compute the overall accuracy from the `pipeline_correct` column and store it in `pipeline_accuracy`. Then verify empirically that the multiplicative relationship with `retriever_accuracy` and `llm_accuracy` holds.
+
+```{python}
+#| label: pipeline-accuracy-hint
+#| echo: false
+#| output: true
+
+results["pipeline_correct"].value_counts().rename({True: "Correctly coded", False: "Incorrectly coded"})
+```
 
 ```{python}
 #| label: pipeline-accuracy
@@ -578,7 +625,7 @@ print(f"Cross-check: Retriever@k × LLM = {retriever_accuracy:.3f} × {llm_accur
 
 ### Question 4 — Summary dashboard and error decomposition
 
-Produce a summary table of all metrics and analyse the distribution of errors by source (retriever vs. LLM).
+Count how many errors come from the retriever (cases where `retriever_hit` is `False`) and how many come from the LLM (cases where `retriever_hit` is `True` but `pipeline_correct` is `False`). Then produce a summary table of all metrics.
 
 ```{python}
 #| label: dashboard
@@ -612,6 +659,14 @@ print("=" * 52)
 - If **LLM errors dominate** → refine the prompt, switch to a more capable generative model, or lower the temperature further.
 :::
 
+::: {.callout-note}
+**Not all errors are equal.** A wrong prediction can mean very different things. Some errors are completely off — predicting a manufacturing code for a services activity. Others are near-misses: the predicted code is a parent (e.g. `47` instead of `47.11`) or a sibling at the same level of the hierarchy. Near-misses may be acceptable in practice, depending on how the coded data will be used. A hierarchical accuracy metric — counting a prediction as correct if it matches up to a certain depth — would capture this nuance.
+:::
+
+:::
+
+::: {.callout-important}
+**On the optimism of these results.** The evaluation dataset is synthetic: activity labels were generated by an AI system at low temperature, producing clean and unambiguous descriptions that are easier to classify than real-world data. Actual labels are often shorter, noisier, or ambiguous. The accuracy figures obtained here are therefore optimistic and should not be taken as representative of production performance.
 :::
 
 ## Confidence score analysis
