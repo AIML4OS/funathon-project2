@@ -571,12 +571,12 @@ Tip
 Keys: ['code', 'name', 'label']</code></pre>
 </div>
 <div id="get-data" class="cell-output cell-output-display" data-execution_count="8">
-<pre><code>[{'code': '49.33',
-  'name': 'On-demand passenger transport service activities by vehicle with driver',
-  'label': 'Vehicle-based passenger conveyance'},
- {'code': '71.12',
-  'name': 'Engineering activities and related technical consultancy',
-  'label': 'Structural engineering consultancy'}]</code></pre>
+<pre><code>[{'code': '66.30',
+  'name': 'Fund management activities',
+  'label': 'Fee-based wealth administration'},
+ {'code': '13.30',
+  'name': 'Finishing of textiles',
+  'label': 'Apparel finishing including steaming'}]</code></pre>
 </div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -816,41 +816,41 @@ Note
 <tbody>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">0</th>
-<td>Vehicle-based passenger conveyance</td>
-<td>49.33</td>
-<td>49.3</td>
-<td>False</td>
-<td>False</td>
+<td>Fee-based wealth administration</td>
+<td>66.30</td>
+<td>66.30</td>
+<td>True</td>
+<td>True</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">1</th>
-<td>Structural engineering consultancy</td>
-<td>71.12</td>
-<td>71.12</td>
+<td>Apparel finishing including steaming</td>
+<td>13.30</td>
+<td>13.30</td>
 <td>True</td>
 <td>True</td>
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">2</th>
-<td>Interior fireproofing material application</td>
-<td>43.23</td>
-<td>43.23</td>
-<td>True</td>
-<td>True</td>
+<td>Special occasion consultancy</td>
+<td>96.99</td>
+<td>70.2</td>
+<td>False</td>
+<td>False</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">3</th>
-<td>Surgical dentistry and related care</td>
-<td>86.23</td>
-<td>86.23</td>
+<td>Commercial property transactions</td>
+<td>68.11</td>
+<td>68.3</td>
 <td>True</td>
-<td>True</td>
+<td>False</td>
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">4</th>
-<td>Social event planning for singles</td>
-<td>96.99</td>
-<td>82.3</td>
+<td>Commercial space leasing services</td>
+<td>68.20</td>
+<td>68.2</td>
 <td>False</td>
 <td>False</td>
 </tr>
@@ -870,8 +870,8 @@ Note
 <div id="cell-retriever-accuracy-hint" class="cell" data-execution_count="13">
 <div id="retriever-accuracy-hint" class="cell-output cell-output-display" data-execution_count="13">
 <pre><code>retriever_hit
-Retriever found true code    28
-Retriever missed             22
+Retriever found true code    26
+Retriever missed             24
 Name: count, dtype: int64</code></pre>
 </div>
 </div>
@@ -894,8 +894,8 @@ Name: count, dtype: int64</code></pre>
 <div id="cell-llm-accuracy-hint" class="cell" data-execution_count="15">
 <div id="llm-accuracy-hint" class="cell-output cell-output-display" data-execution_count="15">
 <pre><code>pipeline_correct
-LLM correct    25
-LLM wrong       3
+LLM correct    24
+LLM wrong       2
 Name: count, dtype: int64</code></pre>
 </div>
 </div>
@@ -919,8 +919,8 @@ Name: count, dtype: int64</code></pre>
 <div id="cell-pipeline-accuracy-hint" class="cell" data-execution_count="17">
 <div id="pipeline-accuracy-hint" class="cell-output cell-output-display" data-execution_count="17">
 <pre><code>pipeline_correct
-Incorrectly coded    25
-Correctly coded      25
+Incorrectly coded    26
+Correctly coded      24
 Name: count, dtype: int64</code></pre>
 </div>
 </div>
@@ -1072,7 +1072,7 @@ Important
 <span id="cb24-55"><a href="#cb24-55" aria-hidden="true" tabindex="-1"></a>display(p1)</span>
 <span id="cb24-56"><a href="#cb24-56" aria-hidden="true" tabindex="-1"></a>display(p2)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
-<div id="confidence-analysis" class="cell quarto-layout-panel" data-layout-ncol="2" data-execution_count="20">
+<div id="confidence-analysis" class="cell quarto-layout-panel" data-execution_count="20" data-layout-ncol="2">
 <div class="quarto-layout-row">
 <div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
 <p><a href="2-rag-generation_files/figure-html/confidence-analysis-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="2-rag-generation_files/figure-html/confidence-analysis-output-1.png" id="confidence-analysis-1" class="img-fluid" width="672"></a></p>
