@@ -114,7 +114,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <meta property="og:description" content="Automatic classification">
 <meta property="og:image" content="https://AIML4OS.github.io/funathon-project2/img/rag_wf.png">
 <meta property="og:site_name" content="AIML4OS Funathon - Project 2">
-<meta property="og:image:alt" content="Rag worklow scheme">
+<meta property="og:image:alt" content="RAG workflow: Part 1 builds the vector index from NACE definitions; Part 2 runs the inference pipeline on new activity labels.">
 <meta property="og:image:height" content="2037">
 <meta property="og:image:width" content="2961">
 </head>
@@ -174,17 +174,22 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#what-is-a-rag-why-using-a-rag" id="toc-what-is-a-rag-why-using-a-rag" class="nav-link active" data-scroll-target="#what-is-a-rag-why-using-a-rag"><span class="header-section-number">1</span> What is a RAG ? Why using a RAG ?</a></li>
-  <li><a href="#what-are-we-about-to-learn" id="toc-what-are-we-about-to-learn" class="nav-link" data-scroll-target="#what-are-we-about-to-learn"><span class="header-section-number">2</span> What are we about to learn ?</a></li>
-  <li><a href="#technical-requirements-for-this-tutorial" id="toc-technical-requirements-for-this-tutorial" class="nav-link" data-scroll-target="#technical-requirements-for-this-tutorial"><span class="header-section-number">3</span> Technical requirements for this tutorial</a>
+  <li><a href="#what-is-a-rag-and-why-use-one" id="toc-what-is-a-rag-and-why-use-one" class="nav-link active" data-scroll-target="#what-is-a-rag-and-why-use-one"><span class="header-section-number">1</span> What is a RAG, and why use one?</a>
   <ul class="collapse">
-  <li><a href="#environment-variables-and-secrets" id="toc-environment-variables-and-secrets" class="nav-link" data-scroll-target="#environment-variables-and-secrets"><span class="header-section-number">3.1</span> Environment variables and secrets</a></li>
-  <li><a href="#where-to-get-thoses-creds" id="toc-where-to-get-thoses-creds" class="nav-link" data-scroll-target="#where-to-get-thoses-creds"><span class="header-section-number">3.2</span> Where to get thoses creds ?</a>
-  <ul class="collapse">
-  <li><a href="#for-llm.lab" id="toc-for-llm.lab" class="nav-link" data-scroll-target="#for-llm.lab"><span class="header-section-number">3.2.1</span> For llm.lab</a></li>
-  <li><a href="#for-qdrant" id="toc-for-qdrant" class="nav-link" data-scroll-target="#for-qdrant"><span class="header-section-number">3.2.2</span> For Qdrant</a></li>
+  <li><a href="#the-problem-classifying-free-text-labels" id="toc-the-problem-classifying-free-text-labels" class="nav-link" data-scroll-target="#the-problem-classifying-free-text-labels"><span class="header-section-number">1.1</span> The problem: classifying free-text labels</a></li>
+  <li><a href="#the-solution-retrieval-augmented-generation" id="toc-the-solution-retrieval-augmented-generation" class="nav-link" data-scroll-target="#the-solution-retrieval-augmented-generation"><span class="header-section-number">1.2</span> The solution: Retrieval-Augmented Generation</a></li>
+  <li><a href="#why-not-fine-tune-a-model-instead" id="toc-why-not-fine-tune-a-model-instead" class="nav-link" data-scroll-target="#why-not-fine-tune-a-model-instead"><span class="header-section-number">1.3</span> Why not fine-tune a model instead?</a></li>
   </ul></li>
-  <li><a href="#how-to-pass-them-as-environment-variables" id="toc-how-to-pass-them-as-environment-variables" class="nav-link" data-scroll-target="#how-to-pass-them-as-environment-variables"><span class="header-section-number">3.3</span> How to pass them as environment variables</a></li>
+  <li><a href="#what-will-you-learn-in-this-tutorial" id="toc-what-will-you-learn-in-this-tutorial" class="nav-link" data-scroll-target="#what-will-you-learn-in-this-tutorial"><span class="header-section-number">2</span> What will you learn in this tutorial?</a></li>
+  <li><a href="#technical-requirements" id="toc-technical-requirements" class="nav-link" data-scroll-target="#technical-requirements"><span class="header-section-number">3</span> Technical requirements</a>
+  <ul class="collapse">
+  <li><a href="#services" id="toc-services" class="nav-link" data-scroll-target="#services"><span class="header-section-number">3.1</span> Services</a></li>
+  <li><a href="#credentials" id="toc-credentials" class="nav-link" data-scroll-target="#credentials"><span class="header-section-number">3.2</span> Credentials</a>
+  <ul class="collapse">
+  <li><a href="#getting-your-llm.lab-api-key" id="toc-getting-your-llm.lab-api-key" class="nav-link" data-scroll-target="#getting-your-llm.lab-api-key"><span class="header-section-number">3.2.1</span> Getting your llm.lab API key</a></li>
+  <li><a href="#getting-your-qdrant-credentials" id="toc-getting-your-qdrant-credentials" class="nav-link" data-scroll-target="#getting-your-qdrant-credentials"><span class="header-section-number">3.2.2</span> Getting your Qdrant credentials</a></li>
+  </ul></li>
+  <li><a href="#loading-credentials-in-python" id="toc-loading-credentials-in-python" class="nav-link" data-scroll-target="#loading-credentials-in-python"><span class="header-section-number">3.3</span> Loading credentials in Python</a></li>
   </ul></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.com/AIML4OS/funathon-project2/edit/main/2-rag-intro.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/AIML4OS/funathon-project2/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
@@ -221,130 +226,176 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <tbody>
 <tr class="odd">
 <td><span class="level-button level-beginner">Beginner</span></td>
-<td>Follow the tutorial and understand given answers.</td>
+<td>Follow the tutorial and understand the provided answers.</td>
 </tr>
 <tr class="even">
 <td><span class="level-button level-intermediate">Intermediate</span></td>
-<td>Try to complete the tutorial without checking answers.</td>
+<td>Try to complete the exercises without checking the answers.</td>
 </tr>
 <tr class="odd">
 <td><span class="level-button level-expert">Expert</span></td>
-<td>Enhance the pipeline and improve results (better models, better embedding strategy, .etc.).</td>
+<td>Enhance the pipeline and improve results: better models, richer embeddings, prompt tuning, etc.</td>
 </tr>
 </tbody>
 </table>
-<section id="what-is-a-rag-why-using-a-rag" class="level1" data-number="1">
-<h1 data-number="1"><span class="header-section-number">1</span> What is a RAG ? Why using a RAG ?</h1>
+<section id="what-is-a-rag-and-why-use-one" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> What is a RAG, and why use one?</h1>
+<section id="the-problem-classifying-free-text-labels" class="level2" data-number="1.1">
+<h2 data-number="1.1" class="anchored" data-anchor-id="the-problem-classifying-free-text-labels"><span class="header-section-number">1.1</span> The problem: classifying free-text labels</h2>
+<p>Statistical agencies routinely receive free-text descriptions of economic activities — from business registration forms, surveys, or administrative records — that need to be assigned a code from a standardised nomenclature such as <strong>NACE 2.1</strong>. This nomenclature contains hundreds of codes, each associated with a precise definition and scope notes.</p>
+<p>Doing this manually is expensive and inconsistent. Automating it with a language model is appealing, but a naive approach — asking the model “what is the NACE code for this activity?” — has a major weakness: <strong>LLMs do not reliably memorise fine-grained nomenclatures</strong>. They may confuse similar codes, invent non-existent ones, or produce codes that belong to an older version of the classification.</p>
+</section>
+<section id="the-solution-retrieval-augmented-generation" class="level2" data-number="1.2">
+<h2 data-number="1.2" class="anchored" data-anchor-id="the-solution-retrieval-augmented-generation"><span class="header-section-number">1.2</span> The solution: Retrieval-Augmented Generation</h2>
+<p><strong>RAG (Retrieval-Augmented Generation)</strong> addresses this by splitting the task into two stages:</p>
+<ol type="1">
+<li><strong>Retrieve</strong> — find the NACE codes whose descriptions are semantically closest to the input label, using a vector database.</li>
+<li><strong>Generate</strong> — ask the LLM to pick the best code <em>from the retrieved shortlist</em>, not from memory.</li>
+</ol>
+<p>This approach combines the semantic power of embedding models with the reasoning ability of generative models, while keeping the LLM anchored to a controlled list of valid options.</p>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><a href="img/rag_wf.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="Rag worklow scheme"><img src="img/rag_wf.png" class="img-fluid figure-img" alt="Rag worklow scheme"></a></p>
-<figcaption>Rag worklow scheme</figcaption>
+<p><a href="img/rag_wf.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="RAG workflow: Part 1 builds the vector index from NACE definitions; Part 2 runs the inference pipeline on new activity labels."><img src="img/rag_wf.png" class="img-fluid figure-img" alt="RAG workflow: Part 1 builds the vector index from NACE definitions; Part 2 runs the inference pipeline on new activity labels."></a></p>
+<figcaption>RAG workflow: Part 1 builds the vector index from NACE definitions; Part 2 runs the inference pipeline on new activity labels.</figcaption>
 </figure>
 </div>
-<p><strong>TO COMPLETE</strong></p>
 </section>
-<section id="what-are-we-about-to-learn" class="level1" data-number="2">
-<h1 data-number="2"><span class="header-section-number">2</span> What are we about to learn ?</h1>
-<p><strong>TO COMPLETE</strong></p>
-</section>
-<section id="technical-requirements-for-this-tutorial" class="level1" data-number="3">
-<h1 data-number="3"><span class="header-section-number">3</span> Technical requirements for this tutorial</h1>
+<section id="why-not-fine-tune-a-model-instead" class="level2" data-number="1.3">
+<h2 data-number="1.3" class="anchored" data-anchor-id="why-not-fine-tune-a-model-instead"><span class="header-section-number">1.3</span> Why not fine-tune a model instead?</h2>
+<p>Fine-tuning is another common approach, but it has significant drawbacks for this use case:</p>
 <ul>
-<li>Connection to :
-<ul>
-<li>A Qdrant vectorial database</li>
-<li><strong>llm.lab</strong>: The SSPCloud’s LLM provider (Ollama/OpenWebUI)</li>
-</ul></li>
+<li><strong>Rigidity</strong>: if the nomenclature is updated, the model must be re-trained.</li>
+<li><strong>Data requirements</strong>: fine-tuning requires a large annotated dataset.</li>
+<li><strong>Cost</strong>: training runs are expensive and time-consuming.</li>
 </ul>
-<section id="environment-variables-and-secrets" class="level2" data-number="3.1">
-<h2 data-number="3.1" class="anchored" data-anchor-id="environment-variables-and-secrets"><span class="header-section-number">3.1</span> Environment variables and secrets</h2>
-<p>To connect your SSPCloud VSCode service to <strong>Qdrant</strong> and <strong>llm.lab</strong>, you will need the folowing credentials.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode txt code-with-copy"><code class="sourceCode default"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>QDRANT_URL=https://YOURNAMESPACE-qdrant.user.lab.sspcloud.fr/</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>QDRANT_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxx</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>QDRANT_API_PORT=443</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>LLMLAB_API_KEY=xxxxxxxxxxxxxxxxxxxxxx</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>LLMLAB_URL=https://llm.lab.sspcloud.fr/api</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Make sure to never leak thoses credentials! They will need to be stored as an Onyxia Secret, or alternatively in a <strong>.env file</strong>. Let’s dive in with the second possibility.</p>
-</section>
-<section id="where-to-get-thoses-creds" class="level2" data-number="3.2">
-<h2 data-number="3.2" class="anchored" data-anchor-id="where-to-get-thoses-creds"><span class="header-section-number">3.2</span> Where to get thoses creds ?</h2>
-<section id="for-llm.lab" class="level3" data-number="3.2.1">
-<h3 data-number="3.2.1" class="anchored" data-anchor-id="for-llm.lab"><span class="header-section-number">3.2.1</span> For llm.lab</h3>
-<p>Please verify you are connected to the SSPCloud and then use the following link to reach <strong>llm.lab</strong> UI : https://llm.lab.sspcloud.fr/. Now, go to your account settings (upper right - “Réglages”) / account (“Compte”) / API Keys (“Clés d’API”) =&gt; you are now ready to create your api key!</p>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><a href="img/api_llmlab.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2" title="Create an API key on llm.lab"><img src="img/api_llmlab.png" class="img-fluid figure-img" alt="Create an API key on llm.lab"></a></p>
-<figcaption>Create an API key on llm.lab</figcaption>
-</figure>
-</div>
-<p>You can now fill your LLMLAB_API_KEY variable.</p>
-</section>
-<section id="for-qdrant" class="level3" data-number="3.2.2">
-<h3 data-number="3.2.2" class="anchored" data-anchor-id="for-qdrant"><span class="header-section-number">3.2.2</span> For Qdrant</h3>
-<p><strong>TO COMPLETE</strong> : Shared qdrant or 1 Qdrant per namespace ?</p>
-<ul>
-<li>Create a Qdrant service <strong>in your personal namespace</strong> as follows</li>
-</ul>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><a href="img/qdrant_service.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3" title="Create a Qdrant service"><img src="img/qdrant_service.png" class="img-fluid figure-img" alt="Create a Qdrant service"></a></p>
-<figcaption>Create a Qdrant service</figcaption>
-</figure>
-</div>
-<ul>
-<li>Copy and save properly your Qdrant token</li>
-</ul>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><a href="img/qdrant_token.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4" title="Get you Qdrant token"><img src="img/qdrant_token.png" class="img-fluid figure-img" alt="Get you Qdrant token"></a></p>
-<figcaption>Get you Qdrant token</figcaption>
-</figure>
-</div>
-<ul>
-<li>Launch you Qdrant service</li>
-</ul>
+<p>RAG, by contrast, only requires updating the vector database when the nomenclature changes — no retraining needed.</p>
+<hr>
 </section>
 </section>
-<section id="how-to-pass-them-as-environment-variables" class="level2" data-number="3.3">
-<h2 data-number="3.3" class="anchored" data-anchor-id="how-to-pass-them-as-environment-variables"><span class="header-section-number">3.3</span> How to pass them as environment variables</h2>
+<section id="what-will-you-learn-in-this-tutorial" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> What will you learn in this tutorial?</h1>
+<p>This tutorial is divided into two notebooks that map directly to the two parts of the workflow above.</p>
+<p><strong>Tutorial 1 — Building the vector database</strong> (<code>2-rag-vdb.qmd</code>)</p>
 <ul>
-<li><ol type="1">
-<li>Create an empty <strong>.env</strong> file (at your repo’s root)</li>
-</ol></li>
-<li><ol start="2" type="1">
-<li>Write your environment variables as above, and save</li>
-</ol></li>
-<li><ol start="3" type="1">
-<li>Use the folowing code to export theses variables to your environment variables</li>
-</ol></li>
+<li>Embed all NACE 2.1 code descriptions using an embedding model</li>
+<li>Store the resulting vectors in a <strong>Qdrant</strong> collection</li>
+<li>Understand what a vector database is and how nearest-neighbour search works</li>
 </ul>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> dotenv <span class="im">import</span> load_dotenv</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>load_dotenv()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Tutorial 2 — Running and evaluating the RAG pipeline</strong> (<code>2-rag-generation.qmd</code>)</p>
 <ul>
-<li><ol start="4" type="1">
-<li>Verify all is good:</li>
-</ol></li>
+<li>Embed a free-text activity label and retrieve the <code>k</code> closest NACE candidates</li>
+<li>Build a structured prompt and run LLM inference to select the final code</li>
+<li>Evaluate the pipeline at each stage: retriever accuracy, conditional LLM accuracy, end-to-end accuracy</li>
+<li>Analyse the confidence score as a quality signal for production filtering</li>
 </ul>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    QDRANT_URL <span class="op">=</span> os.environ[<span class="st">"QDRANT_URL"</span>]</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"All right with QDRANT_URL secret"</span>)</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> <span class="pp">KeyError</span>:</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">ValueError</span>(<span class="st">"QDRANT_URL environment variable not set"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="callout callout-style-simple callout-warning callout-titled">
+<div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Warning</span>Attention
+Note
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Do not leak your secrets =&gt; Do not commit your .env file!</p>
-<p>(use your .gitignore config do deal with it)</p>
+<p>Both notebooks share the same infrastructure (Qdrant + llm.lab) and the same global parameters. Tutorial 1 must be completed before Tutorial 2, as it creates the vector collection that the pipeline depends on.</p>
 </div>
 </div>
+<hr>
+</section>
+<section id="technical-requirements" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Technical requirements</h1>
+<section id="services" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="services"><span class="header-section-number">3.1</span> Services</h2>
+<p>You will need access to two services hosted on the SSPCloud:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Service</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Qdrant</strong></td>
+<td>Vector database storing NACE embeddings</td>
+</tr>
+<tr class="even">
+<td><strong>llm.lab</strong></td>
+<td>LLM provider (embedding model + generative model)</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="credentials" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="credentials"><span class="header-section-number">3.2</span> Credentials</h2>
+<p>Create a <code>.env</code> file at the root of your repository with the following variables:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode txt code-with-copy"><code class="sourceCode default"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>QDRANT_URL=https://YOURNAMESPACE-qdrant.user.lab.sspcloud.fr/</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>QDRANT_API_KEY=xxxxxxxxxxxxxxxxxxxx</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>QDRANT_API_PORT=443</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>LLMLAB_API_KEY=xxxxxxxxxxxxxxxxxxxx</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>LLMLAB_URL=https://llm.lab.sspcloud.fr/api</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Warning
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>Never commit your <code>.env</code> file.</strong> Add it to your <code>.gitignore</code> immediately. Leaking API keys can expose your services to unauthorised use.</p>
+</div>
+</div>
+<section id="getting-your-llm.lab-api-key" class="level3" data-number="3.2.1">
+<h3 data-number="3.2.1" class="anchored" data-anchor-id="getting-your-llm.lab-api-key"><span class="header-section-number">3.2.1</span> Getting your llm.lab API key</h3>
+<ol type="1">
+<li>Go to the llm.lab interface and sign in with your SSPCloud account.</li>
+<li>Open <strong>Settings</strong> (top right) → <strong>Account</strong> → <strong>API Keys</strong>.</li>
+<li>Generate a new key and copy it into <code>LLMLAB_API_KEY</code>.</li>
+</ol>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="img/api_llmlab.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2" title="Creating an API key on llm.lab"><img src="img/api_llmlab.png" class="img-fluid figure-img" alt="Creating an API key on llm.lab"></a></p>
+<figcaption>Creating an API key on llm.lab</figcaption>
+</figure>
+</div>
+</section>
+<section id="getting-your-qdrant-credentials" class="level3" data-number="3.2.2">
+<h3 data-number="3.2.2" class="anchored" data-anchor-id="getting-your-qdrant-credentials"><span class="header-section-number">3.2.2</span> Getting your Qdrant credentials</h3>
+<ol type="1">
+<li>Launch a <strong>Qdrant</strong> service in your personal SSPCloud namespace.</li>
+</ol>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="img/qdrant_service.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3" title="Creating a Qdrant service on SSPCloud"><img src="img/qdrant_service.png" class="img-fluid figure-img" alt="Creating a Qdrant service on SSPCloud"></a></p>
+<figcaption>Creating a Qdrant service on SSPCloud</figcaption>
+</figure>
+</div>
+<ol start="2" type="1">
+<li>Copy the generated token and save it as <code>QDRANT_API_KEY</code>. The URL follows the pattern <code>https://YOURNAMESPACE-qdrant.user.lab.sspcloud.fr/</code>.</li>
+</ol>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="img/qdrant_token.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4" title="Retrieving the Qdrant token"><img src="img/qdrant_token.png" class="img-fluid figure-img" alt="Retrieving the Qdrant token"></a></p>
+<figcaption>Retrieving the Qdrant token</figcaption>
+</figure>
+</div>
+</section>
+</section>
+<section id="loading-credentials-in-python" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="loading-credentials-in-python"><span class="header-section-number">3.3</span> Loading credentials in Python</h2>
+<p>Once your <code>.env</code> file is ready, load the variables at the start of each notebook:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> dotenv <span class="im">import</span> load_dotenv</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>load_dotenv()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>To verify that a variable was loaded correctly:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    QDRANT_URL <span class="op">=</span> os.environ[<span class="st">"QDRANT_URL"</span>]</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"QDRANT_URL loaded successfully"</span>)</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> <span class="pp">KeyError</span>:</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">ValueError</span>(<span class="st">"QDRANT_URL is not set — check your .env file"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 
 
 </section>
