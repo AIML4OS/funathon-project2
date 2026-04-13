@@ -571,12 +571,12 @@ Tip
 Keys: ['code', 'name', 'label']</code></pre>
 </div>
 <div id="get-data" class="cell-output cell-output-display" data-execution_count="8">
-<pre><code>[{'code': '47.75',
-  'name': 'Retail sale of cosmetic and toilet articles',
-  'label': 'Over-the-counter toiletries and cosmetic retail'},
- {'code': '47.22',
-  'name': 'Retail sale of meat and meat products',
-  'label': 'Retail sales of snail products'}]</code></pre>
+<pre><code>[{'code': '68.20',
+  'name': 'Rental and operating of own or leased real estate',
+  'label': 'Industrial facility rental services'},
+ {'code': '82.99',
+  'name': 'Other business support service activities n.e.c.',
+  'label': 'Operational support services to organizations'}]</code></pre>
 </div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -816,23 +816,23 @@ Note
 <tbody>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">0</th>
-<td>Over-the-counter toiletries and cosmetic retail</td>
-<td>47.75</td>
-<td>47.75</td>
+<td>Industrial facility rental services</td>
+<td>68.20</td>
+<td>68.20</td>
 <td>True</td>
 <td>True</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">1</th>
-<td>Retail sales of snail products</td>
-<td>47.22</td>
-<td>47.22</td>
-<td>True</td>
-<td>True</td>
+<td>Operational support services to organizations</td>
+<td>82.99</td>
+<td>82</td>
+<td>False</td>
+<td>False</td>
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">2</th>
-<td>Investment property rental operations</td>
+<td>Commercial property leasing activities</td>
 <td>68.20</td>
 <td>68.20</td>
 <td>True</td>
@@ -840,17 +840,17 @@ Note
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">3</th>
-<td>Acoustic design and noise mitigation planning</td>
-<td>71.12</td>
-<td>74.1</td>
-<td>False</td>
-<td>False</td>
+<td>Rental income from business properties</td>
+<td>68.20</td>
+<td>68.20</td>
+<td>True</td>
+<td>True</td>
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">4</th>
-<td>Labor dispute resolution assistance</td>
-<td>69.10</td>
-<td>69.10</td>
+<td>Capital allocation for mutual funds</td>
+<td>66.30</td>
+<td>66.30</td>
 <td>True</td>
 <td>True</td>
 </tr>
@@ -870,8 +870,8 @@ Note
 <div id="cell-retriever-accuracy-hint" class="cell" data-execution_count="13">
 <div id="retriever-accuracy-hint" class="cell-output cell-output-display" data-execution_count="13">
 <pre><code>retriever_hit
-Retriever found true code    29
-Retriever missed             21
+Retriever found true code    30
+Retriever missed             20
 Name: count, dtype: int64</code></pre>
 </div>
 </div>
@@ -895,7 +895,7 @@ Name: count, dtype: int64</code></pre>
 <div id="llm-accuracy-hint" class="cell-output cell-output-display" data-execution_count="15">
 <pre><code>pipeline_correct
 LLM correct    26
-LLM wrong       3
+LLM wrong       4
 Name: count, dtype: int64</code></pre>
 </div>
 </div>
