@@ -571,12 +571,12 @@ Tip
 Keys: ['code', 'name', 'label']</code></pre>
 </div>
 <div id="get-data" class="cell-output cell-output-display" data-execution_count="8">
-<pre><code>[{'code': '10.72',
-  'name': 'Manufacture of rusks, biscuits, preserved pastries and cakes',
-  'label': 'Commercial baking of confectionery items'},
- {'code': '96.22',
-  'name': 'Beauty care and other beauty treatment activities',
-  'label': 'Facial aesthetics and massage'}]</code></pre>
+<pre><code>[{'code': '47.75',
+  'name': 'Retail sale of cosmetic and toilet articles',
+  'label': 'Over-the-counter toiletries and cosmetic retail'},
+ {'code': '47.22',
+  'name': 'Retail sale of meat and meat products',
+  'label': 'Retail sales of snail products'}]</code></pre>
 </div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -816,43 +816,43 @@ Note
 <tbody>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">0</th>
-<td>Commercial baking of confectionery items</td>
-<td>10.72</td>
-<td>10.8</td>
+<td>Over-the-counter toiletries and cosmetic retail</td>
+<td>47.75</td>
+<td>47.75</td>
 <td>True</td>
-<td>False</td>
+<td>True</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">1</th>
-<td>Facial aesthetics and massage</td>
-<td>96.22</td>
-<td>96.22</td>
+<td>Retail sales of snail products</td>
+<td>47.22</td>
+<td>47.22</td>
 <td>True</td>
 <td>True</td>
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">2</th>
-<td>Management systems certification services</td>
-<td>70.20</td>
-<td>70.2</td>
-<td>False</td>
-<td>False</td>
+<td>Investment property rental operations</td>
+<td>68.20</td>
+<td>68.20</td>
+<td>True</td>
+<td>True</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">3</th>
-<td>Independent insurance advisory roles</td>
-<td>66.22</td>
-<td>66.29</td>
-<td>True</td>
+<td>Acoustic design and noise mitigation planning</td>
+<td>71.12</td>
+<td>74.1</td>
+<td>False</td>
 <td>False</td>
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">4</th>
-<td>Waste stream management consulting</td>
-<td>39.00</td>
-<td>39.0</td>
-<td>False</td>
-<td>False</td>
+<td>Labor dispute resolution assistance</td>
+<td>69.10</td>
+<td>69.10</td>
+<td>True</td>
+<td>True</td>
 </tr>
 </tbody>
 </table>
@@ -870,8 +870,8 @@ Note
 <div id="cell-retriever-accuracy-hint" class="cell" data-execution_count="13">
 <div id="retriever-accuracy-hint" class="cell-output cell-output-display" data-execution_count="13">
 <pre><code>retriever_hit
-Retriever missed             31
-Retriever found true code    19
+Retriever found true code    29
+Retriever missed             21
 Name: count, dtype: int64</code></pre>
 </div>
 </div>
@@ -894,7 +894,7 @@ Name: count, dtype: int64</code></pre>
 <div id="cell-llm-accuracy-hint" class="cell" data-execution_count="15">
 <div id="llm-accuracy-hint" class="cell-output cell-output-display" data-execution_count="15">
 <pre><code>pipeline_correct
-LLM correct    16
+LLM correct    26
 LLM wrong       3
 Name: count, dtype: int64</code></pre>
 </div>
@@ -919,8 +919,8 @@ Name: count, dtype: int64</code></pre>
 <div id="cell-pipeline-accuracy-hint" class="cell" data-execution_count="17">
 <div id="pipeline-accuracy-hint" class="cell-output cell-output-display" data-execution_count="17">
 <pre><code>pipeline_correct
-Incorrectly coded    34
-Correctly coded      16
+Correctly coded      26
+Incorrectly coded    24
 Name: count, dtype: int64</code></pre>
 </div>
 </div>
