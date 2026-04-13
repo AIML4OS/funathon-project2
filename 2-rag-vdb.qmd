@@ -15,7 +15,7 @@ This first part will show you how to build a vector database, e.g the "augmented
 
 The simplified workflow will be as follows : 
 
-- 0. Create a proper working environment with all needed connections (__s3__, __qdrant__ and __llm.lab__)
+- 0. Create a proper working environment with all needed connections (__s3:__ object storage, __qdrant:__ vector database and __llm.lab:__ LLM provider)
 - 1. Take the NACE2.1 code definitions (code + title, + inclusions + exclusions in plain text)
 - 2. Concatenate these pieces of information for each unique NACE (one code => 1 text)
 - 3. Embedded all these texts (1 text => 1 vector point)
