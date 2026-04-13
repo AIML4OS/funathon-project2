@@ -32,11 +32,11 @@ website:
         href: index.qmd
       - text: "Supervised learning"
         href: 1-ttc.qmd
-      - text: "RAG approach - Introduction"
+      - text: "RAG - Introduction"
         href: 2-rag-intro.qmd
-      - text: "RAG approach - Create the vectorial DB"
+      - text: "RAG - Create the vector DB"
         href: 2-rag-vdb.qmd
-      - text: "RAG approach - Generate predictions"
+      - text: "RAG - Generate predictions"
         href: 2-rag-generation.qmd
 
 
