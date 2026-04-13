@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en-EN" xml:lang="en-EN"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.9.36">
+<meta name="generator" content="quarto-1.9.37">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -74,10 +74,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-845c23b38eaddc0f92fda52bfe77a8c8.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-dc2128e30616b12987e07a04815558de.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-10001ffb058a23507bc90342e4cf6f50.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script src="site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
 <link href="site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
 <link href="site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
@@ -172,15 +172,15 @@ window.Quarto = {
   </li>  
   <li class="nav-item">
     <a class="nav-link" href="./2-rag-intro.html"> 
-<span class="menu-text">RAG approach - Introduction</span></a>
+<span class="menu-text">RAG - Introduction</span></a>
   </li>  
   <li class="nav-item">
     <a class="nav-link" href="./2-rag-vdb.html"> 
-<span class="menu-text">RAG approach - Create the vectorial DB</span></a>
+<span class="menu-text">RAG - Create the vector DB</span></a>
   </li>  
   <li class="nav-item">
     <a class="nav-link active" href="./2-rag-generation.html" aria-current="page"> 
-<span class="menu-text">RAG approach - Generate predictions</span></a>
+<span class="menu-text">RAG - Generate predictions</span></a>
   </li>  
 </ul>
             <ul class="navbar-nav navbar-nav-scroll ms-auto">
@@ -571,12 +571,12 @@ Tip
 Keys: ['code', 'name', 'label']</code></pre>
 </div>
 <div id="get-data" class="cell-output cell-output-display" data-execution_count="8">
-<pre><code>[{'code': '70.20',
-  'name': 'Business and other management consultancy activities',
-  'label': 'Internal control framework development support'},
- {'code': '74.12',
-  'name': 'Graphic design and visual communication activities',
-  'label': 'Brand refresh and visual updating'}]</code></pre>
+<pre><code>[{'code': '73.20',
+  'name': 'Market research and public opinion polling',
+  'label': 'Opinion mining and preference studies'},
+ {'code': '81.30',
+  'name': 'Landscape service activities',
+  'label': 'Landscape feature preservation and enhancement'}]</code></pre>
 </div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -816,43 +816,43 @@ Note
 <tbody>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">0</th>
-<td>Internal control framework development support</td>
-<td>70.20</td>
-<td>70.2</td>
-<td>False</td>
-<td>False</td>
+<td>Opinion mining and preference studies</td>
+<td>73.20</td>
+<td>73.20</td>
+<td>True</td>
+<td>True</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">1</th>
-<td>Brand refresh and visual updating</td>
-<td>74.12</td>
-<td>74.12</td>
-<td>True</td>
-<td>True</td>
+<td>Landscape feature preservation and enhancement</td>
+<td>81.30</td>
+<td>NaN</td>
+<td>False</td>
+<td>False</td>
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">2</th>
-<td>Practical driving test preparation</td>
-<td>85.53</td>
-<td>85.53</td>
-<td>True</td>
-<td>True</td>
+<td>Professional beauty and wellness treatments</td>
+<td>96.22</td>
+<td>NaN</td>
+<td>False</td>
+<td>False</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">3</th>
-<td>Newspaper editorial content creation</td>
-<td>58.12</td>
-<td>58.12</td>
-<td>True</td>
-<td>True</td>
+<td>Garden center retail operations</td>
+<td>47.76</td>
+<td>NaN</td>
+<td>False</td>
+<td>False</td>
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">4</th>
-<td>Retail loss prevention personnel</td>
-<td>80.01</td>
-<td>80.01</td>
-<td>True</td>
-<td>True</td>
+<td>Specialized non-alcoholic drink service</td>
+<td>56.30</td>
+<td>NaN</td>
+<td>False</td>
+<td>False</td>
 </tr>
 </tbody>
 </table>
@@ -870,8 +870,8 @@ Note
 <div id="cell-retriever-accuracy-hint" class="cell" data-execution_count="13">
 <div id="retriever-accuracy-hint" class="cell-output cell-output-display" data-execution_count="13">
 <pre><code>retriever_hit
-Retriever found true code    29
-Retriever missed             21
+Retriever missed             30
+Retriever found true code    20
 Name: count, dtype: int64</code></pre>
 </div>
 </div>
@@ -894,8 +894,8 @@ Name: count, dtype: int64</code></pre>
 <div id="cell-llm-accuracy-hint" class="cell" data-execution_count="15">
 <div id="llm-accuracy-hint" class="cell-output cell-output-display" data-execution_count="15">
 <pre><code>pipeline_correct
-LLM correct    24
-LLM wrong       5
+LLM correct    17
+LLM wrong       3
 Name: count, dtype: int64</code></pre>
 </div>
 </div>
@@ -919,8 +919,8 @@ Name: count, dtype: int64</code></pre>
 <div id="cell-pipeline-accuracy-hint" class="cell" data-execution_count="17">
 <div id="pipeline-accuracy-hint" class="cell-output cell-output-display" data-execution_count="17">
 <pre><code>pipeline_correct
-Incorrectly coded    26
-Correctly coded      24
+Incorrectly coded    33
+Correctly coded      17
 Name: count, dtype: int64</code></pre>
 </div>
 </div>
@@ -1072,7 +1072,7 @@ Important
 <span id="cb24-55"><a href="#cb24-55" aria-hidden="true" tabindex="-1"></a>display(p1)</span>
 <span id="cb24-56"><a href="#cb24-56" aria-hidden="true" tabindex="-1"></a>display(p2)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
-<div id="confidence-analysis" class="cell quarto-layout-panel" data-execution_count="20" data-layout-ncol="2">
+<div id="confidence-analysis" class="cell quarto-layout-panel" data-layout-ncol="2" data-execution_count="20">
 <div class="quarto-layout-row">
 <div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
 <p><a href="2-rag-generation_files/figure-html/confidence-analysis-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="2-rag-generation_files/figure-html/confidence-analysis-output-1.png" id="confidence-analysis-1" class="img-fluid" width="672"></a></p>
