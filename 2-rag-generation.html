@@ -598,12 +598,12 @@ Tip
 Keys: ['code', 'name', 'label']</code></pre>
 </div>
 <div id="get-data" class="cell-output cell-output-display" data-execution_count="8">
-<pre><code>[{'code': '68.20',
+<pre><code>[{'code': '73.30',
+  'name': 'Public relations and communication activities',
+  'label': 'Corporate messaging and public perception'},
+ {'code': '68.20',
   'name': 'Rental and operating of own or leased real estate',
-  'label': 'Self-owned asset utilization for revenue'},
- {'code': '77.11',
-  'name': 'Rental and leasing of cars and light motor vehicles',
-  'label': 'Commercial car fleet leasing'}]</code></pre>
+  'label': 'Land rental for long-term purposes'}]</code></pre>
 </div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -844,41 +844,41 @@ Note
 <tbody>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">0</th>
-<td>Self-owned asset utilization for revenue</td>
-<td>68.20</td>
-<td>NaN</td>
-<td>False</td>
-<td>False</td>
+<td>Corporate messaging and public perception</td>
+<td>73.30</td>
+<td>73.30</td>
+<td>True</td>
+<td>True</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">1</th>
-<td>Commercial car fleet leasing</td>
-<td>77.11</td>
-<td>77.11</td>
-<td>True</td>
-<td>True</td>
-</tr>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">2</th>
-<td>Property asset exploitation</td>
-<td>68.20</td>
-<td>68</td>
-<td>False</td>
-<td>False</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">3</th>
-<td>Rental of furnished residential units</td>
+<td>Land rental for long-term purposes</td>
 <td>68.20</td>
 <td>68.2</td>
 <td>False</td>
 <td>False</td>
 </tr>
 <tr class="odd">
+<th data-quarto-table-cell-role="th">2</th>
+<td>Electric vehicle supply equipment setup</td>
+<td>43.21</td>
+<td>43.21</td>
+<td>True</td>
+<td>True</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">3</th>
+<td>Corporate headquarters administration</td>
+<td>70.10</td>
+<td>70.10</td>
+<td>True</td>
+<td>True</td>
+</tr>
+<tr class="odd">
 <th data-quarto-table-cell-role="th">4</th>
-<td>Agricultural output of edible oilseeds</td>
-<td>01.11</td>
-<td>01.11</td>
+<td>Real estate asset operation and maintenance</td>
+<td>68.20</td>
+<td>68.20</td>
 <td>True</td>
 <td>True</td>
 </tr>
@@ -899,8 +899,8 @@ Note
 <div id="cell-retriever-accuracy-hint" class="cell" data-execution_count="13">
 <div id="retriever-accuracy-hint" class="cell-output cell-output-display" data-execution_count="13">
 <pre><code>retriever_hit
-Retriever found true code    29
-Retriever missed             21
+Retriever found true code    35
+Retriever missed             15
 Name: count, dtype: int64</code></pre>
 </div>
 </div>
@@ -923,8 +923,8 @@ Name: count, dtype: int64</code></pre>
 <div id="cell-llm-accuracy-hint" class="cell" data-execution_count="15">
 <div id="llm-accuracy-hint" class="cell-output cell-output-display" data-execution_count="15">
 <pre><code>pipeline_correct
-LLM correct    25
-LLM wrong       4
+LLM correct    30
+LLM wrong       5
 Name: count, dtype: int64</code></pre>
 </div>
 </div>
@@ -948,8 +948,8 @@ Name: count, dtype: int64</code></pre>
 <div id="cell-pipeline-accuracy-hint" class="cell" data-execution_count="17">
 <div id="pipeline-accuracy-hint" class="cell-output cell-output-display" data-execution_count="17">
 <pre><code>pipeline_correct
-Incorrectly coded    25
-Correctly coded      25
+Correctly coded      30
+Incorrectly coded    20
 Name: count, dtype: int64</code></pre>
 </div>
 </div>
@@ -1098,7 +1098,7 @@ Important
 <span id="cb24-55"><a href="#cb24-55" aria-hidden="true" tabindex="-1"></a>display(p1)</span>
 <span id="cb24-56"><a href="#cb24-56" aria-hidden="true" tabindex="-1"></a>display(p2)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
-<div id="confidence-analysis" class="cell quarto-layout-panel" data-execution_count="20" data-layout-ncol="2">
+<div id="confidence-analysis" class="cell quarto-layout-panel" data-layout-ncol="2" data-execution_count="20">
 <div class="quarto-layout-row">
 <div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
 <p><a href="2-rag-generation_files/figure-html/confidence-analysis-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2"><img src="2-rag-generation_files/figure-html/confidence-analysis-output-1.png" id="confidence-analysis-1" class="img-fluid" width="672"></a></p>
