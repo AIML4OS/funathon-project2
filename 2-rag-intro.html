@@ -180,7 +180,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#a-solution-retrieval-augmented-generation" id="toc-a-solution-retrieval-augmented-generation" class="nav-link" data-scroll-target="#a-solution-retrieval-augmented-generation"><span class="header-section-number">1.2</span> A solution: Retrieval-Augmented Generation</a></li>
   <li><a href="#rag-or-fine-tuning" id="toc-rag-or-fine-tuning" class="nav-link" data-scroll-target="#rag-or-fine-tuning"><span class="header-section-number">1.3</span> 1.3 RAG or fine-tuning?</a></li>
   </ul></li>
-  <li><a href="#what-will-you-learn-in-this-tutorial" id="toc-what-will-you-learn-in-this-tutorial" class="nav-link" data-scroll-target="#what-will-you-learn-in-this-tutorial"><span class="header-section-number">2</span> What will you learn in this tutorial?</a></li>
+  <li><a href="#what-will-you-learn-in-this-tutorial" id="toc-what-will-you-learn-in-this-tutorial" class="nav-link" data-scroll-target="#what-will-you-learn-in-this-tutorial"><span class="header-section-number">2</span> What will you learn in this tutorial?</a>
+  <ul class="collapse">
+  <li><a href="#how-rag-works-step-by-step" id="toc-how-rag-works-step-by-step" class="nav-link" data-scroll-target="#how-rag-works-step-by-step"><span class="header-section-number">2.1</span> How RAG works (step-by-step)</a>
+  <ul class="collapse">
+  <li><a href="#simple-pseudocode" id="toc-simple-pseudocode" class="nav-link" data-scroll-target="#simple-pseudocode"><span class="header-section-number">2.1.1</span> Simple pseudocode</a></li>
+  </ul></li>
+  <li><a href="#tutorial-structure" id="toc-tutorial-structure" class="nav-link" data-scroll-target="#tutorial-structure"><span class="header-section-number">2.2</span> Tutorial structure</a></li>
+  </ul></li>
   <li><a href="#technical-requirements" id="toc-technical-requirements" class="nav-link" data-scroll-target="#technical-requirements"><span class="header-section-number">3</span> Technical requirements</a>
   <ul class="collapse">
   <li><a href="#services" id="toc-services" class="nav-link" data-scroll-target="#services"><span class="header-section-number">3.1</span> Services</a></li>
@@ -269,7 +276,53 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="what-will-you-learn-in-this-tutorial" class="level1" data-number="2">
 <h1 data-number="2"><span class="header-section-number">2</span> What will you learn in this tutorial?</h1>
-<p>This tutorial is divided into two notebooks that map directly to the two parts of the workflow above.</p>
+<p>A Retrieval-Augmented Generation (RAG) pipeline combines a fast semantic search layer (vector database + embeddings) with a generation model (LLM). It is designed to:</p>
+<ul>
+<li>reduce hallucinations by grounding output in retrieved facts</li>
+<li>provide up-to-date domain knowledge without retraining the LLM</li>
+<li>scale to large knowledge bases by retrieving only the most relevant items per query</li>
+</ul>
+<p>In this tutorial, the “retrieval” stage is handled by Qdrant and the “generation” stage by the SSPCloud <code>llm.lab</code> OpenAI-compatible API. The tutorial is divided into two notebooks that map directly to the two parts of the workflow above.</p>
+<section id="how-rag-works-step-by-step" class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="how-rag-works-step-by-step"><span class="header-section-number">2.1</span> How RAG works (step-by-step)</h2>
+<ol type="1">
+<li><strong>Query input</strong> — User submits a natural language question, e.g.&nbsp;<em>“industrial bakery”</em></li>
+<li><strong>Query embedding</strong> — Use an embedding model (<code>qwen3-embedding:8b</code>) to encode the question into a vector of size 4096.</li>
+<li><strong>Vector search</strong> — Query the Qdrant collection using the question vector to retrieve nearest neighbours (top-N contextual docs). Qdrant computes a distance/similarity score between the query vector and each stored vector. Common metrics include:
+<ul>
+<li>cosine similarity (most common, compares angle between vectors; 1 = identical)</li>
+<li>dot product (fast, works well with normalised embeddings)</li>
+<li>Euclidean/L2 distance (straight-line distance in vector space)</li>
+</ul>
+In the notebook, you can configure <code>distance='Cosine'</code> when creating the collection.</li>
+<li><strong>Context assembly</strong> — Extract <code>payload</code> from retrieved points and concatenate into a single prompt section.</li>
+<li><strong>Prompt construction</strong> — Build a final prompt containing: a system instruction (task definition), the retrieved context, and the user query.</li>
+<li><strong>LLM generation</strong> — Send the prompt to a generation model via <code>client_llmlab.chat.completions.create(...)</code>.</li>
+<li><strong>Post-processing</strong> — Parse the output and optionally apply business rules (e.g.&nbsp;label mapping, thresholding).</li>
+<li><strong>Evaluation</strong> — Compare against ground truth labels and measure metrics (accuracy, F1, precision/recall).</li>
+</ol>
+<section id="simple-pseudocode" class="level3" data-number="2.1.1">
+<h3 data-number="2.1.1" class="anchored" data-anchor-id="simple-pseudocode"><span class="header-section-number">2.1.1</span> Simple pseudocode</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>query_text <span class="op">=</span> <span class="st">"industrial bakery"</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>query_vector <span class="op">=</span> llm_lab.embeddings.create(</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    model<span class="op">=</span><span class="st">'qwen3-embedding:8b'</span>, <span class="bu">input</span><span class="op">=</span>query_text</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>).data[<span class="dv">0</span>].embedding</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>hits <span class="op">=</span> qdrant_client.search(</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    collection_name<span class="op">=</span><span class="st">'nace_vdb'</span>, query_vector<span class="op">=</span>query_vector, limit<span class="op">=</span><span class="dv">5</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>context <span class="op">=</span> <span class="st">"</span><span class="ch">\n</span><span class="st">"</span>.join([hit.payload[<span class="st">'text'</span>] <span class="cf">for</span> hit <span class="kw">in</span> hits])</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>prompt <span class="op">=</span> <span class="ss">f"Use the following context to answer the question:</span><span class="ch">\n</span><span class="sc">{</span>context<span class="sc">}</span><span class="ch">\n</span><span class="ss">Question: </span><span class="sc">{</span>query_text<span class="sc">}</span><span class="ch">\n</span><span class="ss">Answer:"</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> llm_lab.chat.completions.create(</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    model<span class="op">=</span><span class="st">'gpt-oss:20b'</span>,</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    messages<span class="op">=</span>[{<span class="st">'role'</span>: <span class="st">'user'</span>, <span class="st">'content'</span>: prompt}]</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(result.choices[<span class="dv">0</span>].message.content)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+</section>
+<section id="tutorial-structure" class="level2" data-number="2.2">
+<h2 data-number="2.2" class="anchored" data-anchor-id="tutorial-structure"><span class="header-section-number">2.2</span> Tutorial structure</h2>
 <p><strong>Tutorial 1 — Building the vector database</strong> (<code>2-rag-vdb.qmd</code>)</p>
 <ul>
 <li>Preprocess and embed all NACE 2.1 code descriptions using a dedicated language model</li>
@@ -278,10 +331,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p><strong>Tutorial 2 — Running and evaluating the RAG pipeline</strong> (<code>2-rag-generation.qmd</code>)</p>
 <ul>
+<li>Load and inspect annotated examples</li>
 <li>Embed a free-text activity label and retrieve the <code>k</code> closest NACE candidates</li>
-<li>Build a structured prompt and run LLM inference to select the final code</li>
-<li>Evaluate the pipeline at each stage: retriever accuracy, conditional LLM accuracy, end-to-end accuracy</li>
-<li>Analyse the confidence score as a quality signal for production filtering</li>
+<li>Build a retrieval + generation function that queries Qdrant and sends retrieved context to an LLM</li>
+<li>Compare predicted labels with ground truth for evaluation</li>
+<li>Understand how retrieval quality affects final generation quality</li>
 </ul>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -297,6 +351,7 @@ Note
 </div>
 </div>
 <hr>
+</section>
 </section>
 <section id="technical-requirements" class="level1" data-number="3">
 <h1 data-number="3"><span class="header-section-number">3</span> Technical requirements</h1>
@@ -325,11 +380,11 @@ Note
 <section id="credentials" class="level2" data-number="3.2">
 <h2 data-number="3.2" class="anchored" data-anchor-id="credentials"><span class="header-section-number">3.2</span> Credentials</h2>
 <p>Create a <code>.env</code> file at the root of your repository with the following variables:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode txt code-with-copy"><code class="sourceCode default"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>QDRANT_URL=https://YOURNAMESPACE-qdrant.user.lab.sspcloud.fr/</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>QDRANT_API_KEY=xxxxxxxxxxxxxxxxxxxx</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>QDRANT_API_PORT=443</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>LLMLAB_API_KEY=xxxxxxxxxxxxxxxxxxxx</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>LLMLAB_URL=https://llm.lab.sspcloud.fr/api</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode txt code-with-copy"><code class="sourceCode default"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>QDRANT_URL=https://YOURNAMESPACE-qdrant.user.lab.sspcloud.fr/</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>QDRANT_API_KEY=xxxxxxxxxxxxxxxxxxxx</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>QDRANT_API_PORT=443</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>LLMLAB_API_KEY=xxxxxxxxxxxxxxxxxxxx</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>LLMLAB_URL=https://llm.lab.sspcloud.fr/api</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="callout callout-style-default callout-warning callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -382,15 +437,15 @@ Warning
 <section id="loading-credentials-in-python" class="level2" data-number="3.3">
 <h2 data-number="3.3" class="anchored" data-anchor-id="loading-credentials-in-python"><span class="header-section-number">3.3</span> Loading credentials in Python</h2>
 <p>Once your <code>.env</code> file is ready, load the variables at the start of each notebook:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> dotenv <span class="im">import</span> load_dotenv</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>load_dotenv()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> dotenv <span class="im">import</span> load_dotenv</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>load_dotenv()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>To verify that a variable was loaded correctly:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    QDRANT_URL <span class="op">=</span> os.environ[<span class="st">"QDRANT_URL"</span>]</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"QDRANT_URL loaded successfully"</span>)</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> <span class="pp">KeyError</span>:</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">ValueError</span>(<span class="st">"QDRANT_URL is not set — check your .env file"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    QDRANT_URL <span class="op">=</span> os.environ[<span class="st">"QDRANT_URL"</span>]</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"QDRANT_URL loaded successfully"</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> <span class="pp">KeyError</span>:</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">ValueError</span>(<span class="st">"QDRANT_URL is not set — check your .env file"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 
 
 </section>

@@ -144,10 +144,10 @@ window.Quarto = {
 
 <meta property="og:title" content="RAG pipeline approach - Query a LLM for automatic coding – AIML4OS Funathon - Project 2">
 <meta property="og:description" content="Automatic classification">
-<meta property="og:image" content="https://AIML4OS.github.io/funathon-project2/2-rag-generation_files/figure-html/confidence-analysis-output-1.png">
+<meta property="og:image" content="https://AIML4OS.github.io/funathon-project2/img/rag_part2.png">
 <meta property="og:site_name" content="AIML4OS Funathon - Project 2">
-<meta property="og:image:height" content="960">
-<meta property="og:image:width" content="1344">
+<meta property="og:image:height" content="1218">
+<meta property="og:image:width" content="2732">
 </head>
 
 <body class="nav-fixed quarto-light">
@@ -208,6 +208,8 @@ window.Quarto = {
   <li><a href="#forewords" id="toc-forewords" class="nav-link active" data-scroll-target="#forewords">Forewords</a>
   <ul class="collapse">
   <li><a href="#rag-pipeline-overview" id="toc-rag-pipeline-overview" class="nav-link" data-scroll-target="#rag-pipeline-overview">RAG pipeline overview</a></li>
+  <li><a href="#why-do-we-need-the-generation-step" id="toc-why-do-we-need-the-generation-step" class="nav-link" data-scroll-target="#why-do-we-need-the-generation-step">Why do we need the generation step?</a></li>
+  <li><a href="#in-this-notebook-you-will" id="toc-in-this-notebook-you-will" class="nav-link" data-scroll-target="#in-this-notebook-you-will">In this notebook, you will:</a></li>
   <li><a href="#prerequisites" id="toc-prerequisites" class="nav-link" data-scroll-target="#prerequisites">Prerequisites</a></li>
   </ul></li>
   <li><a href="#connections-and-global-parameters" id="toc-connections-and-global-parameters" class="nav-link" data-scroll-target="#connections-and-global-parameters">Connections and global parameters</a></li>
@@ -249,7 +251,7 @@ window.Quarto = {
 
 <section id="forewords" class="level1">
 <h1>Forewords</h1>
-<p>This second tutorial builds on the vector database created in part 1. You will learn how to use it to <strong>automatically classify free-text activity labels</strong> into the NACE 2.1 nomenclature, and then <strong>evaluate the quality of the pipeline</strong> at each stage.</p>
+<p>This second tutorial builds on the vector database created in part 1. It completes the RAG pipeline by loading labeled data, retrieving context from Qdrant, and generating final answers from a query. You will learn how to <strong>automatically classify free-text activity labels</strong> into the NACE 2.1 nomenclature, and then <strong>evaluate the quality of the pipeline</strong> at each stage.</p>
 <section id="rag-pipeline-overview" class="level2">
 <h2 class="anchored" data-anchor-id="rag-pipeline-overview">RAG pipeline overview</h2>
 <p>The automated coding workflow is broken down into five steps:</p>
@@ -270,6 +272,28 @@ window.Quarto = {
       ▼
  [5] Evaluation      ← compare predictions against reference codes</code></pre>
 <p>The <strong>RAG</strong> acronym specifically refers to the combination of steps 2 (<strong>R</strong>etrieval) and 4 (<strong>G</strong>eneration): instead of asking the LLM to code from memory — which would be unreliable for fine-grained nomenclatures — we supply it with the most semantically relevant candidates from the vector store.</p>
+<p><a href="img/rag_part2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="img/rag_part2.png" class="img-fluid"></a></p>
+</section>
+<section id="why-do-we-need-the-generation-step" class="level2">
+<h2 class="anchored" data-anchor-id="why-do-we-need-the-generation-step">Why do we need the generation step?</h2>
+<p>Retrieval alone is not enough. Here’s why we need generation:</p>
+<ul>
+<li><strong>Raw retrieval returns documents, not answers</strong>: Qdrant gives us relevant chunks, but a user wants a clear, coherent response tailored to their question.</li>
+<li><strong>Synthesis across multiple documents</strong>: The LLM can read 5+ retrieved chunks and synthesize a unified answer, not just return the closest match.</li>
+<li><strong>Natural language output</strong>: Generation models (GPT-like) produce human-readable text that directly addresses the user’s intent.</li>
+<li><strong>Reasoning and inference</strong>: The LLM can combine retrieved facts with its own reasoning to make predictions or classifications.</li>
+<li><strong>Evaluation</strong>: In our case, we compare the LLM’s predicted labels against ground truth to measure RAG quality.</li>
+</ul>
+</section>
+<section id="in-this-notebook-you-will" class="level2">
+<h2 class="anchored" data-anchor-id="in-this-notebook-you-will">In this notebook, you will:</h2>
+<ul>
+<li>Load and inspect annotated examples</li>
+<li>Connect to Qdrant and verify collections are available</li>
+<li>Build a retrieval + generation function that queries Qdrant and sends retrieved context to an LLM</li>
+<li>Compare predicted labels with ground truth for evaluation</li>
+<li>Understand how retrieval quality affects final generation quality</li>
+</ul>
 </section>
 <section id="prerequisites" class="level2">
 <h2 class="anchored" data-anchor-id="prerequisites">Prerequisites</h2>
@@ -571,12 +595,12 @@ Tip
 Keys: ['code', 'name', 'label']</code></pre>
 </div>
 <div id="get-data" class="cell-output cell-output-display" data-execution_count="8">
-<pre><code>[{'code': '68.20',
+<pre><code>[{'code': '70.20',
+  'name': 'Business and other management consultancy activities',
+  'label': 'Business analytics and intelligence solutions'},
+ {'code': '68.20',
   'name': 'Rental and operating of own or leased real estate',
-  'label': 'Long-term residential property rentals'},
- {'code': '66.30',
-  'name': 'Fund management activities',
-  'label': 'Pension scheme asset supervision'}]</code></pre>
+  'label': 'Industrial facility rental services'}]</code></pre>
 </div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -816,43 +840,43 @@ Note
 <tbody>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">0</th>
-<td>Long-term residential property rentals</td>
-<td>68.20</td>
-<td>68.2</td>
-<td>True</td>
+<td>Business analytics and intelligence solutions</td>
+<td>70.20</td>
+<td>70.2</td>
+<td>False</td>
 <td>False</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">1</th>
-<td>Pension scheme asset supervision</td>
-<td>66.30</td>
-<td>66.29</td>
-<td>False</td>
-<td>False</td>
+<td>Industrial facility rental services</td>
+<td>68.20</td>
+<td>68.20</td>
+<td>True</td>
+<td>True</td>
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">2</th>
-<td>Commercial ventilation infrastructure installa...</td>
-<td>43.22</td>
-<td>43.22</td>
+<td>Long-term residential property leasing</td>
+<td>68.20</td>
+<td>68.20</td>
 <td>True</td>
 <td>True</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">3</th>
-<td>Talent acquisition and placement solutions</td>
-<td>78.10</td>
-<td>78.10</td>
+<td>Motor vehicle part replacement</td>
+<td>95.31</td>
+<td>95.31</td>
 <td>True</td>
 <td>True</td>
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">4</th>
-<td>Gaming application and video game software dev...</td>
-<td>62.10</td>
-<td>62.10</td>
-<td>True</td>
-<td>True</td>
+<td>Commercial facility space provision</td>
+<td>68.20</td>
+<td>68</td>
+<td>False</td>
+<td>False</td>
 </tr>
 </tbody>
 </table>
@@ -870,8 +894,8 @@ Note
 <div id="cell-retriever-accuracy-hint" class="cell" data-execution_count="13">
 <div id="retriever-accuracy-hint" class="cell-output cell-output-display" data-execution_count="13">
 <pre><code>retriever_hit
-Retriever found true code    31
-Retriever missed             19
+Retriever missed             26
+Retriever found true code    24
 Name: count, dtype: int64</code></pre>
 </div>
 </div>
@@ -894,8 +918,8 @@ Name: count, dtype: int64</code></pre>
 <div id="cell-llm-accuracy-hint" class="cell" data-execution_count="15">
 <div id="llm-accuracy-hint" class="cell-output cell-output-display" data-execution_count="15">
 <pre><code>pipeline_correct
-LLM correct    26
-LLM wrong       5
+LLM correct    21
+LLM wrong       3
 Name: count, dtype: int64</code></pre>
 </div>
 </div>
@@ -919,8 +943,8 @@ Name: count, dtype: int64</code></pre>
 <div id="cell-pipeline-accuracy-hint" class="cell" data-execution_count="17">
 <div id="pipeline-accuracy-hint" class="cell-output cell-output-display" data-execution_count="17">
 <pre><code>pipeline_correct
-Correctly coded      26
-Incorrectly coded    24
+Incorrectly coded    29
+Correctly coded      21
 Name: count, dtype: int64</code></pre>
 </div>
 </div>
@@ -1075,10 +1099,10 @@ Important
 <div id="confidence-analysis" class="cell quarto-layout-panel" data-execution_count="20" data-layout-ncol="2">
 <div class="quarto-layout-row">
 <div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
-<p><a href="2-rag-generation_files/figure-html/confidence-analysis-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="2-rag-generation_files/figure-html/confidence-analysis-output-1.png" id="confidence-analysis-1" class="img-fluid" width="672"></a></p>
+<p><a href="2-rag-generation_files/figure-html/confidence-analysis-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2"><img src="2-rag-generation_files/figure-html/confidence-analysis-output-1.png" id="confidence-analysis-1" class="img-fluid" width="672"></a></p>
 </div>
 <div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
-<p><a href="2-rag-generation_files/figure-html/confidence-analysis-output-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2"><img src="2-rag-generation_files/figure-html/confidence-analysis-output-2.png" id="confidence-analysis-2" class="img-fluid" width="672"></a></p>
+<p><a href="2-rag-generation_files/figure-html/confidence-analysis-output-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3"><img src="2-rag-generation_files/figure-html/confidence-analysis-output-2.png" id="confidence-analysis-2" class="img-fluid" width="672"></a></p>
 </div>
 </div>
 </div>
