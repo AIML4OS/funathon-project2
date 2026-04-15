@@ -85,7 +85,7 @@ A Retrieval-Augmented Generation (RAG) pipeline combines a fast semantic search 
 - provide up-to-date domain knowledge without retraining the LLM
 - scale to large knowledge bases by retrieving only the most relevant items per query
 
-In this tutorial, the "retrieval" stage is handled by Qdrant and the "generation" stage by the SSPCloud `llm.lab` OpenAI-compatible API. The tutorial is divided into two notebooks that map directly to the two parts of the workflow above.
+In this tutorial, the "retrieval" stage is handled by Qdrant and the "generation" stage by the SSPCloud `llm.lab` OpenAI-compatible API ([see the doc here](https://www.sspcloud.fr/document?path=SSPCloud%E2%90%A3Documentation%E2%80%BAOn%E2%90%A3Demand%E2%90%A3LLM%E2%80%BAIntroduction)). The tutorial is divided into two notebooks that map directly to the two parts of the workflow above.
 
 ## How RAG works (step-by-step)
 
