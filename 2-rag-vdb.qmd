@@ -26,6 +26,8 @@ The simplified workflow will be as follows :
 Raw Data → Clean Documents → Embeddings → Vector DB (Qdrant)
 ```
 
+![](img/rag_part1.png)
+
 # Prepare your environment
 
 
