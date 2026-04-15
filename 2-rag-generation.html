@@ -595,12 +595,12 @@ Tip
 Keys: ['code', 'name', 'label']</code></pre>
 </div>
 <div id="get-data" class="cell-output cell-output-display" data-execution_count="8">
-<pre><code>[{'code': '70.20',
-  'name': 'Business and other management consultancy activities',
-  'label': 'Business analytics and intelligence solutions'},
- {'code': '68.20',
-  'name': 'Rental and operating of own or leased real estate',
-  'label': 'Industrial facility rental services'}]</code></pre>
+<pre><code>[{'code': '32.13',
+  'name': 'Manufacture of imitation jewellery and related articles',
+  'label': 'Fashion jewellery fabrication processes'},
+ {'code': '49.41',
+  'name': 'Freight transport by road',
+  'label': 'Contracted road transportation of goods'}]</code></pre>
 </div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -840,43 +840,43 @@ Note
 <tbody>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">0</th>
-<td>Business analytics and intelligence solutions</td>
-<td>70.20</td>
-<td>70.2</td>
-<td>False</td>
-<td>False</td>
+<td>Fashion jewellery fabrication processes</td>
+<td>32.13</td>
+<td>32.13</td>
+<td>True</td>
+<td>True</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">1</th>
-<td>Industrial facility rental services</td>
-<td>68.20</td>
-<td>68.20</td>
+<td>Contracted road transportation of goods</td>
+<td>49.41</td>
+<td>49.41</td>
 <td>True</td>
 <td>True</td>
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">2</th>
-<td>Long-term residential property leasing</td>
-<td>68.20</td>
-<td>68.20</td>
+<td>Hotel-based food service – independent unit</td>
+<td>56.11</td>
+<td>56.11</td>
 <td>True</td>
 <td>True</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">3</th>
-<td>Motor vehicle part replacement</td>
-<td>95.31</td>
-<td>95.31</td>
+<td>Integrated marketing and advertising services</td>
+<td>73.11</td>
+<td>73.11</td>
 <td>True</td>
 <td>True</td>
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">4</th>
-<td>Commercial facility space provision</td>
-<td>68.20</td>
-<td>68</td>
-<td>False</td>
-<td>False</td>
+<td>Portfolio investment administration</td>
+<td>66.30</td>
+<td>66.30</td>
+<td>True</td>
+<td>True</td>
 </tr>
 </tbody>
 </table>
@@ -894,8 +894,8 @@ Note
 <div id="cell-retriever-accuracy-hint" class="cell" data-execution_count="13">
 <div id="retriever-accuracy-hint" class="cell-output cell-output-display" data-execution_count="13">
 <pre><code>retriever_hit
-Retriever missed             26
-Retriever found true code    24
+Retriever found true code    31
+Retriever missed             19
 Name: count, dtype: int64</code></pre>
 </div>
 </div>
@@ -918,8 +918,8 @@ Name: count, dtype: int64</code></pre>
 <div id="cell-llm-accuracy-hint" class="cell" data-execution_count="15">
 <div id="llm-accuracy-hint" class="cell-output cell-output-display" data-execution_count="15">
 <pre><code>pipeline_correct
-LLM correct    21
-LLM wrong       3
+LLM correct    27
+LLM wrong       4
 Name: count, dtype: int64</code></pre>
 </div>
 </div>
@@ -943,8 +943,8 @@ Name: count, dtype: int64</code></pre>
 <div id="cell-pipeline-accuracy-hint" class="cell" data-execution_count="17">
 <div id="pipeline-accuracy-hint" class="cell-output cell-output-display" data-execution_count="17">
 <pre><code>pipeline_correct
-Incorrectly coded    29
-Correctly coded      21
+Correctly coded      27
+Incorrectly coded    23
 Name: count, dtype: int64</code></pre>
 </div>
 </div>
