@@ -44,32 +44,48 @@ Doing this manually is expensive. Automating it with a language model is appeali
 
 **RAG (Retrieval-Augmented Generation)** addresses this by splitting the task into two stages:
 
-1. **Retrieve** — find the NACE codes whose descriptions are semantically closest to the input label, using a vector database and a dedicated languade model.
-2. **Generate** — ask a LLM to pick the best code *from the retrieved shortlist*, not from memory.
+1. **Retrieve** — find the NACE codes whose descriptions are semantically closest to the input label, using a vector database and a dedicated language model.
+2. **Generate** — ask an LLM to pick the best code *from the retrieved shortlist*, not from memory.
 
 This approach combines the semantic power of embedding models with the reasoning ability of generative models, while keeping the LLM anchored to a controlled list of valid options.
 
 ![RAG workflow: Part 1 builds the vector index from NACE definitions; Part 2 runs the inference pipeline on new activity labels.](img/rag_wf.png)
 
-## 1.3 RAG or fine-tuning?
+::: {.callout-note #vec-db}
+## What is a vector database?
+
+A **vector database** is a storage system designed to hold high-dimensional numerical vectors (embeddings) and retrieve them by similarity rather than by exact match.
+
+When a text is processed by an embedding model, it is converted into a dense vector of hundreds or thousands of numbers that encode its meaning. A vector database indexes these vectors so that, given a query vector, it can efficiently return the *k* nearest neighbours — the stored vectors that are most semantically similar to the query.
+
+Key properties:
+
+- **Semantic search**: finds documents by meaning, not keywords.
+- **Fast approximate search**: uses algorithms such as HNSW (Hierarchical Navigable Small World) to search millions of vectors in milliseconds.
+- **Payload storage**: each vector can carry arbitrary metadata (e.g. the NACE code and its description), returned alongside the search result.
+
+In this tutorial we use **Qdrant**, an open-source vector database, to store and query the embeddings of all NACE 2.1 code descriptions.
+:::
+
+## RAG or fine-tuning?
 
 Fine-tuning is a legitimate alternative that can yield excellent results when a large annotated dataset is available and the nomenclature is stable. The catch is that retraining is required each time the nomenclature changes, and building a quality training set takes real annotation effort.
 
 
-With RAG, the __knowledge lives in the vector database rather than in the model weights__. Updating the nomenclature means re-indexing the changed entries — no retraining needed. This makes it a natural fit for statistical nomenclatures, which do evolve over time (NACE 2.1 being a recent example). That said, RAG is not annotation-free either: a labelled evaluation set is still needed to measure pipeline performance and tune its components. The right choice between the two approaches depends on data availability, update frequency, and available compute.
+With RAG, the __knowledge lives in the [vector database](#vec-db) rather than in the model weights__. Updating the nomenclature means re-indexing the changed entries — no retraining needed. This makes it a natural fit for statistical nomenclatures, which do evolve over time (NACE 2.1 being a recent example). That said, RAG is not annotation-free either: a labelled evaluation set is still needed to measure pipeline performance and tune its components. The right choice between the two approaches depends on data availability, update frequency, and available compute.
 
 
 ---
 
 # What will you learn in this tutorial?
 
-A Retrieval-Augmented Generation (RAG) pipeline combines a fast semantic search layer (vector database + embeddings) with a generation model (LLM). It is designed to:
+A Retrieval-Augmented Generation (RAG) pipeline combines a fast semantic search layer ([vector database](#vec-db) + embeddings) with a generation model (LLM). It is designed to:
 
 - reduce hallucinations by grounding output in retrieved facts
 - provide up-to-date domain knowledge without retraining the LLM
 - scale to large knowledge bases by retrieving only the most relevant items per query
 
-In this tutorial, the "retrieval" stage is handled by Qdrant and the "generation" stage by the SSPCloud `llm.lab` OpenAI-compatible API. The tutorial is divided into two notebooks that map directly to the two parts of the workflow above.
+In this tutorial, the "retrieval" stage is handled by Qdrant and the "generation" stage by the SSPCloud `llm.lab` OpenAI-compatible API ([see the doc here](https://www.sspcloud.fr/document?path=SSPCloud%E2%90%A3Documentation%E2%80%BAOn%E2%90%A3Demand%E2%90%A3LLM%E2%80%BAIntroduction)). The tutorial is divided into two notebooks that map directly to the two parts of the workflow above.
 
 ## How RAG works (step-by-step)
 
@@ -138,7 +154,7 @@ You will need access to two services hosted on the SSPCloud:
 
 | Service | Role |
 |---------|------|
-| **Qdrant** | Vector database storing NACE embeddings |
+| **Qdrant** | [Vector database](#vec-db) storing NACE embeddings |
 | **llm.lab** | LLM provider (embedding model + generative model) |
 
 ## Credentials

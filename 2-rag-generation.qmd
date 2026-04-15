@@ -11,7 +11,7 @@ format:
 
 # Forewords
 
-This second tutorial builds on the vector database created in part 1. It completes the RAG pipeline by loading labeled data, retrieving context from Qdrant, and generating final answers from a query. You will learn how to **automatically classify free-text activity labels** into the NACE 2.1 nomenclature, and then **evaluate the quality of the pipeline** at each stage.
+This second tutorial builds on the vector database created in part 1. It completes the RAG pipeline by loading labelled data, retrieving context from Qdrant, and generating final answers from a query. You will learn how to **automatically classify free-text activity labels** into the NACE 2.1 nomenclature, and then **evaluate the quality of the pipeline** at each stage.
 
 ## RAG pipeline overview
 
@@ -38,7 +38,7 @@ Raw text label
 
 The **RAG** acronym specifically refers to the combination of steps 2 (**R**etrieval) and 4 (**G**eneration): instead of asking the LLM to code from memory — which would be unreliable for fine-grained nomenclatures — we supply it with the most semantically relevant candidates from the vector store.
 
-![](img/rag_part2.png)
+![RAG workflow: Part 2 runs the inference pipeline on new activity labels.](img/rag_part2.png)
 
 ## Why do we need the generation step?
 
@@ -478,8 +478,7 @@ results.head()
 ::: {.callout-note}
 **Robustness:** LLM calls can occasionally fail (timeout, malformed JSON). The `try/except` block ensures the loop does not stop and that every error is logged.
 :::
-
-:::
+::::
 
 ---
 
@@ -512,7 +511,7 @@ This decomposition helps pinpoint whether errors come from the retriever or the 
 ::: {.callout-tip collapse="false" icon=false}
 ## `<i class="bi bi-book"></i>`{=html} Exercise 3: Compute evaluation metrics
 
-## Prepare evaluation columns
+### Prepare evaluation columns
 
 Before computing any metric, add three boolean columns to `results`:
 
@@ -603,7 +602,7 @@ results[results["retriever_hit"]]["pipeline_correct"].value_counts().rename({Tru
 #| code-fold: true
 #| code-summary: Click to see the answer
 
-retriever_success = results[results["retriever_hit"] == True]
+retriever_success = results[results["retriever_hit"]]
 llm_accuracy = retriever_success["pipeline_correct"].mean()
 
 print(f"LLM accuracy (conditional on retriever): {llm_accuracy:.1%}")
@@ -681,8 +680,6 @@ print("=" * 52)
 
 ::: {.callout-note}
 **Not all errors are equal.** A wrong prediction can mean very different things. Some errors are completely off — predicting a manufacturing code for a services activity. Others are near-misses: the predicted code is a parent (e.g. `47` instead of `47.11`) or a sibling at the same level of the hierarchy. Near-misses may be acceptable in practice, depending on how the coded data will be used. A hierarchical accuracy metric — counting a prediction as correct if it matches up to a certain depth — would capture this nuance.
-:::
-
 :::
 
 ::: {.callout-important}
