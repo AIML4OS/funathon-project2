@@ -11,7 +11,7 @@ format:
 
 # Forewords
 
-This second tutorial builds on the vector database created in part 1. You will learn how to use it to **automatically classify free-text activity labels** into the NACE 2.1 nomenclature, and then **evaluate the quality of the pipeline** at each stage.
+This second tutorial builds on the vector database created in part 1. It completes the RAG pipeline by loading labeled data, retrieving context from Qdrant, and generating final answers from a query. You will learn how to **automatically classify free-text activity labels** into the NACE 2.1 nomenclature, and then **evaluate the quality of the pipeline** at each stage.
 
 ## RAG pipeline overview
 
@@ -37,6 +37,26 @@ Raw text label
 ```
 
 The **RAG** acronym specifically refers to the combination of steps 2 (**R**etrieval) and 4 (**G**eneration): instead of asking the LLM to code from memory — which would be unreliable for fine-grained nomenclatures — we supply it with the most semantically relevant candidates from the vector store.
+
+![](img/rag_part2.png)
+
+## Why do we need the generation step?
+
+Retrieval alone is not enough. Here's why we need generation:
+
+- **Raw retrieval returns documents, not answers**: Qdrant gives us relevant chunks, but a user wants a clear, coherent response tailored to their question.
+- **Synthesis across multiple documents**: The LLM can read 5+ retrieved chunks and synthesize a unified answer, not just return the closest match.
+- **Natural language output**: Generation models (GPT-like) produce human-readable text that directly addresses the user's intent.
+- **Reasoning and inference**: The LLM can combine retrieved facts with its own reasoning to make predictions or classifications.
+- **Evaluation**: In our case, we compare the LLM's predicted labels against ground truth to measure RAG quality.
+
+## In this notebook, you will:
+
+- Load and inspect annotated examples
+- Connect to Qdrant and verify collections are available
+- Build a retrieval + generation function that queries Qdrant and sends retrieved context to an LLM
+- Compare predicted labels with ground truth for evaluation
+- Understand how retrieval quality affects final generation quality
 
 ## Prerequisites
 
