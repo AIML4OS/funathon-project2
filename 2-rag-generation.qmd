@@ -479,8 +479,6 @@ results.head()
 **Robustness:** LLM calls can occasionally fail (timeout, malformed JSON). The `try/except` block ensures the loop does not stop and that every error is logged.
 :::
 
-:::
-
 ---
 
 # Pipeline evaluation
@@ -681,8 +679,6 @@ print("=" * 52)
 
 ::: {.callout-note}
 **Not all errors are equal.** A wrong prediction can mean very different things. Some errors are completely off — predicting a manufacturing code for a services activity. Others are near-misses: the predicted code is a parent (e.g. `47` instead of `47.11`) or a sibling at the same level of the hierarchy. Near-misses may be acceptable in practice, depending on how the coded data will be used. A hierarchical accuracy metric — counting a prediction as correct if it matches up to a certain depth — would capture this nuance.
-:::
-
 :::
 
 ::: {.callout-important}
