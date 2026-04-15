@@ -44,8 +44,8 @@ Doing this manually is expensive. Automating it with a language model is appeali
 
 **RAG (Retrieval-Augmented Generation)** addresses this by splitting the task into two stages:
 
-1. **Retrieve** — find the NACE codes whose descriptions are semantically closest to the input label, using a vector database and a dedicated languade model.
-2. **Generate** — ask a LLM to pick the best code *from the retrieved shortlist*, not from memory.
+1. **Retrieve** — find the NACE codes whose descriptions are semantically closest to the input label, using a vector database and a dedicated language model.
+2. **Generate** — ask an LLM to pick the best code *from the retrieved shortlist*, not from memory.
 
 This approach combines the semantic power of embedding models with the reasoning ability of generative models, while keeping the LLM anchored to a controlled list of valid options.
 
@@ -67,7 +67,7 @@ Key properties:
 In this tutorial we use **Qdrant**, an open-source vector database, to store and query the embeddings of all NACE 2.1 code descriptions.
 :::
 
-## 1.3 RAG or fine-tuning?
+## RAG or fine-tuning?
 
 Fine-tuning is a legitimate alternative that can yield excellent results when a large annotated dataset is available and the nomenclature is stable. The catch is that retraining is required each time the nomenclature changes, and building a quality training set takes real annotation effort.
 

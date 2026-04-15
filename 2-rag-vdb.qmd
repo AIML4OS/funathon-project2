@@ -11,15 +11,15 @@ format:
 
 # Forewords
 
-This first part will show you how to build a vector database, e.g the "augmented" knowledge aimed to guide your LLM's responses.
+This first part will show you how to build a vector database, i.e., the "augmented" knowledge aimed to guide your LLM's responses.
 
-The simplified workflow will be as follows : 
+The simplified workflow will be as follows:
 
 - 0. Create a proper working environment with all needed connections (__s3__, __qdrant__ and __llm.lab__)
 - 1. Take the NACE2.1 code definitions (code + title, + inclusions + exclusions in plain text)
 - 2. Concatenate these pieces of information for each unique NACE (one code => 1 text)
-- 3. Embedded all these texts (1 text => 1 vector point)
-- 4. Update the points into Qdrant (the vector database service)
+- 3. Embed all these texts (1 text => 1 vector point)
+- 4. Upload the points to Qdrant (the vector database service)
 
 
 ```
@@ -32,9 +32,9 @@ Raw Data → Clean Documents → Embeddings → Vector DB (Qdrant)
 
 
 ::: {.callout-tip collapse="false" icon=false}
-## `<i class="bi bi-book"></i>`{=html} Exercice 1: Connections
+## `<i class="bi bi-book"></i>`{=html} Exercise 1: Connections
 
-### Question 0 : 
+### Question 0
 
 - Load your secrets stored in the `.env` file into your environment.
 
@@ -52,7 +52,9 @@ load_dotenv()
 ```
 
 
-### Question 1 : 
+### Question 1
+
+
 
 - Create your __llm.lab__ connection using `openai` client. Please name this client `client_llmlab`.
 
@@ -67,7 +69,7 @@ More information [here](https://github.com/openai/openai-python) about `OpenAI A
 You can notice the `llm.lab` platform provides both __generation__ and __embedding__ models.
 
 ::: {.callout-tip}
-The OpenAI API provides a standard way to interact with language models for text generation and embeddings. Here, instead of OpenAI’s cloud, we connect to a remote Ollama server (the *famous* `llm.lab` from the even more famous `SSPCloud`), which hosts the models. The API interface stays the same, so you can generate text or create embeddings with calls like `.completions.create()` or .`embeddings.create()` while all computation happens on the Ollama server.
+The OpenAI API provides a standard way to interact with language models for text generation and embeddings. Here, instead of OpenAI’s cloud, we connect to a remote Ollama server (the *famous* `llm.lab` from the even more famous `SSPCloud`), which hosts the models. The API interface stays the same, so you can generate text or create embeddings with calls like `.completions.create()` or `.embeddings.create()` while all computation happens on the Ollama server.
 :::
 
 ```{python}
@@ -130,7 +132,7 @@ Time to import our data: the official NACE2.1 definitions!
 The data are stored in the s3 storage system of the SSPCloud platform (uploaded from [Eurostat](https://showvoc.op.europa.eu/#/datasets/ESTAT_Statistical_Classification_of_Economic_Activities_in_the_European_Community_Rev._2.1._%28NACE_2.1%29/downloads))
 
 ::: {.callout-tip collapse="false" icon=false}
-## `<i class="bi bi-book"></i>`{=html} Exercice 2: handling NACE data
+## `<i class="bi bi-book"></i>`{=html} Exercise 2: handling NACE data
 
 ### Question 1
 
@@ -344,11 +346,9 @@ print(doc_example.text)
 
 # Embed your NACE text descriptions
 
-Fine! 
-For now, let's choose an embedding model (e.g. a large language model able to transform text to __meaningful__ numerical vector).
-We will use `Qwen3-Embedding-8B`, available on HuggingFace🤗 (like all other models provided by `llm.lab`)! 
+Now let's choose an embedding model. We will use `Qwen3-Embedding-8B`, available on HuggingFace (like all other models provided by `llm.lab`).
 
-For a later use, we need to know the dimension of the vectors given by our model. Here, the size is 4096 (don't trust me, check yourself on the [hf page](https://huggingface.co/Qwen/Qwen3-Embedding-8B)).
+For later use, we need to know the dimension of the vectors output by our model: 4096 (see the [model card](https://huggingface.co/Qwen/Qwen3-Embedding-8B) on HuggingFace).
 
 
 ```{python}
@@ -361,9 +361,11 @@ emb_dim = 4096
 
 
 ::: {.callout-tip collapse="false" icon=false}
-## `<i class="bi bi-book"></i>`{=html} Exercice 3: create a Qdrant vector store and feed it with embedded NACE text descriptions
+## `<i class="bi bi-book"></i>`{=html} Exercise 3: create a Qdrant vector store and feed it with embedded NACE text descriptions
 
-### Question 1 : 
+### Question 1
+
+
 
 - Use your `client_qdrant` and the method `create_collection` to create a new Qdrant collection (e.g: a new vector database). For example, call it __nace-collection__.
 
@@ -403,7 +405,7 @@ Use your `client_llmlab` and the method `.embeddings.create` to embed your NACE 
 - a) Update your `NaceDocument` class like previously:
     - Add a `get_embeddings` method (not called by the constructor) that generates an embedding vector for a `NaceDocument` instance.
     - The method stores the embeddings in a new `vector` attribute.
-- b) Try it on a couple of Nace documents (not to launch 1,047 requests)
+- b) Try it on a couple of NACE documents (not to launch 1,047 requests)
 - c) Inspect your embedding vectors
 
 ```{python}
@@ -411,7 +413,6 @@ Use your `client_llmlab` and the method `.embeddings.create` to embed your NACE 
 #| code-fold: true
 #| code-summary: Click to see the answer
 #| code-overflow: scroll
-#| code-line-numbers: "80"     
 
 from dataclasses import dataclass, field
 from typing import Optional, List
@@ -811,11 +812,11 @@ print(count)
 ::: {.callout-note #pointstruct}
 
 `PointStruct` is a Pydantic model provided by the qdrant_client library that represents a single vector database entry. 
-It bundles together the three components Qdrant needs to store and query a point: 
+It bundles together the three components Qdrant needs to store and query a point:
 
-    - a unique id, 
-    - a vector (the embedding), 
-    - and a payload (arbitrary metadata as a dict). 
+- a unique id,
+- a vector (the embedding),
+- and a payload (arbitrary metadata as a dict).
 
 Passing raw dicts directly to the Qdrant API would require manual serialization and validation. PointStruct handles that for you and ensures the data is correctly typed before being sent to the server. It's essentially the contract between your Python code and the Qdrant collection.
 :::
