@@ -1,5 +1,7 @@
 import s3fs
 import os
+import json
+import tempfile
 from dotenv import load_dotenv
 import duckdb
 import pandas as pd
@@ -15,21 +17,23 @@ from torchTextClassifiers import ModelConfig, TrainingConfig, torchTextClassifie
 
 from torchTextClassifiers.model import TextClassificationModule
 import pytorch_lightning as pl
+from pytorch_lightning.loggers import MLFlowLogger
 import torch
 from torchTextClassifiers.dataset import TextClassificationDataset
 
 import mlflow
 
+load_dotenv(override=True)
+
 TRAIN_FRAC = 1
 VAL_FRAC = 1
 
 MLFLOW_TRACKING_URI = os.environ["MLFLOW_TRACKING_URI"]
-RUN_ID = os.environ["MLFLOW_RUN_ID"]
+EXPERIMENT_NAME = os.environ.get("MLFLOW_EXPERIMENT_NAME", "funathon-project2")
 
 logger = logging.getLogger(__name__)
 
 mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
-load_dotenv(override=True)
 
 con = duckdb.connect(database=":memory:")
 con.execute("INSTALL httpfs;")
@@ -131,12 +135,18 @@ X_val_small = X_val[:int(len(X_val) * VAL_FRAC)]
 y_val_small = y_val[:int(len(y_val) * VAL_FRAC)]
 
 
+mlflow_logger = MLFlowLogger(
+    experiment_name=EXPERIMENT_NAME,
+    log_model=False,
+)
+
 training_config = TrainingConfig(
     lr=1e-3,
     batch_size=256,
-    num_epochs=5,
+    num_epochs=1,
     patience_early_stopping=3,
     num_workers=8,
+    trainer_params={"logger": mlflow_logger},
 )
 
 ttc.train(
@@ -148,4 +158,81 @@ ttc.train(
     verbose=True,
 )
 
+run_id = mlflow_logger.run_id
 
+with mlflow.start_run(run_id=run_id):
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Save tokenizer
+        tokenizer_path = os.path.join(tmpdir, "tokenizer")
+        ttc.tokenizer.tokenizer.save_pretrained(tokenizer_path)
+        mlflow.log_artifacts(tokenizer_path, artifact_path="model_artifacts/tokenizer")
+
+        # Save model state dict (lighter than full model)
+        model_path = os.path.join(tmpdir, "model_state_dict.pt")
+        ttc.pytorch_model.eval()
+        torch.save(ttc.pytorch_model.state_dict(), model_path)
+        mlflow.log_artifact(model_path, artifact_path="model_artifacts")
+
+        # Save label mapping (encoder classes)
+        label_mapping_path = os.path.join(tmpdir, "label_mapping.json")
+        with open(label_mapping_path, "w") as f:
+            json.dump({str(i): cls for i, cls in enumerate(encoder.classes_)}, f)
+        mlflow.log_artifact(label_mapping_path, artifact_path="model_artifacts")
+
+        # Save model config (all params needed to reconstruct the architecture)
+        model_config_path = os.path.join(tmpdir, "model_config.json")
+        with open(model_config_path, "w") as f:
+            json.dump({
+                "embedding_dim": embedding_dim,
+                "num_classes": n_classes,
+                "vocab_size": tokenizer.vocab_size,
+                "output_dim": tokenizer.output_dim,
+                "n_layers": attention_config.n_layers,
+                "n_head": attention_config.n_head,
+                "n_kv_head": attention_config.n_kv_head,
+            }, f)
+        mlflow.log_artifact(model_config_path, artifact_path="model_artifacts")
+
+logger.info(f"Artifacts logged to MLflow run {run_id}")
+
+'''
+
+# =============================================================================
+# Load model from MLflow
+# =============================================================================
+artifacts_path = mlflow.artifacts.download_artifacts(f"runs:/{run_id}/model_artifacts")
+
+with open(os.path.join(artifacts_path, "model_config.json")) as f:
+    saved_config = json.load(f)
+
+with open(os.path.join(artifacts_path, "label_mapping.json")) as f:
+    saved_label_mapping = json.load(f)
+
+loaded_tokenizer = WordPieceTokenizer(
+    vocab_size=saved_config["vocab_size"],
+    output_dim=saved_config["output_dim"],
+)
+loaded_tokenizer.tokenizer = loaded_tokenizer.tokenizer.from_pretrained(
+    os.path.join(artifacts_path, "tokenizer")
+)
+
+loaded_attention_config = AttentionConfig(
+    n_layers=saved_config["n_layers"],
+    n_head=saved_config["n_head"],
+    n_kv_head=saved_config["n_kv_head"],
+    sequence_len=saved_config["output_dim"],
+)
+loaded_model_config = ModelConfig(
+    embedding_dim=saved_config["embedding_dim"],
+    num_classes=saved_config["num_classes"],
+    attention_config=loaded_attention_config,
+)
+
+ttc_loaded = torchTextClassifiers(tokenizer=loaded_tokenizer, model_config=loaded_model_config)
+ttc_loaded.pytorch_model.load_state_dict(
+    torch.load(os.path.join(artifacts_path, "model_state_dict.pt"), weights_only=True)
+)
+ttc_loaded.pytorch_model.eval()
+
+logger.info("Model successfully loaded from MLflow")
+'''
