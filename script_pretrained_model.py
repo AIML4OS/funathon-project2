@@ -14,6 +14,7 @@ from torchTextClassifiers.model.components import (
 )
 from torchTextClassifiers.tokenizers import HuggingFaceTokenizer, WordPieceTokenizer
 from torchTextClassifiers import ModelConfig, TrainingConfig, torchTextClassifiers
+from torchTextClassifiers.model.components.text_embedder import LabelAttentionConfig
 
 from torchTextClassifiers.model import TextClassificationModule
 import pytorch_lightning as pl
@@ -25,8 +26,8 @@ import mlflow
 
 load_dotenv(override=True)
 
-TRAIN_FRAC = 1
-VAL_FRAC = 1
+TRAIN_FRAC = 0.1
+VAL_FRAC = 0.1
 
 MLFLOW_TRACKING_URI = os.environ["MLFLOW_TRACKING_URI"]
 EXPERIMENT_NAME = os.environ.get("MLFLOW_EXPERIMENT_NAME", "funathon-project2")
@@ -106,10 +107,16 @@ classification_head = ClassificationHead(
 logger.info(f"Input dim: {embedding_dim} → Output classes: {n_classes}")
 
 
+label_attention_config = LabelAttentionConfig(
+    n_head=4,
+    num_classes=n_classes,
+)
+
 model_config = ModelConfig(
     embedding_dim=embedding_dim,
     num_classes=n_classes,
     attention_config=attention_config,
+    label_attention_config=label_attention_config,
 )
 
 ttc = torchTextClassifiers(
@@ -190,6 +197,7 @@ with mlflow.start_run(run_id=run_id):
                 "n_layers": attention_config.n_layers,
                 "n_head": attention_config.n_head,
                 "n_kv_head": attention_config.n_kv_head,
+                "label_attention_n_head": label_attention_config.n_head,
             }, f)
         mlflow.log_artifact(model_config_path, artifact_path="model_artifacts")
 
@@ -212,9 +220,11 @@ loaded_tokenizer = WordPieceTokenizer(
     vocab_size=saved_config["vocab_size"],
     output_dim=saved_config["output_dim"],
 )
-loaded_tokenizer.tokenizer = loaded_tokenizer.tokenizer.from_pretrained(
+from transformers import PreTrainedTokenizerFast
+loaded_tokenizer.tokenizer = PreTrainedTokenizerFast.from_pretrained(
     os.path.join(artifacts_path, "tokenizer")
 )
+loaded_tokenizer.trained = True
 
 loaded_attention_config = AttentionConfig(
     n_layers=saved_config["n_layers"],
@@ -222,10 +232,15 @@ loaded_attention_config = AttentionConfig(
     n_kv_head=saved_config["n_kv_head"],
     sequence_len=saved_config["output_dim"],
 )
+loaded_label_attention_config = LabelAttentionConfig(
+    n_head=saved_config["label_attention_n_head"],
+    num_classes=saved_config["num_classes"],
+)
 loaded_model_config = ModelConfig(
     embedding_dim=saved_config["embedding_dim"],
     num_classes=saved_config["num_classes"],
     attention_config=loaded_attention_config,
+    label_attention_config=loaded_label_attention_config,
 )
 
 ttc_loaded = torchTextClassifiers(tokenizer=loaded_tokenizer, model_config=loaded_model_config)
