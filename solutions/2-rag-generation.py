@@ -70,7 +70,7 @@ for model in models.data:
 
 from tqdm import tqdm
 
-EMB_MODEL_NAME = "qwen3-embedding:8b"
+EMB_MODEL_NAME = "qwen3-embedding-8b"
 GEN_MODEL_NAME = "gpt-oss:20b"
 
 search_embeddings = []
