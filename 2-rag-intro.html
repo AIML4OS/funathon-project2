@@ -308,8 +308,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 data-number="2.1" class="anchored" data-anchor-id="how-rag-works-step-by-step"><span class="header-section-number">2.1</span> How RAG works (step-by-step)</h2>
 <ol type="1">
 <li><strong>Query input</strong> — User submits a natural language question, e.g.&nbsp;<em>“industrial bakery”</em></li>
-<li><strong>Query embedding</strong> — Use an embedding model (<code>qwen3-embedding:8b</code>) to encode the question into a vector of size 4096.</li>
-<li><strong>Vector search</strong> — Query the Qdrant collection using the question vector to retrieve nearest neighbours (top-N contextual docs). Qdrant computes a distance/similarity score between the query vector and each stored vector. Common metrics include:
+<li><strong>Query embedding</strong> — Use an embedding model (<code>qwen3-embedding-8b</code>) to encode the query into a vector of size 4096.</li>
+<li><strong>Vector search</strong> — Query the Qdrant collection using the query vector to retrieve nearest neighbours (top-N contextual docs). Qdrant computes a distance/similarity score between the query vector and each stored vector. Common metrics include:
 <ul>
 <li>cosine similarity (most common, compares angle between vectors; 1 = identical)</li>
 <li>dot product (fast, works well with normalised embeddings)</li>
@@ -326,7 +326,7 @@ In the notebook, you can configure <code>distance='Cosine'</code> when creating 
 <h3 data-number="2.1.1" class="anchored" data-anchor-id="simple-pseudocode"><span class="header-section-number">2.1.1</span> Simple pseudocode</h3>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>query_text <span class="op">=</span> <span class="st">"industrial bakery"</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>query_vector <span class="op">=</span> llm_lab.embeddings.create(</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    model<span class="op">=</span><span class="st">'qwen3-embedding:8b'</span>, <span class="bu">input</span><span class="op">=</span>query_text</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    model<span class="op">=</span><span class="st">'qwen3-embedding-8b'</span>, <span class="bu">input</span><span class="op">=</span>query_text</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>).data[<span class="dv">0</span>].embedding</span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>hits <span class="op">=</span> qdrant_client.search(</span>
@@ -393,7 +393,7 @@ Note
 </tr>
 <tr class="even">
 <td><strong>llm.lab</strong></td>
-<td>LLM provider (embedding model + generative model)</td>
+<td>LLM provider on premise (embedding model + generative model)</td>
 </tr>
 </tbody>
 </table>
