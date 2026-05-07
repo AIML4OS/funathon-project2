@@ -598,12 +598,12 @@ Tip
 Keys: ['code', 'name', 'label']</code></pre>
 </div>
 <div id="get-data" class="cell-output cell-output-display" data-execution_count="8">
-<pre><code>[{'code': '47.75',
-  'name': 'Retail sale of cosmetic and toilet articles',
-  'label': 'Consumer retail of beauty enhancement products'},
- {'code': '96.23',
-  'name': 'Day spa, sauna and steam bath activities',
-  'label': 'Day spa service delivery'}]</code></pre>
+<pre><code>[{'code': '62.10',
+  'name': 'Computer programming activities',
+  'label': 'Business application software development.'},
+ {'code': '66.30',
+  'name': 'Fund management activities',
+  'label': 'Contractual investment management services'}]</code></pre>
 </div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -844,41 +844,41 @@ Note
 <tbody>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">0</th>
-<td>Consumer retail of beauty enhancement products</td>
-<td>47.75</td>
-<td>47.75</td>
+<td>Business application software development.</td>
+<td>62.10</td>
+<td>62.10</td>
 <td>True</td>
 <td>True</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">1</th>
-<td>Day spa service delivery</td>
-<td>96.23</td>
-<td>96.23</td>
+<td>Contractual investment management services</td>
+<td>66.30</td>
+<td>66.30</td>
 <td>True</td>
 <td>True</td>
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">2</th>
-<td>Company administration and governance support</td>
+<td>Process optimization for improved efficiency</td>
 <td>70.20</td>
-<td>82</td>
+<td>NaN</td>
 <td>False</td>
 <td>False</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">3</th>
-<td>Pension fund risk management oversight</td>
-<td>66.30</td>
-<td>66.30</td>
-<td>True</td>
-<td>True</td>
+<td>Long-term industrial space provision</td>
+<td>68.20</td>
+<td>68</td>
+<td>False</td>
+<td>False</td>
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">4</th>
-<td>Market stall and exhibition stand assembly</td>
-<td>43.32</td>
-<td>43.32</td>
+<td>Long-term residential property rental</td>
+<td>68.20</td>
+<td>68.20</td>
 <td>True</td>
 <td>True</td>
 </tr>
@@ -899,8 +899,8 @@ Note
 <div id="cell-retriever-accuracy-hint" class="cell" data-execution_count="13">
 <div id="retriever-accuracy-hint" class="cell-output cell-output-display" data-execution_count="13">
 <pre><code>retriever_hit
-Retriever missed             26
-Retriever found true code    24
+Retriever found true code    28
+Retriever missed             22
 Name: count, dtype: int64</code></pre>
 </div>
 </div>
@@ -923,7 +923,8 @@ Name: count, dtype: int64</code></pre>
 <div id="cell-llm-accuracy-hint" class="cell" data-execution_count="15">
 <div id="llm-accuracy-hint" class="cell-output cell-output-display" data-execution_count="15">
 <pre><code>pipeline_correct
-LLM correct    24
+LLM correct    26
+LLM wrong       2
 Name: count, dtype: int64</code></pre>
 </div>
 </div>
@@ -947,8 +948,8 @@ Name: count, dtype: int64</code></pre>
 <div id="cell-pipeline-accuracy-hint" class="cell" data-execution_count="17">
 <div id="pipeline-accuracy-hint" class="cell-output cell-output-display" data-execution_count="17">
 <pre><code>pipeline_correct
-Incorrectly coded    26
-Correctly coded      24
+Correctly coded      26
+Incorrectly coded    24
 Name: count, dtype: int64</code></pre>
 </div>
 </div>
