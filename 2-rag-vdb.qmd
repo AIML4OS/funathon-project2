@@ -346,7 +346,7 @@ print(doc_example.text)
 
 # Embed your NACE text descriptions
 
-Now let's choose an embedding model. We will use `Qwen3-Embedding-8B`, available on HuggingFace (like all other models provided by `llm.lab`).
+Now let's choose an embedding model. We will use `qwen3-embedding-8b`, available on HuggingFace (like all other models provided by `llm.lab`).
 
 For later use, we need to know the dimension of the vectors output by our model: 4096 (see the [model card](https://huggingface.co/Qwen/Qwen3-Embedding-8B) on HuggingFace).
 
@@ -355,7 +355,7 @@ For later use, we need to know the dimension of the vectors output by our model:
 
 #| label: embedding_params
 
-emb_model = "qwen3-embedding:8b"
+emb_model = "qwen3-embedding-8b"
 emb_dim = 4096
 ```
 

@@ -90,8 +90,8 @@ In this tutorial, the "retrieval" stage is handled by Qdrant and the "generation
 ## How RAG works (step-by-step)
 
 1. **Query input** — User submits a natural language question, e.g. *"industrial bakery"*
-2. **Query embedding** — Use an embedding model (`qwen3-embedding:8b`) to encode the question into a vector of size 4096.
-3. **Vector search** — Query the Qdrant collection using the question vector to retrieve nearest neighbours (top-N contextual docs). Qdrant computes a distance/similarity score between the query vector and each stored vector. Common metrics include:
+2. **Query embedding** — Use an embedding model (`qwen3-embedding-8b`) to encode the query into a vector of size 4096.
+3. **Vector search** — Query the Qdrant collection using the query vector to retrieve nearest neighbours (top-N contextual docs). Qdrant computes a distance/similarity score between the query vector and each stored vector. Common metrics include:
    - cosine similarity (most common, compares angle between vectors; 1 = identical)
    - dot product (fast, works well with normalised embeddings)
    - Euclidean/L2 distance (straight-line distance in vector space)
@@ -108,7 +108,7 @@ In this tutorial, the "retrieval" stage is handled by Qdrant and the "generation
 ```python
 query_text = "industrial bakery"
 query_vector = llm_lab.embeddings.create(
-    model='qwen3-embedding:8b', input=query_text
+    model='qwen3-embedding-8b', input=query_text
 ).data[0].embedding
 
 hits = qdrant_client.search(
@@ -155,7 +155,7 @@ You will need access to two services hosted on the SSPCloud:
 | Service | Role |
 |---------|------|
 | **Qdrant** | [Vector database](#vec-db) storing NACE embeddings |
-| **llm.lab** | LLM provider (embedding model + generative model) |
+| **llm.lab** | LLM provider on premise (embedding model + generative model) |
 
 ## Credentials
 
