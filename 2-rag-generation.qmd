@@ -95,8 +95,8 @@ client_qdrant = QdrantClient(
 #| label: global-params
 
 # Models
-EMB_MODEL_NAME = "qwen3-embedding:8b"   # Embedding model
-GEN_MODEL_NAME = "gpt-oss:20b"          # Generative model
+EMB_MODEL_NAME = "qwen3-embedding-8b"   # Embedding model
+GEN_MODEL_NAME = "gemma4-26b-moe"          # Generative model
 
 # Qdrant
 COLLECTION_NAME = "nace-collection"

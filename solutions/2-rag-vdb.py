@@ -56,7 +56,7 @@ for model in models.data:
 
 # Embedding model parameters
 emb_dim = 4096
-emb_model = "qwen3-embedding:8b"
+emb_model = "qwen3-embedding-8b"
 
 # %%
 
