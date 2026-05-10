@@ -8,13 +8,62 @@ format:
     warning: false
 ---
 
-This notebook walks through a supervised text classification pipeline using `torchTextClassifiers`,
-applied to NAF 2025 code prediction from synthetic labelled data.
+# Forewords
 
-The goal is to automatically assign a NAF activity code to a short text description
-of a business activity. This is a **multiclass classification** problem: given a `label` (a
-sentence like *"I sell croissants and pains au chocolat"*), the model must predict the correct code
-among hundreds of possible NAF categories.
+## The problem: classifying free-text activity descriptions
+
+Given a short text description of a business activity — such as *"I sell croissants and pains au chocolat"* — the goal is to automatically assign the correct **NAF 2025 activity code** from hundreds of possible categories. This is a **supervised multiclass classification** problem.
+
+## Supervised learning or RAG?
+
+Two main approaches exist for this task:
+
+| Approach | How it works | Best when |
+|---|---|---|
+| **Supervised (this notebook)** | Train a neural network on labelled examples | Large labelled dataset available, low-latency inference needed |
+| **RAG** (see notebook 2) | Retrieve similar examples, ask a LLM to decide | Few labelled examples, need for explainability via retrieved context |
+
+In this notebook, we use the supervised approach: the model learns directly from thousands of labelled examples and can predict at inference time without calling an external API.
+
+## Pipeline overview
+
+```
+Labelled data (text, NAF code)
+        │
+        ▼
+   [1] Split → train / val / test
+        │
+        ▼
+   [2] WordPiece Tokenizer  (text → token IDs)
+        │
+        ▼
+   [3] torchTextClassifiers (token IDs → NAF code)
+        │
+        ▼
+   [4] Evaluation & explainability (attention attributions)
+```
+
+## What you will learn
+
+- How to prepare and split a labelled text dataset
+- How to train a subword tokenizer (WordPiece) on domain-specific text
+- How to configure and train a neural text classifier end-to-end
+- How to load a pretrained model from MLflow and run inference
+- How to interpret predictions using label attention attributions
+
+## Before you start
+
+Make sure your environment is ready:
+
+- **Packages**: all dependencies are declared in `pyproject.toml`. Run `uv sync` to install them.
+- **Environment variables**: create a `.env` file at the root of the project with the following variables:
+  ```
+  MLFLOW_TRACKING_URI=<add the MLflow server URL>
+  MLFLOW_RUN_ID=<add the run ID>
+  ```
+- **torchtextclassifiers**: this notebook relies on the [`torchtextclassifiers`](https://github.com/InseeFrLab/torchTextClassifiers) library developped by INSEE. Refer to its GitHub for full API documentation.
+
+---
 
 # Load data
 
@@ -24,7 +73,9 @@ Each row contains a short text description (`label`) and the corresponding NAF c
 ::: {.callout-tip collapse="false" icon=false}
 ## `<i class="bi bi-book"></i>`{=html} Exercice 1: Load the labelled dataset
 
-1. Import the necessary libraries and load your environment variables.
+### Question 1 — Import libraries and load environment variables
+
+Import `os` and use `load_dotenv(override=True)` from the `dotenv` package to load your `.env` file.
 ```{python}
 #| label: setup
 #| code-fold: true
@@ -36,8 +87,17 @@ from dotenv import load_dotenv
 load_dotenv(override=True)
 ```
 
-2. Use Polars to load the parquet file directly from a public URL.
-   Print the first rows and the total number of observations.
+### Question 2 — Load the dataset from MinIO
+
+Use Polars to load the parquet file directly from this public URL:
+
+```
+https://minio.lab.sspcloud.fr/projet-formation/diffusion/funathon/2026/project2/generation_None_temp08.parquet
+```
+
+Print the first rows and the total number of observations.
+
+*Use `pl.read_parquet(url)`, `.head()`, and `len(df)`.*
 ```{python}
 #| label: load-data
 #| code-fold: true
@@ -52,7 +112,11 @@ print(df.head())
 print(f"Total rows: {len(df)}")
 ```
 
-3. How many unique NAF codes are present in the dataset?
+### Question 3 — Count unique NAF codes
+
+How many unique NAF codes are present in the dataset? This number will define the number of output classes the model must predict.
+
+*Use `.n_unique()` on the `code` column.*
 ```{python}
 #| label: unique-codes
 #| code-fold: true
@@ -90,8 +154,12 @@ final evaluation is truly unbiased.
 ::: {.callout-tip collapse="false" icon=false}
 ## `<i class="bi bi-book"></i>`{=html} Exercice 2: Split the dataset into train / validation / test sets
 
-1. Write a function `train_val_test_split` that shuffles the DataFrame and returns three
-   non-overlapping splits according to provided fractions.
+### Question 1 — Write a split function
+
+Write a function `train_val_test_split` that shuffles the DataFrame and returns three
+non-overlapping splits according to provided fractions.
+
+*Use `df.sample(fraction=1.0, shuffle=True, seed=seed)` to shuffle, then slice with integer indices.*
 ```{python}
 #| label: split-fn
 #| code-fold: true
@@ -113,9 +181,21 @@ def train_val_test_split(
     return train, val, test
 ```
 
-2. Apply the function and extract the `label` (features) and `code` (target) columns for each
-   split as numpy arrays. Encode the string codes to integers with `LabelEncoder` — keep the
-   fitted encoder to decode predictions back to NAF codes later.
+### Question 2 — Apply the split and encode labels
+
+Apply the function and extract the `label` (features) and `code` (target) columns for each
+split as numpy arrays. Encode the string codes to integers with `LabelEncoder` — keep the
+fitted encoder to decode predictions back to NAF codes later.
+
+*Use `LabelEncoder` from `sklearn.preprocessing`. Call `.fit()` on all codes, then `.transform()` on each split. Extract numpy arrays with `.to_numpy()`.*
+
+::: {.callout-warning}
+## Watch out for data leakage
+Always fit the `LabelEncoder` on **all** codes (`df['code']`), not just the training set.
+If a code appears only in the validation or test set and the encoder has never seen it,
+`transform()` will raise an error.
+:::
+
 ```{python}
 #| label: split-data
 #| code-fold: true
@@ -137,13 +217,6 @@ X_test,  y_test  = test['label'].to_numpy(),  encoder.transform(test['code'].to_
 print(f"Train: {len(train)} | Val: {len(val)} | Test: {len(test)}")
 print(f"Example: '{train['label'][0]}' → {encoder.inverse_transform(y_train[:1])[0]}")
 ```
-
-<details>
-<summary>Clue here</summary>
-Always fit the `LabelEncoder` on **all** codes (`df['code']`), not just the training set.
-If a code appears only in the validation or test set and the encoder has never seen it,
-`transform()` will raise an error.
-</details>
 
 :::
 
@@ -172,8 +245,20 @@ domain-specific text like French business descriptions.
 ::: {.callout-tip collapse="false" icon=false}
 ## `<i class="bi bi-book"></i>`{=html} Exercice 3: Train a WordPiece tokenizer
 
+### Question 1 — Train the tokenizer and inspect a sample
+
 Train a `WordPieceTokenizer` from scratch on the training labels with `vocab_size=5000`
 and `output_dim=125`. Inspect a sample tokenization to understand how the text is split.
+
+*Instantiate `WordPieceTokenizer(vocab_size=5000, output_dim=125)` and call `.train(X_train)`. Use `.tokenize()` and `.convert_ids_to_tokens()` to inspect a sample.*
+
+::: {.callout-warning}
+## Tokenizer data leakage
+Always train the tokenizer on `X_train` only — never on the validation or test set.
+Using the full dataset would mean the tokenizer has seen vocabulary from examples the model
+is supposed to predict blind.
+:::
+
 ```{python}
 #| label: tokenizer
 #| code-fold: true
@@ -191,13 +276,6 @@ print("Tokens:", tokenizer.tokenizer.convert_ids_to_tokens(
 ))
 print("Vocabulary size:", tokenizer.vocab_size)
 ```
-
-<details>
-<summary>Clue here</summary>
-Always train the tokenizer on `X_train` only — never on the validation or test set.
-Using the full dataset would constitute **data leakage**: the tokenizer would have seen
-vocabulary from examples the model is supposed to predict blind.
-</details>
 
 :::
 
@@ -237,7 +315,18 @@ Key training hyperparameters:
 `torchTextClassifiers` provides a high-level wrapper that combines the tokenizer, model
 components, and training loop.
 
-1. Instantiate the classifier from a `ModelConfig` and the trained tokenizer.
+### Question 1 — Instantiate the classifier
+
+Instantiate the classifier from a `ModelConfig` and the trained tokenizer.
+
+*Build an `AttentionConfig`, then a `ModelConfig` with `embedding_dim`, `num_classes`, and a `LabelAttentionConfig`. Pass both to `torchTextClassifiers(tokenizer=..., model_config=...)`.*
+
+::: {.callout-note appearance="simple"}
+## Key parameters
+- `embedding_dim=96`: size of the dense vector representing each token. Larger values capture more information but are slower to train.
+- `n_layers=1`, `n_head=4`: the self-attention has 1 transformer layer with 4 parallel attention heads. More heads can capture richer patterns but increase computation.
+- `sequence_len=tokenizer.output_dim`: must match the tokenizer's `output_dim` so that all token sequences have the same length.
+:::
 ```{python}
 #| label: model-config
 #| code-fold: true
@@ -263,15 +352,26 @@ model_config = ModelConfig(
 )
 
 ttc = torchTextClassifiers(tokenizer=tokenizer, model_config=model_config)
-ttc
 ```
 
-2. Define a `TrainingConfig` and train on a small subsample so it completes quickly.
+### Question 2 — Train on a small subsample
+
+Define a `TrainingConfig` and train on a small subsample so it completes quickly.
+
+*Create a `TrainingConfig(lr=..., batch_size=..., num_epochs=..., num_workers=...)` and call `ttc.train(X_train=..., y_train=..., X_val=..., y_val=..., training_config=..., verbose=True)`.*
 
 ::: {.callout-note appearance="simple"}
 ## Note
 We train on a **small subsample** (5% of the data, 1 epoch) just to verify the pipeline runs
-end-to-end. A model trained on the full dataset is loaded from MLflow in the next step.
+end-to-end — the model will not converge to a good accuracy in one epoch on 5% of the data.
+A model trained on the full dataset for many epochs is loaded from MLflow in the next step.
+
+Key hyperparameters used here:
+
+- `lr=1e-3`: a standard starting learning rate for Adam-based optimizers.
+- `batch_size=256`: how many examples are processed before each weight update — larger batches are faster but require more memory.
+- `num_epochs=1`: one pass over the data, kept short for this demo.
+- `num_workers=0`: disables parallel data loading (use `>0` to speed up on multi-core machines).
 :::
 
 ```{python}
@@ -305,12 +405,15 @@ ttc.train(
 )
 ```
 
-3. Load the **pretrained model** trained on the full dataset from MLflow.
+### Question 3 — Load the pretrained model from MLflow
+
+Load the **pretrained model** trained on the full dataset from MLflow.
+
+*Use `mlflow.set_tracking_uri()` then `mlflow.artifacts.download_artifacts(f"runs:/{RUN_ID}/model_artifacts")`. Rebuild the model from `model_config.json` and restore weights with `load_state_dict()`.*
 
 ::: {.callout-note appearance="simple"}
 ## Note
-Set `MLFLOW_RUN_ID` in your `.env` file to the run ID produced by `script_pretrained_model.py`.
-You can also find it in the MLflow UI under your experiment.
+Set `MLFLOW_RUN_ID` in your `.env` file to the right run ID.
 :::
 
 ```{python}
@@ -366,14 +469,12 @@ ttc_full.pytorch_model.load_state_dict(
     torch.load(os.path.join(artifacts_path, "model_state_dict.pt"), weights_only=True)
 )
 ttc_full.pytorch_model.eval()
-print("Pretrained model loaded successfully.")
 ```
 
 <details>
 <summary>Clue here</summary>
 `mlflow.artifacts.download_artifacts` fetches all saved files locally. We rebuild the model
 architecture from `model_config.json` and restore the weights with `load_state_dict`.
-`weights_only=True` prevents arbitrary code execution during deserialization.
 </details>
 
 :::
@@ -385,10 +486,21 @@ Once the model is trained, we can use it to predict NAF codes for new text descr
 matrix links each predicted class to the tokens that contributed most to it, showing which
 words drove the prediction.
 
+::: {.callout-important}
+## On the interpretation of attention attributions
+Attention weights highlight which tokens the model focused on when predicting a class — but
+attention is **not** a faithful explanation of model decisions in all cases. High attention on
+a word means the model used it as a signal, not necessarily that it is the true cause of the
+prediction. Use these visualisations as an exploratory tool, not as a ground-truth explanation.
+:::
+
 ::: {.callout-tip collapse="false" icon=false}
 ## `<i class="bi bi-book"></i>`{=html} Exercice 5: Generate predictions and inspect attributions
 
-1. Generate top-3 predictions with confidence scores on a few examples.
+### Question 1 — Generate top-3 predictions with confidence scores
+
+Call `ttc_full.predict(np.array(example_texts), top_k=3, explain_with_label_attention=True)`. The result is a dict with keys `prediction` and `confidence` — decode integer predictions back to NAF codes using `saved_label_mapping[str(idx)]`.
+
 ```{python}
 #| label: predict-examples
 #| code-fold: true
@@ -400,9 +512,9 @@ import numpy as np
 top_k = 3
 
 example_texts = [
-    "Je vends des croissants et des pains au chocolat dans ma boulangerie",
-    "Je développe des logiciels de gestion pour les entreprises",
-    "Je répare des voitures et effectue des contrôles techniques",
+    "I sell croissants and pains au chocolat in my bakery",
+    "I develop business management software for companies",
+    "I repair cars and carry out technical inspections",
 ]
 
 results = ttc_full.predict(np.array(example_texts), top_k=top_k, explain_with_label_attention=True)
@@ -415,7 +527,17 @@ for i, text in enumerate(example_texts):
         print(f"  {code}  (confidence: {conf:.3f})")
 ```
 
-2. Visualise which words drove the top prediction for the first example.
+### Question 2 — Visualise word attributions for the top prediction
+
+Extract `label_attention_attributions` from the results, average over attention heads, then use `map_attributions_to_word()`, `map_attributions_to_char()`, `plot_attributions_at_word()`, and `plot_attributions_at_char()` from `torchTextClassifiers.utilities.plot_explainability`.
+
+::: {.callout-note appearance="simple"}
+## Understanding the result fields
+- `label_attention_attributions`: tensor of shape `(n_head, num_classes, seq_len)` — the attention score each class gave to each token, across all heads.
+- `offset_mapping`: character-level start/end positions of each token in the original string, used to map token-level scores back to characters.
+- `word_ids`: maps each token to its parent word index, used to aggregate token scores at the word level.
+:::
+
 ```{python}
 #| label: explainability
 #| code-fold: true
@@ -455,7 +577,10 @@ figshow(plot_attributions_at_word(
 )[0])
 ```
 
-3. Evaluate accuracy on the test set.
+### Question 3 — Evaluate accuracy on the test set
+
+Run `ttc_full.predict(X_test_small, top_k=1)` and compare the predictions against `y_test_small` to compute accuracy.
+
 ```{python}
 #| label: evaluate
 #| code-fold: true
