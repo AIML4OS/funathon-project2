@@ -4,6 +4,8 @@ title: Supervised approach using TorchTextClassifiers
 format:
   html:
     number-sections: true
+    output: false
+    warning: false
 ---
 
 This notebook walks through a supervised text classification pipeline using `torchTextClassifiers`,
@@ -24,6 +26,7 @@ Each row contains a short text description (`label`) and the corresponding NAF c
 
 1. Import the necessary libraries and load your environment variables.
 ```{python}
+#| label: setup
 #| code-fold: true
 #| code-summary: Cliquer pour voir la réponse
 #| code-overflow: scroll
@@ -36,9 +39,11 @@ load_dotenv(override=True)
 2. Use Polars to load the parquet file directly from a public URL.
    Print the first rows and the total number of observations.
 ```{python}
+#| label: load-data
 #| code-fold: true
 #| code-summary: Cliquer pour voir la réponse
 #| code-overflow: scroll
+#| output: true
 import polars as pl
 
 df = pl.read_parquet("https://minio.lab.sspcloud.fr/projet-formation/diffusion/funathon/2026/project2/generation_None_temp08.parquet")
@@ -49,9 +54,11 @@ print(f"Total rows: {len(df)}")
 
 3. How many unique NAF codes are present in the dataset?
 ```{python}
+#| label: unique-codes
 #| code-fold: true
 #| code-summary: Cliquer pour voir la réponse
 #| code-overflow: scroll
+#| output: true
 n_classes = df['code'].n_unique()
 print(f"Number of unique NAF codes: {n_classes}")
 ```
@@ -86,6 +93,7 @@ final evaluation is truly unbiased.
 1. Write a function `train_val_test_split` that shuffles the DataFrame and returns three
    non-overlapping splits according to provided fractions.
 ```{python}
+#| label: split-fn
 #| code-fold: true
 #| code-summary: Cliquer pour voir la réponse
 #| code-overflow: scroll
@@ -109,9 +117,11 @@ def train_val_test_split(
    split as numpy arrays. Encode the string codes to integers with `LabelEncoder` — keep the
    fitted encoder to decode predictions back to NAF codes later.
 ```{python}
+#| label: split-data
 #| code-fold: true
 #| code-summary: Cliquer pour voir la réponse
 #| code-overflow: scroll
+#| output: true
 from sklearn.preprocessing import LabelEncoder
 
 train, val, test = train_val_test_split(df)
@@ -165,9 +175,11 @@ domain-specific text like French business descriptions.
 Train a `WordPieceTokenizer` from scratch on the training labels with `vocab_size=5000`
 and `output_dim=125`. Inspect a sample tokenization to understand how the text is split.
 ```{python}
+#| label: tokenizer
 #| code-fold: true
 #| code-summary: Cliquer pour voir la réponse
 #| code-overflow: scroll
+#| output: true
 from torchTextClassifiers.tokenizers import WordPieceTokenizer
 
 tokenizer = WordPieceTokenizer(vocab_size=5000, output_dim=125)
@@ -227,9 +239,11 @@ components, and training loop.
 
 1. Instantiate the classifier from a `ModelConfig` and the trained tokenizer.
 ```{python}
+#| label: model-config
 #| code-fold: true
 #| code-summary: Cliquer pour voir la réponse
 #| code-overflow: scroll
+#| output: true
 from torchTextClassifiers import ModelConfig, TrainingConfig, torchTextClassifiers
 from torchTextClassifiers.model.components import AttentionConfig
 from torchTextClassifiers.model.components.text_embedder import LabelAttentionConfig
@@ -261,9 +275,11 @@ end-to-end. A model trained on the full dataset is loaded from MLflow in the nex
 :::
 
 ```{python}
+#| label: train-small
 #| code-fold: true
 #| code-summary: Cliquer pour voir la réponse
 #| code-overflow: scroll
+#| output: true
 TRAIN_FRAC = 0.05
 VAL_FRAC = 0.05
 
@@ -298,9 +314,11 @@ You can also find it in the MLflow UI under your experiment.
 :::
 
 ```{python}
+#| label: load-pretrained
 #| code-fold: true
 #| code-summary: Cliquer pour voir la réponse
 #| code-overflow: scroll
+#| output: true
 import mlflow
 import json
 import torch
@@ -372,9 +390,11 @@ words drove the prediction.
 
 1. Generate top-3 predictions with confidence scores on a few examples.
 ```{python}
+#| label: predict-examples
 #| code-fold: true
 #| code-summary: Cliquer pour voir la réponse
 #| code-overflow: scroll
+#| output: true
 import numpy as np
 
 top_k = 3
@@ -397,9 +417,11 @@ for i, text in enumerate(example_texts):
 
 2. Visualise which words drove the top prediction for the first example.
 ```{python}
+#| label: explainability
 #| code-fold: true
 #| code-summary: Cliquer pour voir la réponse
 #| code-overflow: scroll
+#| output: true
 from torchTextClassifiers.utilities.plot_explainability import (
     map_attributions_to_char, map_attributions_to_word,
     plot_attributions_at_char, plot_attributions_at_word, figshow,
@@ -435,9 +457,11 @@ figshow(plot_attributions_at_word(
 
 3. Evaluate accuracy on the test set.
 ```{python}
+#| label: evaluate
 #| code-fold: true
 #| code-summary: Cliquer pour voir la réponse
 #| code-overflow: scroll
+#| output: true
 TEST_FRAC = 0.05
 X_test_small = X_test[:int(len(X_test) * TEST_FRAC)]
 y_test_small = y_test[:int(len(y_test) * TEST_FRAC)]
