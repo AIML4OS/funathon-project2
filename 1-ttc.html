@@ -61,7 +61,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </style>
 
 
-<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js" integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2" crossorigin="anonymous"></script><script src="site_libs/quarto-nav/quarto-nav.js"></script>
 <script src="site_libs/quarto-nav/headroom.min.js"></script>
 <script src="site_libs/clipboard/clipboard.min.js"></script>
 <script src="site_libs/quarto-search/autocomplete.umd.js"></script>
@@ -78,6 +78,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="site_libs/bootstrap/bootstrap-10001ffb058a23507bc90342e4cf6f50.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
+<link href="site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
+<link href="site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -105,11 +108,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     "search-label": "Search"
   }
 }</script>
+<script src="https://cdn.jsdelivr.net/npm/requirejs@2.3.6/require.min.js" integrity="sha384-c9c+LnTbwQ3aujuU7ULEPVvgLs+Fn6fJUvIGTsuu1ZcCf11fiEubah0ttpca4ntM sha384-6V1/AdqZRWk1KAlWbKBlGhN7VG4iE/yAZcO6NZPMF8od0vukrvr0tg4qY6NSrItx" crossorigin="anonymous"></script>
+
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+<script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@*/dist/embed-amd.js" crossorigin="anonymous"></script>
 
 
 <meta property="og:title" content="Supervised approach using TorchTextClassifiers – AIML4OS Funathon - Project 2">
 <meta property="og:description" content="Automatic classification">
+<meta property="og:image" content="https://AIML4OS.github.io/funathon-project2/1-ttc_files/figure-html/cell-12-output-1.png">
 <meta property="og:site_name" content="AIML4OS Funathon - Project 2">
+<meta property="og:image:height" content="466">
+<meta property="og:image:width" content="1657">
 </head>
 
 <body class="nav-fixed quarto-light">
@@ -162,8 +172,19 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
-        
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#load-data" id="toc-load-data" class="nav-link active" data-scroll-target="#load-data"><span class="header-section-number">1</span> Load data</a></li>
+  <li><a href="#split-the-data" id="toc-split-the-data" class="nav-link" data-scroll-target="#split-the-data"><span class="header-section-number">2</span> Split the data</a></li>
+  <li><a href="#tokenizer" id="toc-tokenizer" class="nav-link" data-scroll-target="#tokenizer"><span class="header-section-number">3</span> Tokenizer</a></li>
+  <li><a href="#model-architecture" id="toc-model-architecture" class="nav-link" data-scroll-target="#model-architecture"><span class="header-section-number">4</span> Model architecture</a></li>
+  <li><a href="#training" id="toc-training" class="nav-link" data-scroll-target="#training"><span class="header-section-number">5</span> Training</a></li>
+  <li><a href="#prediction-and-explainability" id="toc-prediction-and-explainability" class="nav-link" data-scroll-target="#prediction-and-explainability"><span class="header-section-number">6</span> Prediction and explainability</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/AIML4OS/funathon-project2/edit/main/1-ttc.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/AIML4OS/funathon-project2/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
@@ -187,72 +208,691 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>To complete</p>
+<p>This notebook walks through a supervised text classification pipeline using <code>torchTextClassifiers</code>, applied to NAF 2025 code prediction from synthetic labelled data.</p>
+<p>The goal is to automatically assign a NAF activity code to a short text description of a business activity. This is a <strong>multiclass classification</strong> problem: given a <code>label</code> (a sentence like <em>“I sell croissants and pains au chocolat”</em>), the model must predict the correct code among hundreds of possible NAF categories.</p>
+<section id="load-data" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Load data</h1>
+<p>The dataset consists of <strong>synthetic labelled examples</strong> generated for the NAF 2025 nomenclature. Each row contains a short text description (<code>label</code>) and the corresponding NAF code (<code>code</code>).</p>
+<div class="callout callout-style-default callout-tip no-icon callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="true" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="bi bi-book"></i> Exercice 1: Load the labelled dataset
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-1" class="callout-1-contents callout-collapse collapse show">
+<div class="callout-body-container callout-body">
+<ol type="1">
+<li>Import the necessary libraries and load your environment variables.</li>
+</ol>
+<div id="e14f61e2" class="cell" data-execution_count="1">
+<details class="code-fold">
+<summary>Cliquer pour voir la réponse</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> dotenv <span class="im">import</span> load_dotenv</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>load_dotenv(override<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<pre><code>False</code></pre>
+</div>
+</div>
+<ol start="2" type="1">
+<li>Use Polars to load the parquet file directly from a public URL. Print the first rows and the total number of observations.</li>
+</ol>
+<div id="c289e98a" class="cell" data-execution_count="2">
+<details class="code-fold">
+<summary>Cliquer pour voir la réponse</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> polars <span class="im">as</span> pl</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pl.read_parquet(<span class="st">"https://minio.lab.sspcloud.fr/projet-formation/diffusion/funathon/2026/project2/generation_None_temp08.parquet"</span>)</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df.head())</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Total rows: </span><span class="sc">{</span><span class="bu">len</span>(df)<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>shape: (5, 3)
+┌───────┬─────────────────────────────────┬─────────────────────────────────┐
+│ code  ┆ name                            ┆ label                           │
+│ ---   ┆ ---                             ┆ ---                             │
+│ str   ┆ str                             ┆ str                             │
+╞═══════╪═════════════════════════════════╪═════════════════════════════════╡
+│ 01.11 ┆ Growing of cereals, other than… ┆ Pulses cultivation for market   │
+│ 01.11 ┆ Growing of cereals, other than… ┆ Legume crop production activit… │
+│ 01.11 ┆ Growing of cereals, other than… ┆ Broad bean farming operations   │
+│ 01.11 ┆ Growing of cereals, other than… ┆ Chickpea harvesting and proces… │
+│ 01.11 ┆ Growing of cereals, other than… ┆ Production of dried beans and … │
+└───────┴─────────────────────────────────┴─────────────────────────────────┘
+Total rows: 70000</code></pre>
+</div>
+</div>
+<ol start="3" type="1">
+<li>How many unique NAF codes are present in the dataset?</li>
+</ol>
+<div id="8d30e47f" class="cell" data-execution_count="3">
+<details class="code-fold">
+<summary>Cliquer pour voir la réponse</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>n_classes <span class="op">=</span> df[<span class="st">'code'</span>].n_unique()</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Number of unique NAF codes: </span><span class="sc">{</span>n_classes<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Number of unique NAF codes: 311</code></pre>
+</div>
+</div>
+<details>
+<summary>
+Clue here
+</summary>
+Use the <code>.n_unique()</code> method on the <code>code</code> column: <code>df['code'].n_unique()</code>.
+</details>
+</div>
+</div>
+</div>
+</section>
+<section id="split-the-data" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> Split the data</h1>
+<p>Before training a model, we need to split the dataset into three subsets:</p>
+<ul>
+<li><strong>Train</strong>: the examples the model learns from.</li>
+<li><strong>Validation</strong>: used during training to monitor performance and trigger early stopping (i.e.&nbsp;stop training before overfitting).</li>
+<li><strong>Test</strong>: held out until the very end to give an unbiased estimate of the model’s performance on unseen data.</li>
+</ul>
 <div class="callout callout-style-simple callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Note</span>Attention
+<span class="screen-reader-only">Note</span>Why three splits and not two?
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>To complete</p>
+<p>Using the validation set to tune hyperparameters or stop training means it indirectly influences the model. The test set must therefore remain completely untouched during training so that the final evaluation is truly unbiased.</p>
 </div>
 </div>
 <div class="callout callout-style-default callout-tip no-icon callout-titled">
-<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-2-contents" aria-controls="callout-2" aria-expanded="true" aria-label="Toggle callout">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-3-contents" aria-controls="callout-3" aria-expanded="true" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon no-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Tip</span><i class="bi bi-book"></i> Exercice 1: To complete
+<span class="screen-reader-only">Tip</span><i class="bi bi-book"></i> Exercice 2: Split the dataset into train / validation / test sets
 </div>
 <div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
-<div id="callout-2" class="callout-2-contents callout-collapse collapse show">
+<div id="callout-3" class="callout-3-contents callout-collapse collapse show">
 <div class="callout-body-container callout-body">
 <ol type="1">
-<li>To complete.</li>
+<li>Write a function <code>train_val_test_split</code> that shuffles the DataFrame and returns three non-overlapping splits according to provided fractions.</li>
 </ol>
-<div id="39fab798" class="cell" data-execution_count="1">
+<div id="b5d8bfb7" class="cell" data-execution_count="4">
 <details class="code-fold">
 <summary>Cliquer pour voir la réponse</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Hello"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> train_val_test_split(</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    df: pl.DataFrame,</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    train_frac: <span class="bu">float</span> <span class="op">=</span> <span class="fl">0.7</span>,</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    val_frac: <span class="bu">float</span> <span class="op">=</span> <span class="fl">0.15</span>,</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    seed: <span class="bu">int</span> <span class="op">=</span> <span class="dv">42</span>,</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> <span class="bu">tuple</span>[pl.DataFrame, pl.DataFrame, pl.DataFrame]:</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> df.sample(fraction<span class="op">=</span><span class="fl">1.0</span>, shuffle<span class="op">=</span><span class="va">True</span>, seed<span class="op">=</span>seed)</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> <span class="bu">len</span>(df)</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    n_train <span class="op">=</span> <span class="bu">int</span>(n <span class="op">*</span> train_frac)</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    n_val <span class="op">=</span> <span class="bu">int</span>(n <span class="op">*</span> val_frac)</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>    train <span class="op">=</span> df[:n_train]</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>    val   <span class="op">=</span> df[n_train : n_train <span class="op">+</span> n_val]</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>    test  <span class="op">=</span> df[n_train <span class="op">+</span> n_val :]</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> train, val, test</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
-<div class="cell-output cell-output-stdout">
-<pre><code>Hello</code></pre>
-</div>
 </div>
 <ol start="2" type="1">
-<li>To complete.</li>
+<li>Apply the function and extract the <code>label</code> (features) and <code>code</code> (target) columns for each split as numpy arrays. Encode the string codes to integers with <code>LabelEncoder</code> — keep the fitted encoder to decode predictions back to NAF codes later.</li>
 </ol>
-<div id="6431216a" class="cell" data-execution_count="2">
+<div id="be475c79" class="cell" data-execution_count="5">
 <details class="code-fold">
 <summary>Cliquer pour voir la réponse</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Hello"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.preprocessing <span class="im">import</span> LabelEncoder</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>train, val, test <span class="op">=</span> train_val_test_split(df)</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit on all codes so val/test codes are not unknown to the encoder</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>encoder <span class="op">=</span> LabelEncoder()</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>encoder.fit(df[<span class="st">'code'</span>].to_numpy())</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>X_train, y_train <span class="op">=</span> train[<span class="st">'label'</span>].to_numpy(), encoder.transform(train[<span class="st">'code'</span>].to_numpy())</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>X_val,   y_val   <span class="op">=</span> val[<span class="st">'label'</span>].to_numpy(),   encoder.transform(val[<span class="st">'code'</span>].to_numpy())</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>X_test,  y_test  <span class="op">=</span> test[<span class="st">'label'</span>].to_numpy(),  encoder.transform(test[<span class="st">'code'</span>].to_numpy())</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Train: </span><span class="sc">{</span><span class="bu">len</span>(train)<span class="sc">}</span><span class="ss"> | Val: </span><span class="sc">{</span><span class="bu">len</span>(val)<span class="sc">}</span><span class="ss"> | Test: </span><span class="sc">{</span><span class="bu">len</span>(test)<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Example: '</span><span class="sc">{</span>train[<span class="st">'label'</span>][<span class="dv">0</span>]<span class="sc">}</span><span class="ss">' → </span><span class="sc">{</span>encoder<span class="sc">.</span>inverse_transform(y_train[:<span class="dv">1</span>])[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>Hello</code></pre>
+<pre><code>Train: 49000 | Val: 10500 | Test: 10500
+Example: 'Strategic organizational development support' → 70.20</code></pre>
 </div>
 </div>
-<ol start="3" type="1">
-<li>To complete.</li>
-</ol>
 <details>
 <summary>
 Clue here
 </summary>
-To complete.
+Always fit the <code>LabelEncoder</code> on <strong>all</strong> codes (<code>df['code']</code>), not just the training set. If a code appears only in the validation or test set and the encoder has never seen it, <code>transform()</code> will raise an error.
+</details>
+</div>
+</div>
+</div>
+</section>
+<section id="tokenizer" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Tokenizer</h1>
+<p>Neural networks cannot process raw text directly — they work with numbers. A <strong>tokenizer</strong> is the component that bridges this gap: it splits a text into small units called <strong>tokens</strong> (words, subwords, or characters) and maps each token to a unique integer ID.</p>
+<p>For example, the sentence <em>“I sell croissants and pains au chocolat”</em> might be split into tokens <code>["i", "sell'", "croissants", "and", "pains", "au", "chocolat"]</code> and encoded as <code>[326, 40, 199, 126, 20, 755, 1024]</code>.</p>
+<p>The sequence of IDs is then padded or truncated to a fixed length (<code>output_dim</code>) so that all inputs have the same shape, which is required for batched training.</p>
+<div class="callout callout-style-simple callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>What is WordPiece?
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>WordPiece is a <strong>subword tokenization</strong> algorithm. Rather than splitting on spaces (word-level) or individual characters, it finds a vocabulary of frequent subword units that can represent any word — including rare or unseen ones. For instance, <em>“informatiques”</em> might be split into <code>["informat", "##iques"]</code>. The <code>##</code> prefix indicates that the token is a continuation of the previous one. Because the vocabulary is built from your training corpus, it adapts well to domain-specific text like French business descriptions.</p>
+</div>
+</div>
+<div class="callout callout-style-default callout-tip no-icon callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-5-contents" aria-controls="callout-5" aria-expanded="true" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="bi bi-book"></i> Exercice 3: Train a WordPiece tokenizer
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-5" class="callout-5-contents callout-collapse collapse show">
+<div class="callout-body-container callout-body">
+<p>Train a <code>WordPieceTokenizer</code> from scratch on the training labels with <code>vocab_size=5000</code> and <code>output_dim=125</code>. Inspect a sample tokenization to understand how the text is split.</p>
+<div id="7f187398" class="cell" data-execution_count="6">
+<details class="code-fold">
+<summary>Cliquer pour voir la réponse</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torchTextClassifiers.tokenizers <span class="im">import</span> WordPieceTokenizer</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>tokenizer <span class="op">=</span> WordPieceTokenizer(vocab_size<span class="op">=</span><span class="dv">5000</span>, output_dim<span class="op">=</span><span class="dv">125</span>)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>tokenizer.train(X_train)</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Output tensor size:"</span>, tokenizer.tokenize(X_train[<span class="dv">0</span>]).input_ids.shape)</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Tokens:"</span>, tokenizer.tokenizer.convert_ids_to_tokens(</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    tokenizer.tokenize(X_train[<span class="dv">0</span>]).input_ids.squeeze(<span class="dv">0</span>)</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>))</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Vocabulary size:"</span>, tokenizer.vocab_size)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+
+
+Output tensor size: torch.Size([1, 125])
+Tokens: ['[SEP]', 'strategic', 'organizational', 'development', 'support', '[CLS]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]']
+Vocabulary size: 5000</code></pre>
+</div>
+</div>
+<details>
+<summary>
+Clue here
+</summary>
+Always train the tokenizer on <code>X_train</code> only — never on the validation or test set. Using the full dataset would constitute <strong>data leakage</strong>: the tokenizer would have seen vocabulary from examples the model is supposed to predict blind.
+</details>
+</div>
+</div>
+</div>
+</section>
+<section id="model-architecture" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Model architecture</h1>
+<p>A text classification model in <code>torchTextClassifiers</code> is built from three components:</p>
+<ol type="1">
+<li><p><strong>TextEmbedder</strong>: converts token IDs into dense vectors (<em>embeddings</em>) of size <code>embedding_dim</code>. A self-attention layer can be added to capture word order and context.</p></li>
+<li><p><strong>CategoricalVariableNet</strong> <em>(optional)</em>: encodes additional categorical features and merges them with the text representation. Not used in this dataset.</p></li>
+<li><p><strong>ClassificationHead</strong>: projects the final representation onto <code>num_classes</code> dimensions. The highest value determines the predicted class.</p></li>
+</ol>
+<p>These are configured through <code>ModelConfig</code> and assembled automatically by <code>torchTextClassifiers</code>.</p>
+</section>
+<section id="training" class="level1" data-number="5">
+<h1 data-number="5"><span class="header-section-number">5</span> Training</h1>
+<p>Training a neural network means finding the weights that minimise a <strong>loss function</strong> — a measure of how wrong the model’s predictions are. At each step, the model makes predictions on a <strong>mini-batch</strong> of examples, computes the loss, and updates the weights in the direction that reduces it (via <strong>gradient descent</strong>).</p>
+<p>Key training hyperparameters:</p>
+<ul>
+<li><code>num_epochs</code>: how many times the model sees the full training set.</li>
+<li><code>batch_size</code>: how many examples are processed at once before a weight update.</li>
+<li><code>lr</code> (learning rate): how large each weight update step is.</li>
+<li><code>patience_early_stopping</code>: stop training if the validation loss has not improved for this many epochs, to avoid overfitting.</li>
+</ul>
+<div class="callout callout-style-default callout-tip no-icon callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-8-contents" aria-controls="callout-8" aria-expanded="true" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="bi bi-book"></i> Exercice 4: Train the model
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-8" class="callout-8-contents callout-collapse collapse show">
+<div class="callout-body-container callout-body">
+<p><code>torchTextClassifiers</code> provides a high-level wrapper that combines the tokenizer, model components, and training loop.</p>
+<ol type="1">
+<li>Instantiate the classifier from a <code>ModelConfig</code> and the trained tokenizer.</li>
+</ol>
+<div id="36d5c70d" class="cell" data-execution_count="7">
+<details class="code-fold">
+<summary>Cliquer pour voir la réponse</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torchTextClassifiers <span class="im">import</span> ModelConfig, TrainingConfig, torchTextClassifiers</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torchTextClassifiers.model.components <span class="im">import</span> AttentionConfig</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torchTextClassifiers.model.components.text_embedder <span class="im">import</span> LabelAttentionConfig</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>attention_config <span class="op">=</span> AttentionConfig(</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    n_layers<span class="op">=</span><span class="dv">1</span>, n_head<span class="op">=</span><span class="dv">4</span>, n_kv_head<span class="op">=</span><span class="dv">4</span>,</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    sequence_len<span class="op">=</span>tokenizer.output_dim,</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>embedding_dim <span class="op">=</span> <span class="dv">96</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>model_config <span class="op">=</span> ModelConfig(</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    embedding_dim<span class="op">=</span>embedding_dim,</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>    num_classes<span class="op">=</span>n_classes,</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    attention_config<span class="op">=</span>attention_config,</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>    label_attention_config<span class="op">=</span>LabelAttentionConfig(n_head<span class="op">=</span><span class="dv">4</span>, num_classes<span class="op">=</span>n_classes),</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>ttc <span class="op">=</span> torchTextClassifiers(tokenizer<span class="op">=</span>tokenizer, model_config<span class="op">=</span>model_config)</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>ttc</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-display" data-execution_count="7">
+<pre><code>torchTextClassifiers(
+  tokenizer = WordPieceTokenizer 
+ HuggingFace tokenizer: TokenizersBackend(name_or_path='', vocab_size=5000, model_max_length=1000000000000000019884624838656, padding_side='right', truncation_side='right', special_tokens={'pad_token': '[PAD]'}, added_tokens_decoder={
+    0: AddedToken("[UNK]", rstrip=False, lstrip=False, single_word=False, normalized=False, special=True),
+    1: AddedToken("[PAD]", rstrip=False, lstrip=False, single_word=False, normalized=False, special=True),
+    2: AddedToken("[CLS]", rstrip=False, lstrip=False, single_word=False, normalized=False, special=True),
+    3: AddedToken("[SEP]", rstrip=False, lstrip=False, single_word=False, normalized=False, special=True),
+}),
+  model = TextClassificationModel(
+  (text_embedder): TextEmbedder(
+    (label_attention_module): LabelAttentionClassifier(
+      (label_embeds): Embedding(311, 96)
+      (c_q): Linear(in_features=96, out_features=96, bias=False)
+      (c_k): Linear(in_features=96, out_features=96, bias=False)
+      (c_v): Linear(in_features=96, out_features=96, bias=False)
+      (c_proj): Linear(in_features=96, out_features=96, bias=False)
+    )
+    (embedding_layer): Embedding(5000, 96, padding_idx=1)
+    (transformer): ModuleDict(
+      (h): ModuleList(
+        (0): Block(
+          (attn): SelfAttentionLayer(
+            (c_q): Linear(in_features=96, out_features=96, bias=False)
+            (c_k): Linear(in_features=96, out_features=96, bias=False)
+            (c_v): Linear(in_features=96, out_features=96, bias=False)
+            (c_proj): Linear(in_features=96, out_features=96, bias=False)
+          )
+          (mlp): MLP(
+            (c_fc): Linear(in_features=96, out_features=384, bias=False)
+            (c_proj): Linear(in_features=384, out_features=96, bias=False)
+          )
+        )
+      )
+    )
+  )
+  (classification_head): ClassificationHead(
+    (net): Linear(in_features=96, out_features=1, bias=True)
+  )
+),
+  categorical_forward_type = None,
+  num_classes = 311,
+  embedding_dim = 96,
+)</code></pre>
+</div>
+</div>
+<ol start="2" type="1">
+<li>Define a <code>TrainingConfig</code> and train on a small subsample so it completes quickly.</li>
+</ol>
+<div class="callout callout-style-simple callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>We train on a <strong>small subsample</strong> (5% of the data, 1 epoch) just to verify the pipeline runs end-to-end. A model trained on the full dataset is loaded from MLflow in the next step.</p>
+</div>
+</div>
+<div id="60f00102" class="cell" data-execution_count="8">
+<details class="code-fold">
+<summary>Cliquer pour voir la réponse</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>TRAIN_FRAC <span class="op">=</span> <span class="fl">0.05</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>VAL_FRAC <span class="op">=</span> <span class="fl">0.05</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>X_train_small <span class="op">=</span> X_train[:<span class="bu">int</span>(<span class="bu">len</span>(X_train) <span class="op">*</span> TRAIN_FRAC)]</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>y_train_small <span class="op">=</span> y_train[:<span class="bu">int</span>(<span class="bu">len</span>(y_train) <span class="op">*</span> TRAIN_FRAC)]</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>X_val_small   <span class="op">=</span> X_val[:<span class="bu">int</span>(<span class="bu">len</span>(X_val) <span class="op">*</span> VAL_FRAC)]</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>y_val_small   <span class="op">=</span> y_val[:<span class="bu">int</span>(<span class="bu">len</span>(y_val) <span class="op">*</span> VAL_FRAC)]</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>training_config <span class="op">=</span> TrainingConfig(</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    lr<span class="op">=</span><span class="fl">1e-3</span>,</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    batch_size<span class="op">=</span><span class="dv">256</span>,</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>    num_epochs<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>    num_workers<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>ttc.train(</span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>    X_train<span class="op">=</span>X_train_small,</span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>    y_train<span class="op">=</span>y_train_small,</span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>    X_val<span class="op">=</span>X_val_small,</span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>    y_val<span class="op">=</span>y_val_small,</span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>    training_config<span class="op">=</span>training_config,</span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>    verbose<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-display">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">┏━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━┳━━━━━━━┓
+┃<span style="color: #800080; text-decoration-color: #800080; font-weight: bold">   </span>┃<span style="color: #800080; text-decoration-color: #800080; font-weight: bold"> Name        </span>┃<span style="color: #800080; text-decoration-color: #800080; font-weight: bold"> Type                    </span>┃<span style="color: #800080; text-decoration-color: #800080; font-weight: bold"> Params </span>┃<span style="color: #800080; text-decoration-color: #800080; font-weight: bold"> Mode  </span>┃<span style="color: #800080; text-decoration-color: #800080; font-weight: bold"> FLOPs </span>┃
+┡━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━╇━━━━━━━┩
+│<span style="color: #7f7f7f; text-decoration-color: #7f7f7f"> 0 </span>│ model       │ TextClassificationModel │  657 K │ train │     0 │
+│<span style="color: #7f7f7f; text-decoration-color: #7f7f7f"> 1 </span>│ loss        │ CrossEntropyLoss        │      0 │ train │     0 │
+│<span style="color: #7f7f7f; text-decoration-color: #7f7f7f"> 2 </span>│ accuracy_fn │ MulticlassAccuracy      │      0 │ train │     0 │
+└───┴─────────────┴─────────────────────────┴────────┴───────┴───────┘
+</pre>
+</div>
+<div class="cell-output cell-output-display">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="font-weight: bold">Trainable params</span>: 657 K                                                                                            
+<span style="font-weight: bold">Non-trainable params</span>: 0                                                                                            
+<span style="font-weight: bold">Total params</span>: 657 K                                                                                                
+<span style="font-weight: bold">Total estimated model params size (MB)</span>: 2                                                                          
+<span style="font-weight: bold">Modules in train mode</span>: 24                                                                                          
+<span style="font-weight: bold">Modules in eval mode</span>: 0                                                                                            
+<span style="font-weight: bold">Total FLOPs</span>: 0                                                                                                     
+</pre>
+</div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"d9d1389e737d41d6b83d7f2036bffc48","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+</script>
+</div>
+<div class="cell-output cell-output-display">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">/home/runner/work/funathon-project2/funathon-project2/.venv/lib/python3.13/site-packages/pytorch_lightning/utilitie
+s/_pytree.py:21: `isinstance(treespec, LeafSpec)` is deprecated, use `isinstance(treespec, TreeSpec) and 
+treespec.is_leaf()` instead.
+</pre>
+</div>
+<div class="cell-output cell-output-display">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">/home/runner/work/funathon-project2/funathon-project2/.venv/lib/python3.13/site-packages/pytorch_lightning/trainer/
+connectors/data_connector.py:434: The 'val_dataloader' does not have many workers which may be a bottleneck. 
+Consider increasing the value of the `num_workers` argument` to `num_workers=3` in the `DataLoader` to improve 
+performance.
+</pre>
+</div>
+<div class="cell-output cell-output-display">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">/home/runner/work/funathon-project2/funathon-project2/.venv/lib/python3.13/site-packages/pytorch_lightning/utilitie
+s/data.py:79: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 256. To 
+avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+</pre>
+</div>
+<div class="cell-output cell-output-display">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">/home/runner/work/funathon-project2/funathon-project2/.venv/lib/python3.13/site-packages/pytorch_lightning/trainer/
+connectors/data_connector.py:434: The 'train_dataloader' does not have many workers which may be a bottleneck. 
+Consider increasing the value of the `num_workers` argument` to `num_workers=3` in the `DataLoader` to improve 
+performance.
+</pre>
+</div>
+<div class="cell-output cell-output-display">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">/home/runner/work/funathon-project2/funathon-project2/.venv/lib/python3.13/site-packages/pytorch_lightning/utilitie
+s/data.py:79: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 146. To 
+avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+</pre>
+</div>
+<div class="cell-output cell-output-display">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">/home/runner/work/funathon-project2/funathon-project2/.venv/lib/python3.13/site-packages/pytorch_lightning/utilitie
+s/data.py:79: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 13. To 
+avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+</pre>
+</div>
+<div class="cell-output cell-output-display">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"></pre>
+</div>
+</div>
+<ol start="3" type="1">
+<li>Load the <strong>pretrained model</strong> trained on the full dataset from MLflow.</li>
+</ol>
+<div class="callout callout-style-simple callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Set <code>MLFLOW_RUN_ID</code> in your <code>.env</code> file to the run ID produced by <code>script_pretrained_model.py</code>. You can also find it in the MLflow UI under your experiment.</p>
+</div>
+</div>
+<div id="d87d6dfc" class="cell" data-execution_count="9">
+<details class="code-fold">
+<summary>Cliquer pour voir la réponse</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> mlflow</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> transformers <span class="im">import</span> PreTrainedTokenizerFast</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>MLFLOW_TRACKING_URI <span class="op">=</span> os.environ[<span class="st">"MLFLOW_TRACKING_URI"</span>]</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>RUN_ID <span class="op">=</span> os.environ[<span class="st">"MLFLOW_RUN_ID"</span>]</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>artifacts_path <span class="op">=</span> mlflow.artifacts.download_artifacts(<span class="ss">f"runs:/</span><span class="sc">{</span>RUN_ID<span class="sc">}</span><span class="ss">/model_artifacts"</span>)</span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(os.path.join(artifacts_path, <span class="st">"model_config.json"</span>)) <span class="im">as</span> f:</span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>    saved_config <span class="op">=</span> json.load(f)</span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(os.path.join(artifacts_path, <span class="st">"label_mapping.json"</span>)) <span class="im">as</span> f:</span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>    saved_label_mapping <span class="op">=</span> json.load(f)  <span class="co"># {str(int): NAF code}</span></span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>loaded_tokenizer <span class="op">=</span> WordPieceTokenizer(</span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>    vocab_size<span class="op">=</span>saved_config[<span class="st">"vocab_size"</span>],</span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>    output_dim<span class="op">=</span>saved_config[<span class="st">"output_dim"</span>],</span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>loaded_tokenizer.tokenizer <span class="op">=</span> PreTrainedTokenizerFast.from_pretrained(</span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>    os.path.join(artifacts_path, <span class="st">"tokenizer"</span>)</span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>loaded_tokenizer.trained <span class="op">=</span> <span class="va">True</span></span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a>loaded_model_config <span class="op">=</span> ModelConfig(</span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>    embedding_dim<span class="op">=</span>saved_config[<span class="st">"embedding_dim"</span>],</span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a>    num_classes<span class="op">=</span>saved_config[<span class="st">"num_classes"</span>],</span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a>    attention_config<span class="op">=</span>AttentionConfig(</span>
+<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a>        n_layers<span class="op">=</span>saved_config[<span class="st">"n_layers"</span>],</span>
+<span id="cb15-33"><a href="#cb15-33" aria-hidden="true" tabindex="-1"></a>        n_head<span class="op">=</span>saved_config[<span class="st">"n_head"</span>],</span>
+<span id="cb15-34"><a href="#cb15-34" aria-hidden="true" tabindex="-1"></a>        n_kv_head<span class="op">=</span>saved_config[<span class="st">"n_kv_head"</span>],</span>
+<span id="cb15-35"><a href="#cb15-35" aria-hidden="true" tabindex="-1"></a>        sequence_len<span class="op">=</span>saved_config[<span class="st">"output_dim"</span>],</span>
+<span id="cb15-36"><a href="#cb15-36" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb15-37"><a href="#cb15-37" aria-hidden="true" tabindex="-1"></a>    label_attention_config<span class="op">=</span>LabelAttentionConfig(</span>
+<span id="cb15-38"><a href="#cb15-38" aria-hidden="true" tabindex="-1"></a>        n_head<span class="op">=</span>saved_config[<span class="st">"label_attention_n_head"</span>],</span>
+<span id="cb15-39"><a href="#cb15-39" aria-hidden="true" tabindex="-1"></a>        num_classes<span class="op">=</span>saved_config[<span class="st">"num_classes"</span>],</span>
+<span id="cb15-40"><a href="#cb15-40" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb15-41"><a href="#cb15-41" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb15-42"><a href="#cb15-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-43"><a href="#cb15-43" aria-hidden="true" tabindex="-1"></a>ttc_full <span class="op">=</span> torchTextClassifiers(tokenizer<span class="op">=</span>loaded_tokenizer, model_config<span class="op">=</span>loaded_model_config)</span>
+<span id="cb15-44"><a href="#cb15-44" aria-hidden="true" tabindex="-1"></a>ttc_full.pytorch_model.load_state_dict(</span>
+<span id="cb15-45"><a href="#cb15-45" aria-hidden="true" tabindex="-1"></a>    torch.load(os.path.join(artifacts_path, <span class="st">"model_state_dict.pt"</span>), weights_only<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb15-46"><a href="#cb15-46" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb15-47"><a href="#cb15-47" aria-hidden="true" tabindex="-1"></a>ttc_full.pytorch_model.<span class="bu">eval</span>()</span>
+<span id="cb15-48"><a href="#cb15-48" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Pretrained model loaded successfully."</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Pretrained model loaded successfully.</code></pre>
+</div>
+</div>
+<details>
+<summary>
+Clue here
+</summary>
+<code>mlflow.artifacts.download_artifacts</code> fetches all saved files locally. We rebuild the model architecture from <code>model_config.json</code> and restore the weights with <code>load_state_dict</code>. <code>weights_only=True</code> prevents arbitrary code execution during deserialization.
+</details>
+</div>
+</div>
+</div>
+</section>
+<section id="prediction-and-explainability" class="level1" data-number="6">
+<h1 data-number="6"><span class="header-section-number">6</span> Prediction and explainability</h1>
+<p>Once the model is trained, we can use it to predict NAF codes for new text descriptions. <code>torchTextClassifiers</code> supports <strong>label attention explainability</strong>: the model’s internal attention matrix links each predicted class to the tokens that contributed most to it, showing which words drove the prediction.</p>
+<div class="callout callout-style-default callout-tip no-icon callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-9-contents" aria-controls="callout-9" aria-expanded="true" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="bi bi-book"></i> Exercice 5: Generate predictions and inspect attributions
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-9" class="callout-9-contents callout-collapse collapse show">
+<div class="callout-body-container callout-body">
+<ol type="1">
+<li>Generate top-3 predictions with confidence scores on a few examples.</li>
+</ol>
+<div id="34cc312f" class="cell" data-execution_count="10">
+<details class="code-fold">
+<summary>Cliquer pour voir la réponse</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>top_k <span class="op">=</span> <span class="dv">3</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>example_texts <span class="op">=</span> [</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Je vends des croissants et des pains au chocolat dans ma boulangerie"</span>,</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Je développe des logiciels de gestion pour les entreprises"</span>,</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Je répare des voitures et effectue des contrôles techniques"</span>,</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> ttc_full.predict(np.array(example_texts), top_k<span class="op">=</span>top_k, explain_with_label_attention<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, text <span class="kw">in</span> <span class="bu">enumerate</span>(example_texts):</span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>    predicted_codes <span class="op">=</span> [saved_label_mapping[<span class="bu">str</span>(results[<span class="st">"prediction"</span>][i][k].item())] <span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(top_k)]</span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>    confidence <span class="op">=</span> [results[<span class="st">"confidence"</span>][i][k].item() <span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(top_k)]</span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Text: </span><span class="sc">{</span>text<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> code, conf <span class="kw">in</span> <span class="bu">zip</span>(predicted_codes, confidence):</span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"  </span><span class="sc">{</span>code<span class="sc">}</span><span class="ss">  (confidence: </span><span class="sc">{</span>conf<span class="sc">:.3f}</span><span class="ss">)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Text: Je vends des croissants et des pains au chocolat dans ma boulangerie
+  70.20  (confidence: 0.020)
+  68.20  (confidence: 0.020)
+  85.59  (confidence: 0.010)
+
+Text: Je développe des logiciels de gestion pour les entreprises
+  70.20  (confidence: 0.020)
+  68.20  (confidence: 0.020)
+  85.59  (confidence: 0.010)
+
+Text: Je répare des voitures et effectue des contrôles techniques
+  70.20  (confidence: 0.020)
+  68.20  (confidence: 0.020)
+  85.59  (confidence: 0.020)</code></pre>
+</div>
+</div>
+<ol start="2" type="1">
+<li>Visualise which words drove the top prediction for the first example.</li>
+</ol>
+<div id="bdf81150" class="cell" data-execution_count="11">
+<details class="code-fold">
+<summary>Cliquer pour voir la réponse</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torchTextClassifiers.utilities.plot_explainability <span class="im">import</span> (</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    map_attributions_to_char, map_attributions_to_word,</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    plot_attributions_at_char, plot_attributions_at_word, figshow,</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>text_idx <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>top_k_idx <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>text_sample         <span class="op">=</span> example_texts[text_idx]</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>offsets             <span class="op">=</span> results[<span class="st">"offset_mapping"</span>][text_idx]</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>word_ids            <span class="op">=</span> results[<span class="st">"word_ids"</span>][text_idx]</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>predicted_class_idx <span class="op">=</span> results[<span class="st">"prediction"</span>][text_idx][top_k_idx].item()</span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>predicted_code      <span class="op">=</span> saved_label_mapping[<span class="bu">str</span>(predicted_class_idx)]</span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Average attention over heads, pick the row for the predicted class</span></span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>attn_matrix  <span class="op">=</span> results[<span class="st">"label_attention_attributions"</span>][text_idx].detach()  <span class="co"># (n_head, num_classes, seq_len)</span></span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>attributions <span class="op">=</span> attn_matrix.mean(dim<span class="op">=</span><span class="dv">0</span>)[predicted_class_idx]                <span class="co"># (seq_len,)</span></span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>words, word_attributions <span class="op">=</span> map_attributions_to_word(</span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>    attributions.unsqueeze(<span class="dv">0</span>), text_sample, word_ids, offsets</span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a>char_attributions <span class="op">=</span> map_attributions_to_char(attributions.unsqueeze(<span class="dv">0</span>), offsets, text_sample)</span>
+<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a>titles <span class="op">=</span> [<span class="ss">f"Attributions for NAF code </span><span class="sc">{</span>predicted_code<span class="sc">}</span><span class="ss">"</span>]</span>
+<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-25"><a href="#cb19-25" aria-hidden="true" tabindex="-1"></a>figshow(plot_attributions_at_char(</span>
+<span id="cb19-26"><a href="#cb19-26" aria-hidden="true" tabindex="-1"></a>    text<span class="op">=</span>text_sample, attributions_per_char<span class="op">=</span>char_attributions, titles<span class="op">=</span>titles,</span>
+<span id="cb19-27"><a href="#cb19-27" aria-hidden="true" tabindex="-1"></a>)[<span class="dv">0</span>])</span>
+<span id="cb19-28"><a href="#cb19-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-29"><a href="#cb19-29" aria-hidden="true" tabindex="-1"></a>figshow(plot_attributions_at_word(</span>
+<span id="cb19-30"><a href="#cb19-30" aria-hidden="true" tabindex="-1"></a>    text<span class="op">=</span>text_sample, words<span class="op">=</span>words.values(), attributions_per_word<span class="op">=</span>word_attributions, titles<span class="op">=</span>titles,</span>
+<span id="cb19-31"><a href="#cb19-31" aria-hidden="true" tabindex="-1"></a>)[<span class="dv">0</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><a href="1-ttc_files/figure-html/cell-12-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="1-ttc_files/figure-html/cell-12-output-1.png" width="829" height="233" class="figure-img"></a></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><a href="1-ttc_files/figure-html/cell-12-output-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2"><img src="1-ttc_files/figure-html/cell-12-output-2.png" width="820" height="244" class="figure-img"></a></p>
+</figure>
+</div>
+</div>
+</div>
+<ol start="3" type="1">
+<li>Evaluate accuracy on the test set.</li>
+</ol>
+<div id="c8ba6934" class="cell" data-execution_count="12">
+<details class="code-fold">
+<summary>Cliquer pour voir la réponse</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>TEST_FRAC <span class="op">=</span> <span class="fl">0.05</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>X_test_small <span class="op">=</span> X_test[:<span class="bu">int</span>(<span class="bu">len</span>(X_test) <span class="op">*</span> TEST_FRAC)]</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>y_test_small <span class="op">=</span> y_test[:<span class="bu">int</span>(<span class="bu">len</span>(y_test) <span class="op">*</span> TEST_FRAC)]</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>results_test <span class="op">=</span> ttc_full.predict(X_test_small, top_k<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>preds    <span class="op">=</span> results_test[<span class="st">"prediction"</span>].squeeze(<span class="dv">1</span>).numpy()</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>accuracy <span class="op">=</span> (preds <span class="op">==</span> y_test_small).mean()</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Test accuracy: </span><span class="sc">{</span>accuracy<span class="sc">:.4f}</span><span class="ss"> (</span><span class="sc">{</span><span class="bu">int</span>(accuracy <span class="op">*</span> <span class="bu">len</span>(y_test_small))<span class="sc">}</span><span class="ss">/</span><span class="sc">{</span><span class="bu">len</span>(y_test_small)<span class="sc">}</span><span class="ss"> correct)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Test accuracy: 0.0971 (51/525 correct)</code></pre>
+</div>
+</div>
+<details>
+<summary>
+Clue here
+</summary>
+<code>predict()</code> returns a dictionary with <code>prediction</code> (shape <code>(N, top_k)</code>) and <code>confidence</code> (shape <code>(N, top_k)</code>). Use <code>saved_label_mapping[str(idx)]</code> to decode integer predictions back to NAF code strings. Words highlighted in red contributed positively to the prediction; those in blue pulled the model away from it.
 </details>
 </div>
 </div>
 </div>
 
 
+</section>
 
 </main> <!-- /main -->
+<script type="application/vnd.jupyter.widget-state+json">
+{"state":{"64484467d228450985d8a11909907ce7":{"model_module":"@jupyter-widgets/base","model_module_version":"2.0.0","model_name":"LayoutModel","state":{"_model_module":"@jupyter-widgets/base","_model_module_version":"2.0.0","_model_name":"LayoutModel","_view_count":null,"_view_module":"@jupyter-widgets/base","_view_module_version":"2.0.0","_view_name":"LayoutView","align_content":null,"align_items":null,"align_self":null,"border_bottom":null,"border_left":null,"border_right":null,"border_top":null,"bottom":null,"display":null,"flex":null,"flex_flow":null,"grid_area":null,"grid_auto_columns":null,"grid_auto_flow":null,"grid_auto_rows":null,"grid_column":null,"grid_gap":null,"grid_row":null,"grid_template_areas":null,"grid_template_columns":null,"grid_template_rows":null,"height":null,"justify_content":null,"justify_items":null,"left":null,"margin":null,"max_height":null,"max_width":null,"min_height":null,"min_width":null,"object_fit":null,"object_position":null,"order":null,"overflow":null,"padding":null,"right":null,"top":null,"visibility":null,"width":null}},"d9d1389e737d41d6b83d7f2036bffc48":{"model_module":"@jupyter-widgets/output","model_module_version":"1.0.0","model_name":"OutputModel","state":{"_dom_classes":[],"_model_module":"@jupyter-widgets/output","_model_module_version":"1.0.0","_model_name":"OutputModel","_view_count":null,"_view_module":"@jupyter-widgets/output","_view_module_version":"1.0.0","_view_name":"OutputView","layout":"IPY_MODEL_64484467d228450985d8a11909907ce7","msg_id":"","outputs":[{"data":{"text/html":"<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\">Epoch 0/0  <span style=\"color: #6206e0; text-decoration-color: #6206e0\">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> 10/10 <span style=\"color: #7f7f7f; text-decoration-color: #7f7f7f\">0:00:12 • 0:00:00</span> <span style=\"color: #7f7f7f; text-decoration-color: #7f7f7f; text-decoration: underline\">0.80it/s</span> <span style=\"font-style: italic\">v_num: 0.000 train_loss_step: 5.736 </span>\n                                                                               <span style=\"font-style: italic\">val_loss: 5.724 val_accuracy: 0.179 </span>\n                                                                               <span style=\"font-style: italic\">train_loss_epoch: 5.740             </span>\n                                                                               <span style=\"font-style: italic\">train_accuracy: 0.094               </span>\n</pre>\n","text/plain":"Epoch 0/0  \u001b[38;2;98;6;224m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m 10/10 \u001b[2m0:00:12 • 0:00:00\u001b[0m \u001b[2;4m0.80it/s\u001b[0m \u001b[3mv_num: 0.000 train_loss_step: 5.736 \u001b[0m\n                                                                               \u001b[3mval_loss: 5.724 val_accuracy: 0.179 \u001b[0m\n                                                                               \u001b[3mtrain_loss_epoch: 5.740             \u001b[0m\n                                                                               \u001b[3mtrain_accuracy: 0.094               \u001b[0m\n"},"metadata":{},"output_type":"display_data"}],"tabbable":null,"tooltip":null}}},"version_major":2,"version_minor":0}
+</script>
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
     const icon = "";
@@ -661,7 +1301,7 @@ To complete.
     </div>   
     <div class="nav-footer-center">
       &nbsp;
-    <div class="toc-actions"><ul><li><a href="https://github.com/AIML4OS/funathon-project2/edit/main/1-ttc.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/AIML4OS/funathon-project2/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div>
+    <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/AIML4OS/funathon-project2/edit/main/1-ttc.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/AIML4OS/funathon-project2/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">
     <li class="nav-item">
@@ -673,6 +1313,38 @@ To complete.
     </div>
   </div>
 </footer>
+<script>var lightboxQuarto = GLightbox({"closeEffect":"zoom","descPosition":"bottom","loop":false,"openEffect":"zoom","selector":".lightbox"});
+(function() {
+  let previousOnload = window.onload;
+  window.onload = () => {
+    if (previousOnload) {
+      previousOnload();
+    }
+    lightboxQuarto.on('slide_before_load', (data) => {
+      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+      const href = trigger.getAttribute('href');
+      if (href !== null) {
+        const imgEl = window.document.querySelector(`a[href="${href}"] img`);
+        if (imgEl !== null) {
+          const srcAttr = imgEl.getAttribute("src");
+          if (srcAttr && srcAttr.startsWith("data:")) {
+            slideConfig.href = srcAttr;
+          }
+        }
+      } 
+    });
+  
+    lightboxQuarto.on('slide_after_load', (data) => {
+      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(slideNode);
+      }
+    });
+  
+  };
+  
+})();
+          </script>
 
 
 
