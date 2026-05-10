@@ -438,11 +438,15 @@ figshow(plot_attributions_at_word(
 #| code-fold: true
 #| code-summary: Cliquer pour voir la réponse
 #| code-overflow: scroll
-results_test = ttc_full.predict(X_test, top_k=1)
+TEST_FRAC = 0.05
+X_test_small = X_test[:int(len(X_test) * TEST_FRAC)]
+y_test_small = y_test[:int(len(y_test) * TEST_FRAC)]
+
+results_test = ttc_full.predict(X_test_small, top_k=1)
 
 preds    = results_test["prediction"].squeeze(1).numpy()
-accuracy = (preds == y_test).mean()
-print(f"Test accuracy: {accuracy:.4f} ({int(accuracy * len(y_test))}/{len(y_test)} correct)")
+accuracy = (preds == y_test_small).mean()
+print(f"Test accuracy: {accuracy:.4f} ({int(accuracy * len(y_test_small))}/{len(y_test_small)} correct)")
 ```
 
 <details>
