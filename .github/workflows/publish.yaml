@@ -19,6 +19,9 @@ jobs:
         QDRANT_API_PORT: ${{ secrets.QDRANT_API_PORT }}
         LLMLAB_URL: ${{ secrets.LLMLAB_URL }}
         LLMLAB_API_KEY: ${{ secrets.LLMLAB_API_KEY }}
+        MLFLOW_RUN_ID: ${{ secrets.MLFLOW_RUN_ID }}
+        MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
+        MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
       
       steps:
 
