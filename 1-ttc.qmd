@@ -79,7 +79,7 @@ Import `os` and use `load_dotenv(override=True)` from the `dotenv` package to lo
 ```{python}
 #| label: setup
 #| code-fold: true
-#| code-summary: Cliquer pour voir la réponse
+#| code-summary: Click to see the answer
 #| code-overflow: scroll
 import os
 from dotenv import load_dotenv
@@ -101,7 +101,7 @@ Print the first rows and the total number of observations.
 ```{python}
 #| label: load-data
 #| code-fold: true
-#| code-summary: Cliquer pour voir la réponse
+#| code-summary: Click to see the answer
 #| code-overflow: scroll
 #| output: true
 import polars as pl
@@ -120,7 +120,7 @@ How many unique NAF codes are present in the dataset? This number will define th
 ```{python}
 #| label: unique-codes
 #| code-fold: true
-#| code-summary: Cliquer pour voir la réponse
+#| code-summary: Click to see the answer
 #| code-overflow: scroll
 #| output: true
 n_classes = df['code'].n_unique()
@@ -144,7 +144,7 @@ Before training a model, we need to split the dataset into three subsets:
 - **Test**: held out until the very end to give an unbiased estimate of the model's performance
   on unseen data.
 
-::: {.callout-note appearance="simple"}
+::: {.callout-note appearance="simple" collapse="true"}
 ## Why three splits and not two?
 Using the validation set to tune hyperparameters or stop training means it indirectly influences
 the model. The test set must therefore remain completely untouched during training so that the
@@ -163,7 +163,7 @@ non-overlapping splits according to provided fractions.
 ```{python}
 #| label: split-fn
 #| code-fold: true
-#| code-summary: Cliquer pour voir la réponse
+#| code-summary: Click to see the answer
 #| code-overflow: scroll
 def train_val_test_split(
     df: pl.DataFrame,
@@ -189,7 +189,7 @@ fitted encoder to decode predictions back to NAF codes later.
 
 *Use `LabelEncoder` from `sklearn.preprocessing`. Call `.fit()` on all codes, then `.transform()` on each split. Extract numpy arrays with `.to_numpy()`.*
 
-::: {.callout-warning}
+::: {.callout-warning collapse="true"}
 ## Watch out for data leakage
 Always fit the `LabelEncoder` on **all** codes (`df['code']`), not just the training set.
 If a code appears only in the validation or test set and the encoder has never seen it,
@@ -199,7 +199,7 @@ If a code appears only in the validation or test set and the encoder has never s
 ```{python}
 #| label: split-data
 #| code-fold: true
-#| code-summary: Cliquer pour voir la réponse
+#| code-summary: Click to see the answer
 #| code-overflow: scroll
 #| output: true
 from sklearn.preprocessing import LabelEncoder
@@ -232,7 +232,7 @@ For example, the sentence *"I sell croissants and pains au chocolat"* might be s
 The sequence of IDs is then padded or truncated to a fixed length (`output_dim`) so that
 all inputs have the same shape, which is required for batched training.
 
-::: {.callout-note appearance="simple"}
+::: {.callout-note appearance="simple" collapse="true"}
 ## What is WordPiece?
 WordPiece is a **subword tokenization** algorithm. Rather than splitting on spaces (word-level)
 or individual characters, it finds a vocabulary of frequent subword units that can represent
@@ -252,7 +252,7 @@ and `output_dim=125`. Inspect a sample tokenization to understand how the text i
 
 *Instantiate `WordPieceTokenizer(vocab_size=5000, output_dim=125)` and call `.train(X_train)`. Use `.tokenize()` and `.convert_ids_to_tokens()` to inspect a sample.*
 
-::: {.callout-warning}
+::: {.callout-warning collapse="true"}
 ## Tokenizer data leakage
 Always train the tokenizer on `X_train` only — never on the validation or test set.
 Using the full dataset would mean the tokenizer has seen vocabulary from examples the model
@@ -262,7 +262,7 @@ is supposed to predict blind.
 ```{python}
 #| label: tokenizer
 #| code-fold: true
-#| code-summary: Cliquer pour voir la réponse
+#| code-summary: Click to see the answer
 #| code-overflow: scroll
 #| output: true
 from torchTextClassifiers.tokenizers import WordPieceTokenizer
@@ -321,7 +321,7 @@ Instantiate the classifier from a `ModelConfig` and the trained tokenizer.
 
 *Build an `AttentionConfig`, then a `ModelConfig` with `embedding_dim`, `num_classes`, and a `LabelAttentionConfig`. Pass both to `torchTextClassifiers(tokenizer=..., model_config=...)`.*
 
-::: {.callout-note appearance="simple"}
+::: {.callout-note appearance="simple" collapse="true"}
 ## Key parameters
 - `embedding_dim=96`: size of the dense vector representing each token. Larger values capture more information but are slower to train.
 - `n_layers=1`, `n_head=4`: the self-attention has 1 transformer layer with 4 parallel attention heads. More heads can capture richer patterns but increase computation.
@@ -330,7 +330,7 @@ Instantiate the classifier from a `ModelConfig` and the trained tokenizer.
 ```{python}
 #| label: model-config
 #| code-fold: true
-#| code-summary: Cliquer pour voir la réponse
+#| code-summary: Click to see the answer
 #| code-overflow: scroll
 #| output: true
 from torchTextClassifiers import ModelConfig, TrainingConfig, torchTextClassifiers
@@ -360,7 +360,7 @@ Define a `TrainingConfig` and train on a small subsample so it completes quickly
 
 *Create a `TrainingConfig(lr=..., batch_size=..., num_epochs=..., num_workers=...)` and call `ttc.train(X_train=..., y_train=..., X_val=..., y_val=..., training_config=..., verbose=True)`.*
 
-::: {.callout-note appearance="simple"}
+::: {.callout-note appearance="simple" collapse="true"}
 ## Note
 We train on a **small subsample** (5% of the data, 1 epoch) just to verify the pipeline runs
 end-to-end — the model will not converge to a good accuracy in one epoch on 5% of the data.
@@ -377,7 +377,7 @@ Key hyperparameters used here:
 ```{python}
 #| label: train-small
 #| code-fold: true
-#| code-summary: Cliquer pour voir la réponse
+#| code-summary: Click to see the answer
 #| code-overflow: scroll
 #| output: true
 TRAIN_FRAC = 0.05
@@ -411,7 +411,7 @@ Load the **pretrained model** trained on the full dataset from MLflow.
 
 *Use `mlflow.set_tracking_uri()` then `mlflow.artifacts.download_artifacts(f"runs:/{RUN_ID}/model_artifacts")`. Rebuild the model from `model_config.json` and restore weights with `load_state_dict()`.*
 
-::: {.callout-note appearance="simple"}
+::: {.callout-note appearance="simple" collapse="true"}
 ## Note
 Set `MLFLOW_RUN_ID` in your `.env` file to the right run ID.
 :::
@@ -419,7 +419,7 @@ Set `MLFLOW_RUN_ID` in your `.env` file to the right run ID.
 ```{python}
 #| label: load-pretrained
 #| code-fold: true
-#| code-summary: Cliquer pour voir la réponse
+#| code-summary: Click to see the answer
 #| code-overflow: scroll
 #| output: true
 import mlflow
@@ -504,7 +504,7 @@ Call `ttc_full.predict(np.array(example_texts), top_k=3, explain_with_label_atte
 ```{python}
 #| label: predict-examples
 #| code-fold: true
-#| code-summary: Cliquer pour voir la réponse
+#| code-summary: Click to see the answer
 #| code-overflow: scroll
 #| output: true
 import numpy as np
@@ -531,7 +531,7 @@ for i, text in enumerate(example_texts):
 
 Extract `label_attention_attributions` from the results, average over attention heads, then use `map_attributions_to_word()`, `map_attributions_to_char()`, `plot_attributions_at_word()`, and `plot_attributions_at_char()` from `torchTextClassifiers.utilities.plot_explainability`.
 
-::: {.callout-note appearance="simple"}
+::: {.callout-note appearance="simple" collapse="true"}
 ## Understanding the result fields
 - `label_attention_attributions`: tensor of shape `(n_head, num_classes, seq_len)` — the attention score each class gave to each token, across all heads.
 - `offset_mapping`: character-level start/end positions of each token in the original string, used to map token-level scores back to characters.
@@ -541,7 +541,7 @@ Extract `label_attention_attributions` from the results, average over attention 
 ```{python}
 #| label: explainability
 #| code-fold: true
-#| code-summary: Cliquer pour voir la réponse
+#| code-summary: Click to see the answer
 #| code-overflow: scroll
 #| output: true
 from torchTextClassifiers.utilities.plot_explainability import (
@@ -584,7 +584,7 @@ Run `ttc_full.predict(X_test_small, top_k=1)` and compare the predictions agains
 ```{python}
 #| label: evaluate
 #| code-fold: true
-#| code-summary: Cliquer pour voir la réponse
+#| code-summary: Click to see the answer
 #| code-overflow: scroll
 #| output: true
 TEST_FRAC = 0.05
