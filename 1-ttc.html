@@ -312,7 +312,7 @@ MLFLOW_RUN_ID=&lt;add the run ID&gt;</code></pre></li>
 <p>Import <code>os</code> and use <code>load_dotenv(override=True)</code> from the <code>dotenv</code> package to load your <code>.env</code> file.</p>
 <div id="setup" class="cell" data-execution_count="1">
 <details class="code-fold">
-<summary>Cliquer pour voir la réponse</summary>
+<summary>Click to see the answer</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> dotenv <span class="im">import</span> load_dotenv</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -328,7 +328,7 @@ MLFLOW_RUN_ID=&lt;add the run ID&gt;</code></pre></li>
 <p><em>Use <code>pl.read_parquet(url)</code>, <code>.head()</code>, and <code>len(df)</code>.</em></p>
 <div id="load-data" class="cell" data-execution_count="2">
 <details class="code-fold">
-<summary>Cliquer pour voir la réponse</summary>
+<summary>Click to see the answer</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> polars <span class="im">as</span> pl</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pl.read_parquet(<span class="st">"https://minio.lab.sspcloud.fr/projet-formation/diffusion/funathon/2026/project2/generation_None_temp08.parquet"</span>)</span>
@@ -359,7 +359,7 @@ Total rows: 70000</code></pre>
 <p><em>Use <code>.n_unique()</code> on the <code>code</code> column.</em></p>
 <div id="unique-codes" class="cell" data-execution_count="3">
 <details class="code-fold">
-<summary>Cliquer pour voir la réponse</summary>
+<summary>Click to see the answer</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>n_classes <span class="op">=</span> df[<span class="st">'code'</span>].n_unique()</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Number of unique NAF codes: </span><span class="sc">{</span>n_classes<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
@@ -387,16 +387,19 @@ Use the <code>.n_unique()</code> method on the <code>code</code> column: <code>d
 <li><strong>Test</strong>: held out until the very end to give an unbiased estimate of the model’s performance on unseen data.</li>
 </ul>
 <div class="callout callout-style-simple callout-note callout-titled">
-<div class="callout-header d-flex align-content-center">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-2-contents" aria-controls="callout-2" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
 <span class="screen-reader-only">Note</span>Why three splits and not two?
 </div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
+<div id="callout-2" class="callout-2-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
 <p>Using the validation set to tune hyperparameters or stop training means it indirectly influences the model. The test set must therefore remain completely untouched during training so that the final evaluation is truly unbiased.</p>
+</div>
 </div>
 </div>
 <div class="callout callout-style-default callout-tip no-icon callout-titled">
@@ -417,7 +420,7 @@ Use the <code>.n_unique()</code> method on the <code>code</code> column: <code>d
 <p><em>Use <code>df.sample(fraction=1.0, shuffle=True, seed=seed)</code> to shuffle, then slice with integer indices.</em></p>
 <div id="split-fn" class="cell" data-execution_count="4">
 <details class="code-fold">
-<summary>Cliquer pour voir la réponse</summary>
+<summary>Click to see the answer</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> train_val_test_split(</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    df: pl.DataFrame,</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    train_frac: <span class="bu">float</span> <span class="op">=</span> <span class="fl">0.7</span>,</span>
@@ -440,21 +443,24 @@ Use the <code>.n_unique()</code> method on the <code>code</code> column: <code>d
 <p>Apply the function and extract the <code>label</code> (features) and <code>code</code> (target) columns for each split as numpy arrays. Encode the string codes to integers with <code>LabelEncoder</code> — keep the fitted encoder to decode predictions back to NAF codes later.</p>
 <p><em>Use <code>LabelEncoder</code> from <code>sklearn.preprocessing</code>. Call <code>.fit()</code> on all codes, then <code>.transform()</code> on each split. Extract numpy arrays with <code>.to_numpy()</code>.</em></p>
 <div class="callout callout-style-default callout-warning callout-titled">
-<div class="callout-header d-flex align-content-center">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-3-contents" aria-controls="callout-3" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
 <span class="screen-reader-only">Warning</span>Watch out for data leakage
 </div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
+<div id="callout-3" class="callout-3-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
 <p>Always fit the <code>LabelEncoder</code> on <strong>all</strong> codes (<code>df['code']</code>), not just the training set. If a code appears only in the validation or test set and the encoder has never seen it, <code>transform()</code> will raise an error.</p>
 </div>
 </div>
+</div>
 <div id="split-data" class="cell" data-execution_count="5">
 <details class="code-fold">
-<summary>Cliquer pour voir la réponse</summary>
+<summary>Click to see the answer</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.preprocessing <span class="im">import</span> LabelEncoder</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>train, val, test <span class="op">=</span> train_val_test_split(df)</span>
@@ -486,16 +492,19 @@ Example: 'Strategic organizational development support' → 70.20</code></pre>
 <p>For example, the sentence <em>“I sell croissants and pains au chocolat”</em> might be split into tokens <code>["i", "sell'", "croissants", "and", "pains", "au", "chocolat"]</code> and encoded as <code>[326, 40, 199, 126, 20, 755, 1024]</code>.</p>
 <p>The sequence of IDs is then padded or truncated to a fixed length (<code>output_dim</code>) so that all inputs have the same shape, which is required for batched training.</p>
 <div class="callout callout-style-simple callout-note callout-titled">
-<div class="callout-header d-flex align-content-center">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-5-contents" aria-controls="callout-5" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
 <span class="screen-reader-only">Note</span>What is WordPiece?
 </div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
+<div id="callout-5" class="callout-5-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
 <p>WordPiece is a <strong>subword tokenization</strong> algorithm. Rather than splitting on spaces (word-level) or individual characters, it finds a vocabulary of frequent subword units that can represent any word — including rare or unseen ones. For instance, <em>“informatiques”</em> might be split into <code>["informat", "##iques"]</code>. The <code>##</code> prefix indicates that the token is a continuation of the previous one. Because the vocabulary is built from your training corpus, it adapts well to domain-specific text like French business descriptions.</p>
+</div>
 </div>
 </div>
 <div class="callout callout-style-default callout-tip no-icon callout-titled">
@@ -514,21 +523,24 @@ Example: 'Strategic organizational development support' → 70.20</code></pre>
 <p>Train a <code>WordPieceTokenizer</code> from scratch on the training labels with <code>vocab_size=5000</code> and <code>output_dim=125</code>. Inspect a sample tokenization to understand how the text is split.</p>
 <p><em>Instantiate <code>WordPieceTokenizer(vocab_size=5000, output_dim=125)</code> and call <code>.train(X_train)</code>. Use <code>.tokenize()</code> and <code>.convert_ids_to_tokens()</code> to inspect a sample.</em></p>
 <div class="callout callout-style-default callout-warning callout-titled">
-<div class="callout-header d-flex align-content-center">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-6-contents" aria-controls="callout-6" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
 <span class="screen-reader-only">Warning</span>Tokenizer data leakage
 </div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
+<div id="callout-6" class="callout-6-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
 <p>Always train the tokenizer on <code>X_train</code> only — never on the validation or test set. Using the full dataset would mean the tokenizer has seen vocabulary from examples the model is supposed to predict blind.</p>
 </div>
 </div>
+</div>
 <div id="tokenizer" class="cell" data-execution_count="6">
 <details class="code-fold">
-<summary>Cliquer pour voir la réponse</summary>
+<summary>Click to see the answer</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torchTextClassifiers.tokenizers <span class="im">import</span> WordPieceTokenizer</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>tokenizer <span class="op">=</span> WordPieceTokenizer(vocab_size<span class="op">=</span><span class="dv">5000</span>, output_dim<span class="op">=</span><span class="dv">125</span>)</span>
@@ -591,14 +603,16 @@ Vocabulary size: 5000</code></pre>
 <p>Instantiate the classifier from a <code>ModelConfig</code> and the trained tokenizer.</p>
 <p><em>Build an <code>AttentionConfig</code>, then a <code>ModelConfig</code> with <code>embedding_dim</code>, <code>num_classes</code>, and a <code>LabelAttentionConfig</code>. Pass both to <code>torchTextClassifiers(tokenizer=..., model_config=...)</code>.</em></p>
 <div class="callout callout-style-simple callout-note callout-titled">
-<div class="callout-header d-flex align-content-center">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-8-contents" aria-controls="callout-8" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
 <span class="screen-reader-only">Note</span>Key parameters
 </div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
+<div id="callout-8" class="callout-8-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
 <ul>
 <li><code>embedding_dim=96</code>: size of the dense vector representing each token. Larger values capture more information but are slower to train.</li>
@@ -607,9 +621,10 @@ Vocabulary size: 5000</code></pre>
 </ul>
 </div>
 </div>
+</div>
 <div id="model-config" class="cell" data-execution_count="7">
 <details class="code-fold">
-<summary>Cliquer pour voir la réponse</summary>
+<summary>Click to see the answer</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torchTextClassifiers <span class="im">import</span> ModelConfig, TrainingConfig, torchTextClassifiers</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torchTextClassifiers.model.components <span class="im">import</span> AttentionConfig</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torchTextClassifiers.model.components.text_embedder <span class="im">import</span> LabelAttentionConfig</span>
@@ -637,14 +652,16 @@ Vocabulary size: 5000</code></pre>
 <p>Define a <code>TrainingConfig</code> and train on a small subsample so it completes quickly.</p>
 <p><em>Create a <code>TrainingConfig(lr=..., batch_size=..., num_epochs=..., num_workers=...)</code> and call <code>ttc.train(X_train=..., y_train=..., X_val=..., y_val=..., training_config=..., verbose=True)</code>.</em></p>
 <div class="callout callout-style-simple callout-note callout-titled">
-<div class="callout-header d-flex align-content-center">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-9-contents" aria-controls="callout-9" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
 <span class="screen-reader-only">Note</span>Note
 </div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
+<div id="callout-9" class="callout-9-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
 <p>We train on a <strong>small subsample</strong> (5% of the data, 1 epoch) just to verify the pipeline runs end-to-end — the model will not converge to a good accuracy in one epoch on 5% of the data. A model trained on the full dataset for many epochs is loaded from MLflow in the next step.</p>
 <p>Key hyperparameters used here:</p>
@@ -656,9 +673,10 @@ Vocabulary size: 5000</code></pre>
 </ul>
 </div>
 </div>
+</div>
 <div id="train-small" class="cell" data-execution_count="8">
 <details class="code-fold">
-<summary>Cliquer pour voir la réponse</summary>
+<summary>Click to see the answer</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>TRAIN_FRAC <span class="op">=</span> <span class="fl">0.05</span></span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>VAL_FRAC <span class="op">=</span> <span class="fl">0.05</span></span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -705,7 +723,7 @@ Vocabulary size: 5000</code></pre>
 </div>
 <div id="train-small-3" class="cell-output cell-output-display">
 <script type="application/vnd.jupyter.widget-view+json">
-{"model_id":"b5b7e05322eb4d939933d9f92d88a035","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+{"model_id":"d4ac73e362124828a87e596bc695ec0d","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
 </script>
 </div>
 <div id="train-small-4" class="cell-output cell-output-display">
@@ -756,21 +774,24 @@ avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
 <p>Load the <strong>pretrained model</strong> trained on the full dataset from MLflow.</p>
 <p><em>Use <code>mlflow.set_tracking_uri()</code> then <code>mlflow.artifacts.download_artifacts(f"runs:/{RUN_ID}/model_artifacts")</code>. Rebuild the model from <code>model_config.json</code> and restore weights with <code>load_state_dict()</code>.</em></p>
 <div class="callout callout-style-simple callout-note callout-titled">
-<div class="callout-header d-flex align-content-center">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-10-contents" aria-controls="callout-10" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
 <span class="screen-reader-only">Note</span>Note
 </div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
+<div id="callout-10" class="callout-10-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
 <p>Set <code>MLFLOW_RUN_ID</code> in your <code>.env</code> file to the right run ID.</p>
 </div>
 </div>
+</div>
 <div id="cell-load-pretrained" class="cell" data-execution_count="9">
 <details class="code-fold">
-<summary>Cliquer pour voir la réponse</summary>
+<summary>Click to see the answer</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> mlflow</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json</span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
@@ -897,7 +918,7 @@ Clue here
 <p>Call <code>ttc_full.predict(np.array(example_texts), top_k=3, explain_with_label_attention=True)</code>. The result is a dict with keys <code>prediction</code> and <code>confidence</code> — decode integer predictions back to NAF codes using <code>saved_label_mapping[str(idx)]</code>.</p>
 <div id="predict-examples" class="cell" data-execution_count="10">
 <details class="code-fold">
-<summary>Cliquer pour voir la réponse</summary>
+<summary>Click to see the answer</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>top_k <span class="op">=</span> <span class="dv">3</span></span>
@@ -940,14 +961,16 @@ Text: I repair cars and carry out technical inspections
 <h3 data-number="7.0.2" class="anchored" data-anchor-id="question-2-visualise-word-attributions-for-the-top-prediction"><span class="header-section-number">7.0.2</span> Question 2 — Visualise word attributions for the top prediction</h3>
 <p>Extract <code>label_attention_attributions</code> from the results, average over attention heads, then use <code>map_attributions_to_word()</code>, <code>map_attributions_to_char()</code>, <code>plot_attributions_at_word()</code>, and <code>plot_attributions_at_char()</code> from <code>torchTextClassifiers.utilities.plot_explainability</code>.</p>
 <div class="callout callout-style-simple callout-note callout-titled">
-<div class="callout-header d-flex align-content-center">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-13-contents" aria-controls="callout-13" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
 <span class="screen-reader-only">Note</span>Understanding the result fields
 </div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
+<div id="callout-13" class="callout-13-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
 <ul>
 <li><code>label_attention_attributions</code>: tensor of shape <code>(n_head, num_classes, seq_len)</code> — the attention score each class gave to each token, across all heads.</li>
@@ -956,9 +979,10 @@ Text: I repair cars and carry out technical inspections
 </ul>
 </div>
 </div>
+</div>
 <div id="explainability" class="cell" data-execution_count="11">
 <details class="code-fold">
-<summary>Cliquer pour voir la réponse</summary>
+<summary>Click to see the answer</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torchTextClassifiers.utilities.plot_explainability <span class="im">import</span> (</span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>    map_attributions_to_char, map_attributions_to_word,</span>
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    plot_attributions_at_char, plot_attributions_at_word, figshow,</span>
@@ -1012,7 +1036,7 @@ Text: I repair cars and carry out technical inspections
 <p>Run <code>ttc_full.predict(X_test_small, top_k=1)</code> and compare the predictions against <code>y_test_small</code> to compute accuracy.</p>
 <div id="evaluate" class="cell" data-execution_count="12">
 <details class="code-fold">
-<summary>Cliquer pour voir la réponse</summary>
+<summary>Click to see the answer</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>TEST_FRAC <span class="op">=</span> <span class="fl">0.05</span></span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>X_test_small <span class="op">=</span> X_test[:<span class="bu">int</span>(<span class="bu">len</span>(X_test) <span class="op">*</span> TEST_FRAC)]</span>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>y_test_small <span class="op">=</span> y_test[:<span class="bu">int</span>(<span class="bu">len</span>(y_test) <span class="op">*</span> TEST_FRAC)]</span>
@@ -1043,7 +1067,7 @@ Clue here
 
 </main> <!-- /main -->
 <script type="application/vnd.jupyter.widget-state+json">
-{"state":{"21187bc546de4c8eb74d388807bcfac1":{"model_module":"@jupyter-widgets/base","model_module_version":"2.0.0","model_name":"LayoutModel","state":{"_model_module":"@jupyter-widgets/base","_model_module_version":"2.0.0","_model_name":"LayoutModel","_view_count":null,"_view_module":"@jupyter-widgets/base","_view_module_version":"2.0.0","_view_name":"LayoutView","align_content":null,"align_items":null,"align_self":null,"border_bottom":null,"border_left":null,"border_right":null,"border_top":null,"bottom":null,"display":null,"flex":null,"flex_flow":null,"grid_area":null,"grid_auto_columns":null,"grid_auto_flow":null,"grid_auto_rows":null,"grid_column":null,"grid_gap":null,"grid_row":null,"grid_template_areas":null,"grid_template_columns":null,"grid_template_rows":null,"height":null,"justify_content":null,"justify_items":null,"left":null,"margin":null,"max_height":null,"max_width":null,"min_height":null,"min_width":null,"object_fit":null,"object_position":null,"order":null,"overflow":null,"padding":null,"right":null,"top":null,"visibility":null,"width":null}},"b5b7e05322eb4d939933d9f92d88a035":{"model_module":"@jupyter-widgets/output","model_module_version":"1.0.0","model_name":"OutputModel","state":{"_dom_classes":[],"_model_module":"@jupyter-widgets/output","_model_module_version":"1.0.0","_model_name":"OutputModel","_view_count":null,"_view_module":"@jupyter-widgets/output","_view_module_version":"1.0.0","_view_name":"OutputView","layout":"IPY_MODEL_21187bc546de4c8eb74d388807bcfac1","msg_id":"","outputs":[{"data":{"text/html":"<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\">Epoch 0/0  <span style=\"color: #6206e0; text-decoration-color: #6206e0\">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> 10/10 <span style=\"color: #7f7f7f; text-decoration-color: #7f7f7f\">0:00:07 • 0:00:00</span> <span style=\"color: #7f7f7f; text-decoration-color: #7f7f7f; text-decoration: underline\">1.41it/s</span> <span style=\"font-style: italic\">v_num: 0.000 train_loss_step: 5.740 </span>\n                                                                               <span style=\"font-style: italic\">val_loss: 5.740 val_accuracy: 0.179 </span>\n                                                                               <span style=\"font-style: italic\">train_loss_epoch: 5.740             </span>\n                                                                               <span style=\"font-style: italic\">train_accuracy: 0.050               </span>\n</pre>\n","text/plain":"Epoch 0/0  \u001b[38;2;98;6;224m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m 10/10 \u001b[2m0:00:07 • 0:00:00\u001b[0m \u001b[2;4m1.41it/s\u001b[0m \u001b[3mv_num: 0.000 train_loss_step: 5.740 \u001b[0m\n                                                                               \u001b[3mval_loss: 5.740 val_accuracy: 0.179 \u001b[0m\n                                                                               \u001b[3mtrain_loss_epoch: 5.740             \u001b[0m\n                                                                               \u001b[3mtrain_accuracy: 0.050               \u001b[0m\n"},"metadata":{},"output_type":"display_data"}],"tabbable":null,"tooltip":null}}},"version_major":2,"version_minor":0}
+{"state":{"857075f892f94f619420fe40f74d7101":{"model_module":"@jupyter-widgets/base","model_module_version":"2.0.0","model_name":"LayoutModel","state":{"_model_module":"@jupyter-widgets/base","_model_module_version":"2.0.0","_model_name":"LayoutModel","_view_count":null,"_view_module":"@jupyter-widgets/base","_view_module_version":"2.0.0","_view_name":"LayoutView","align_content":null,"align_items":null,"align_self":null,"border_bottom":null,"border_left":null,"border_right":null,"border_top":null,"bottom":null,"display":null,"flex":null,"flex_flow":null,"grid_area":null,"grid_auto_columns":null,"grid_auto_flow":null,"grid_auto_rows":null,"grid_column":null,"grid_gap":null,"grid_row":null,"grid_template_areas":null,"grid_template_columns":null,"grid_template_rows":null,"height":null,"justify_content":null,"justify_items":null,"left":null,"margin":null,"max_height":null,"max_width":null,"min_height":null,"min_width":null,"object_fit":null,"object_position":null,"order":null,"overflow":null,"padding":null,"right":null,"top":null,"visibility":null,"width":null}},"d4ac73e362124828a87e596bc695ec0d":{"model_module":"@jupyter-widgets/output","model_module_version":"1.0.0","model_name":"OutputModel","state":{"_dom_classes":[],"_model_module":"@jupyter-widgets/output","_model_module_version":"1.0.0","_model_name":"OutputModel","_view_count":null,"_view_module":"@jupyter-widgets/output","_view_module_version":"1.0.0","_view_name":"OutputView","layout":"IPY_MODEL_857075f892f94f619420fe40f74d7101","msg_id":"","outputs":[{"data":{"text/html":"<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\">Epoch 0/0  <span style=\"color: #6206e0; text-decoration-color: #6206e0\">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> 10/10 <span style=\"color: #7f7f7f; text-decoration-color: #7f7f7f\">0:00:07 • 0:00:00</span> <span style=\"color: #7f7f7f; text-decoration-color: #7f7f7f; text-decoration: underline\">1.37it/s</span> <span style=\"font-style: italic\">v_num: 0.000 train_loss_step: 5.740 </span>\n                                                                               <span style=\"font-style: italic\">val_loss: 5.740 val_accuracy: 0.179 </span>\n                                                                               <span style=\"font-style: italic\">train_loss_epoch: 5.740             </span>\n                                                                               <span style=\"font-style: italic\">train_accuracy: 0.084               </span>\n</pre>\n","text/plain":"Epoch 0/0  \u001b[38;2;98;6;224m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m 10/10 \u001b[2m0:00:07 • 0:00:00\u001b[0m \u001b[2;4m1.37it/s\u001b[0m \u001b[3mv_num: 0.000 train_loss_step: 5.740 \u001b[0m\n                                                                               \u001b[3mval_loss: 5.740 val_accuracy: 0.179 \u001b[0m\n                                                                               \u001b[3mtrain_loss_epoch: 5.740             \u001b[0m\n                                                                               \u001b[3mtrain_accuracy: 0.084               \u001b[0m\n"},"metadata":{},"output_type":"display_data"}],"tabbable":null,"tooltip":null}}},"version_major":2,"version_minor":0}
 </script>
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
