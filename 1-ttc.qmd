@@ -27,20 +27,12 @@ In this notebook, we use the supervised approach: the model learns directly from
 
 ## Pipeline overview
 
-```
-Labelled data (text, NAF code)
-        │
-        ▼
-   [1] Split → train / val / test
-        │
-        ▼
-   [2] WordPiece Tokenizer  (text → token IDs)
-        │
-        ▼
-   [3] torchTextClassifiers (token IDs → NAF code)
-        │
-        ▼
-   [4] Evaluation & explainability (attention attributions)
+```{mermaid}
+flowchart LR
+    A["Labelled data<br/>text + NAF code"] --> B["Split<br/>train / val / test"]
+    B --> C["WordPiece Tokenizer<br/>text → token IDs"]
+    C --> D["torchTextClassifiers<br/>token IDs → NAF code"]
+    D --> E["Evaluation<br/>& explainability"]
 ```
 
 ## What you will learn
