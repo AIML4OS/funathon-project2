@@ -108,6 +108,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     "search-label": "Search"
   }
 }</script>
+<script src="site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/requirejs@2.3.6/require.min.js" integrity="sha384-c9c+LnTbwQ3aujuU7ULEPVvgLs+Fn6fJUvIGTsuu1ZcCf11fiEubah0ttpca4ntM sha384-6V1/AdqZRWk1KAlWbKBlGhN7VG4iE/yAZcO6NZPMF8od0vukrvr0tg4qY6NSrItx" crossorigin="anonymous"></script>
 
 <script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
@@ -255,19 +258,22 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="pipeline-overview" class="level2" data-number="1.3">
 <h2 data-number="1.3" class="anchored" data-anchor-id="pipeline-overview"><span class="header-section-number">1.3</span> Pipeline overview</h2>
-<pre><code>Labelled data (text, NAF code)
-        │
-        ▼
-   [1] Split → train / val / test
-        │
-        ▼
-   [2] WordPiece Tokenizer  (text → token IDs)
-        │
-        ▼
-   [3] torchTextClassifiers (token IDs → NAF code)
-        │
-        ▼
-   [4] Evaluation &amp; explainability (attention attributions)</code></pre>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart LR
+    A["Labelled data&lt;br/&gt;text + NAF code"] --&gt; B["Split&lt;br/&gt;train / val / test"]
+    B --&gt; C["WordPiece Tokenizer&lt;br/&gt;text → token IDs"]
+    C --&gt; D["torchTextClassifiers&lt;br/&gt;token IDs → NAF code"]
+    D --&gt; E["Evaluation&lt;br/&gt;&amp; explainability"]
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
 </section>
 <section id="what-you-will-learn" class="level2" data-number="1.4">
 <h2 data-number="1.4" class="anchored" data-anchor-id="what-you-will-learn"><span class="header-section-number">1.4</span> What you will learn</h2>
@@ -313,10 +319,10 @@ MLFLOW_RUN_ID=&lt;add the run ID&gt;</code></pre></li>
 <div id="setup" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Click to see the answer</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> dotenv <span class="im">import</span> load_dotenv</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>load_dotenv(override<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> dotenv <span class="im">import</span> load_dotenv</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>load_dotenv(override<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 </section>
@@ -329,12 +335,12 @@ MLFLOW_RUN_ID=&lt;add the run ID&gt;</code></pre></li>
 <div id="load-data" class="cell" data-execution_count="2">
 <details class="code-fold">
 <summary>Click to see the answer</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> polars <span class="im">as</span> pl</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pl.read_parquet(<span class="st">"https://minio.lab.sspcloud.fr/projet-formation/diffusion/funathon/2026/project2/generation_None_temp08.parquet"</span>)</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df.head())</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Total rows: </span><span class="sc">{</span><span class="bu">len</span>(df)<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> polars <span class="im">as</span> pl</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pl.read_parquet(<span class="st">"https://minio.lab.sspcloud.fr/projet-formation/diffusion/funathon/2026/project2/generation_None_temp08.parquet"</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df.head())</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Total rows: </span><span class="sc">{</span><span class="bu">len</span>(df)<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>shape: (5, 3)
@@ -360,8 +366,8 @@ Total rows: 70000</code></pre>
 <div id="unique-codes" class="cell" data-execution_count="3">
 <details class="code-fold">
 <summary>Click to see the answer</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>n_classes <span class="op">=</span> df[<span class="st">'code'</span>].n_unique()</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Number of unique NAF codes: </span><span class="sc">{</span>n_classes<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>n_classes <span class="op">=</span> df[<span class="st">'code'</span>].n_unique()</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Number of unique NAF codes: </span><span class="sc">{</span>n_classes<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>Number of unique NAF codes: 311</code></pre>
@@ -421,20 +427,20 @@ Use the <code>.n_unique()</code> method on the <code>code</code> column: <code>d
 <div id="split-fn" class="cell" data-execution_count="4">
 <details class="code-fold">
 <summary>Click to see the answer</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> train_val_test_split(</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    df: pl.DataFrame,</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    train_frac: <span class="bu">float</span> <span class="op">=</span> <span class="fl">0.7</span>,</span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    val_frac: <span class="bu">float</span> <span class="op">=</span> <span class="fl">0.15</span>,</span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    seed: <span class="bu">int</span> <span class="op">=</span> <span class="dv">42</span>,</span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> <span class="bu">tuple</span>[pl.DataFrame, pl.DataFrame, pl.DataFrame]:</span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> df.sample(fraction<span class="op">=</span><span class="fl">1.0</span>, shuffle<span class="op">=</span><span class="va">True</span>, seed<span class="op">=</span>seed)</span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> <span class="bu">len</span>(df)</span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    n_train <span class="op">=</span> <span class="bu">int</span>(n <span class="op">*</span> train_frac)</span>
-<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    n_val <span class="op">=</span> <span class="bu">int</span>(n <span class="op">*</span> val_frac)</span>
-<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    train <span class="op">=</span> df[:n_train]</span>
-<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    val   <span class="op">=</span> df[n_train : n_train <span class="op">+</span> n_val]</span>
-<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    test  <span class="op">=</span> df[n_train <span class="op">+</span> n_val :]</span>
-<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> train, val, test</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> train_val_test_split(</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    df: pl.DataFrame,</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    train_frac: <span class="bu">float</span> <span class="op">=</span> <span class="fl">0.7</span>,</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    val_frac: <span class="bu">float</span> <span class="op">=</span> <span class="fl">0.15</span>,</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    seed: <span class="bu">int</span> <span class="op">=</span> <span class="dv">42</span>,</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> <span class="bu">tuple</span>[pl.DataFrame, pl.DataFrame, pl.DataFrame]:</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> df.sample(fraction<span class="op">=</span><span class="fl">1.0</span>, shuffle<span class="op">=</span><span class="va">True</span>, seed<span class="op">=</span>seed)</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> <span class="bu">len</span>(df)</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    n_train <span class="op">=</span> <span class="bu">int</span>(n <span class="op">*</span> train_frac)</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    n_val <span class="op">=</span> <span class="bu">int</span>(n <span class="op">*</span> val_frac)</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    train <span class="op">=</span> df[:n_train]</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    val   <span class="op">=</span> df[n_train : n_train <span class="op">+</span> n_val]</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    test  <span class="op">=</span> df[n_train <span class="op">+</span> n_val :]</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> train, val, test</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 </section>
@@ -461,20 +467,20 @@ Use the <code>.n_unique()</code> method on the <code>code</code> column: <code>d
 <div id="split-data" class="cell" data-execution_count="5">
 <details class="code-fold">
 <summary>Click to see the answer</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.preprocessing <span class="im">import</span> LabelEncoder</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>train, val, test <span class="op">=</span> train_val_test_split(df)</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit on all codes so val/test codes are not unknown to the encoder</span></span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>encoder <span class="op">=</span> LabelEncoder()</span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>encoder.fit(df[<span class="st">'code'</span>].to_numpy())</span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>X_train, y_train <span class="op">=</span> train[<span class="st">'label'</span>].to_numpy(), encoder.transform(train[<span class="st">'code'</span>].to_numpy())</span>
-<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>X_val,   y_val   <span class="op">=</span> val[<span class="st">'label'</span>].to_numpy(),   encoder.transform(val[<span class="st">'code'</span>].to_numpy())</span>
-<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>X_test,  y_test  <span class="op">=</span> test[<span class="st">'label'</span>].to_numpy(),  encoder.transform(test[<span class="st">'code'</span>].to_numpy())</span>
-<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Train: </span><span class="sc">{</span><span class="bu">len</span>(train)<span class="sc">}</span><span class="ss"> | Val: </span><span class="sc">{</span><span class="bu">len</span>(val)<span class="sc">}</span><span class="ss"> | Test: </span><span class="sc">{</span><span class="bu">len</span>(test)<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Example: '</span><span class="sc">{</span>train[<span class="st">'label'</span>][<span class="dv">0</span>]<span class="sc">}</span><span class="ss">' → </span><span class="sc">{</span>encoder<span class="sc">.</span>inverse_transform(y_train[:<span class="dv">1</span>])[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.preprocessing <span class="im">import</span> LabelEncoder</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>train, val, test <span class="op">=</span> train_val_test_split(df)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit on all codes so val/test codes are not unknown to the encoder</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>encoder <span class="op">=</span> LabelEncoder()</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>encoder.fit(df[<span class="st">'code'</span>].to_numpy())</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>X_train, y_train <span class="op">=</span> train[<span class="st">'label'</span>].to_numpy(), encoder.transform(train[<span class="st">'code'</span>].to_numpy())</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>X_val,   y_val   <span class="op">=</span> val[<span class="st">'label'</span>].to_numpy(),   encoder.transform(val[<span class="st">'code'</span>].to_numpy())</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>X_test,  y_test  <span class="op">=</span> test[<span class="st">'label'</span>].to_numpy(),  encoder.transform(test[<span class="st">'code'</span>].to_numpy())</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Train: </span><span class="sc">{</span><span class="bu">len</span>(train)<span class="sc">}</span><span class="ss"> | Val: </span><span class="sc">{</span><span class="bu">len</span>(val)<span class="sc">}</span><span class="ss"> | Test: </span><span class="sc">{</span><span class="bu">len</span>(test)<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Example: '</span><span class="sc">{</span>train[<span class="st">'label'</span>][<span class="dv">0</span>]<span class="sc">}</span><span class="ss">' → </span><span class="sc">{</span>encoder<span class="sc">.</span>inverse_transform(y_train[:<span class="dv">1</span>])[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>Train: 49000 | Val: 10500 | Test: 10500
@@ -541,16 +547,16 @@ Example: 'Strategic organizational development support' → 70.20</code></pre>
 <div id="tokenizer" class="cell" data-execution_count="6">
 <details class="code-fold">
 <summary>Click to see the answer</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torchTextClassifiers.tokenizers <span class="im">import</span> WordPieceTokenizer</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>tokenizer <span class="op">=</span> WordPieceTokenizer(vocab_size<span class="op">=</span><span class="dv">5000</span>, output_dim<span class="op">=</span><span class="dv">125</span>)</span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>tokenizer.train(X_train)</span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Output tensor size:"</span>, tokenizer.tokenize(X_train[<span class="dv">0</span>]).input_ids.shape)</span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Tokens:"</span>, tokenizer.tokenizer.convert_ids_to_tokens(</span>
-<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    tokenizer.tokenize(X_train[<span class="dv">0</span>]).input_ids.squeeze(<span class="dv">0</span>)</span>
-<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>))</span>
-<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Vocabulary size:"</span>, tokenizer.vocab_size)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torchTextClassifiers.tokenizers <span class="im">import</span> WordPieceTokenizer</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>tokenizer <span class="op">=</span> WordPieceTokenizer(vocab_size<span class="op">=</span><span class="dv">5000</span>, output_dim<span class="op">=</span><span class="dv">125</span>)</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>tokenizer.train(X_train)</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Output tensor size:"</span>, tokenizer.tokenize(X_train[<span class="dv">0</span>]).input_ids.shape)</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Tokens:"</span>, tokenizer.tokenizer.convert_ids_to_tokens(</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    tokenizer.tokenize(X_train[<span class="dv">0</span>]).input_ids.squeeze(<span class="dv">0</span>)</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>))</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Vocabulary size:"</span>, tokenizer.vocab_size)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>
@@ -625,25 +631,25 @@ Vocabulary size: 5000</code></pre>
 <div id="model-config" class="cell" data-execution_count="7">
 <details class="code-fold">
 <summary>Click to see the answer</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torchTextClassifiers <span class="im">import</span> ModelConfig, TrainingConfig, torchTextClassifiers</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torchTextClassifiers.model.components <span class="im">import</span> AttentionConfig</span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torchTextClassifiers.model.components.text_embedder <span class="im">import</span> LabelAttentionConfig</span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>attention_config <span class="op">=</span> AttentionConfig(</span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    n_layers<span class="op">=</span><span class="dv">1</span>, n_head<span class="op">=</span><span class="dv">4</span>, n_kv_head<span class="op">=</span><span class="dv">4</span>,</span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    sequence_len<span class="op">=</span>tokenizer.output_dim,</span>
-<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>embedding_dim <span class="op">=</span> <span class="dv">96</span></span>
-<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>model_config <span class="op">=</span> ModelConfig(</span>
-<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>    embedding_dim<span class="op">=</span>embedding_dim,</span>
-<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>    num_classes<span class="op">=</span>n_classes,</span>
-<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>    attention_config<span class="op">=</span>attention_config,</span>
-<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>    label_attention_config<span class="op">=</span>LabelAttentionConfig(n_head<span class="op">=</span><span class="dv">4</span>, num_classes<span class="op">=</span>n_classes),</span>
-<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>ttc <span class="op">=</span> torchTextClassifiers(tokenizer<span class="op">=</span>tokenizer, model_config<span class="op">=</span>model_config)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torchTextClassifiers <span class="im">import</span> ModelConfig, TrainingConfig, torchTextClassifiers</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torchTextClassifiers.model.components <span class="im">import</span> AttentionConfig</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torchTextClassifiers.model.components.text_embedder <span class="im">import</span> LabelAttentionConfig</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>attention_config <span class="op">=</span> AttentionConfig(</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    n_layers<span class="op">=</span><span class="dv">1</span>, n_head<span class="op">=</span><span class="dv">4</span>, n_kv_head<span class="op">=</span><span class="dv">4</span>,</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    sequence_len<span class="op">=</span>tokenizer.output_dim,</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>embedding_dim <span class="op">=</span> <span class="dv">96</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>model_config <span class="op">=</span> ModelConfig(</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>    embedding_dim<span class="op">=</span>embedding_dim,</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>    num_classes<span class="op">=</span>n_classes,</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>    attention_config<span class="op">=</span>attention_config,</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>    label_attention_config<span class="op">=</span>LabelAttentionConfig(n_head<span class="op">=</span><span class="dv">4</span>, num_classes<span class="op">=</span>n_classes),</span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>ttc <span class="op">=</span> torchTextClassifiers(tokenizer<span class="op">=</span>tokenizer, model_config<span class="op">=</span>model_config)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 </section>
@@ -677,29 +683,29 @@ Vocabulary size: 5000</code></pre>
 <div id="train-small" class="cell" data-execution_count="8">
 <details class="code-fold">
 <summary>Click to see the answer</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>TRAIN_FRAC <span class="op">=</span> <span class="fl">0.05</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>VAL_FRAC <span class="op">=</span> <span class="fl">0.05</span></span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>X_train_small <span class="op">=</span> X_train[:<span class="bu">int</span>(<span class="bu">len</span>(X_train) <span class="op">*</span> TRAIN_FRAC)]</span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>y_train_small <span class="op">=</span> y_train[:<span class="bu">int</span>(<span class="bu">len</span>(y_train) <span class="op">*</span> TRAIN_FRAC)]</span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>X_val_small   <span class="op">=</span> X_val[:<span class="bu">int</span>(<span class="bu">len</span>(X_val) <span class="op">*</span> VAL_FRAC)]</span>
-<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>y_val_small   <span class="op">=</span> y_val[:<span class="bu">int</span>(<span class="bu">len</span>(y_val) <span class="op">*</span> VAL_FRAC)]</span>
-<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>training_config <span class="op">=</span> TrainingConfig(</span>
-<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>    lr<span class="op">=</span><span class="fl">1e-3</span>,</span>
-<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>    batch_size<span class="op">=</span><span class="dv">256</span>,</span>
-<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>    num_epochs<span class="op">=</span><span class="dv">1</span>,</span>
-<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>    num_workers<span class="op">=</span><span class="dv">0</span>,</span>
-<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>ttc.train(</span>
-<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>    X_train<span class="op">=</span>X_train_small,</span>
-<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>    y_train<span class="op">=</span>y_train_small,</span>
-<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>    X_val<span class="op">=</span>X_val_small,</span>
-<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>    y_val<span class="op">=</span>y_val_small,</span>
-<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>    training_config<span class="op">=</span>training_config,</span>
-<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>    verbose<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>TRAIN_FRAC <span class="op">=</span> <span class="fl">0.05</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>VAL_FRAC <span class="op">=</span> <span class="fl">0.05</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>X_train_small <span class="op">=</span> X_train[:<span class="bu">int</span>(<span class="bu">len</span>(X_train) <span class="op">*</span> TRAIN_FRAC)]</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>y_train_small <span class="op">=</span> y_train[:<span class="bu">int</span>(<span class="bu">len</span>(y_train) <span class="op">*</span> TRAIN_FRAC)]</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>X_val_small   <span class="op">=</span> X_val[:<span class="bu">int</span>(<span class="bu">len</span>(X_val) <span class="op">*</span> VAL_FRAC)]</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>y_val_small   <span class="op">=</span> y_val[:<span class="bu">int</span>(<span class="bu">len</span>(y_val) <span class="op">*</span> VAL_FRAC)]</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>training_config <span class="op">=</span> TrainingConfig(</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    lr<span class="op">=</span><span class="fl">1e-3</span>,</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    batch_size<span class="op">=</span><span class="dv">256</span>,</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>    num_epochs<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>    num_workers<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>ttc.train(</span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>    X_train<span class="op">=</span>X_train_small,</span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>    y_train<span class="op">=</span>y_train_small,</span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>    X_val<span class="op">=</span>X_val_small,</span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>    y_val<span class="op">=</span>y_val_small,</span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>    training_config<span class="op">=</span>training_config,</span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>    verbose<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div id="train-small-1" class="cell-output cell-output-display">
 <pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">┏━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━┳━━━━━━━┓
@@ -723,7 +729,7 @@ Vocabulary size: 5000</code></pre>
 </div>
 <div id="train-small-3" class="cell-output cell-output-display">
 <script type="application/vnd.jupyter.widget-view+json">
-{"model_id":"d4ac73e362124828a87e596bc695ec0d","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+{"model_id":"e0b0b5d2046d4aa08be9cf1916bd79c9","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
 </script>
 </div>
 <div id="train-small-4" class="cell-output cell-output-display">
@@ -792,53 +798,53 @@ avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
 <div id="cell-load-pretrained" class="cell" data-execution_count="9">
 <details class="code-fold">
 <summary>Click to see the answer</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> mlflow</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json</span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> transformers <span class="im">import</span> PreTrainedTokenizerFast</span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>MLFLOW_TRACKING_URI <span class="op">=</span> os.environ[<span class="st">"MLFLOW_TRACKING_URI"</span>]</span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>RUN_ID <span class="op">=</span> os.environ[<span class="st">"MLFLOW_RUN_ID"</span>]</span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)</span>
-<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>artifacts_path <span class="op">=</span> mlflow.artifacts.download_artifacts(<span class="ss">f"runs:/</span><span class="sc">{</span>RUN_ID<span class="sc">}</span><span class="ss">/model_artifacts"</span>)</span>
-<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(os.path.join(artifacts_path, <span class="st">"model_config.json"</span>)) <span class="im">as</span> f:</span>
-<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>    saved_config <span class="op">=</span> json.load(f)</span>
-<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(os.path.join(artifacts_path, <span class="st">"label_mapping.json"</span>)) <span class="im">as</span> f:</span>
-<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>    saved_label_mapping <span class="op">=</span> json.load(f)  <span class="co"># {str(int): NAF code}</span></span>
-<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>loaded_tokenizer <span class="op">=</span> WordPieceTokenizer(</span>
-<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>    vocab_size<span class="op">=</span>saved_config[<span class="st">"vocab_size"</span>],</span>
-<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>    output_dim<span class="op">=</span>saved_config[<span class="st">"output_dim"</span>],</span>
-<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>loaded_tokenizer.tokenizer <span class="op">=</span> PreTrainedTokenizerFast.from_pretrained(</span>
-<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>    os.path.join(artifacts_path, <span class="st">"tokenizer"</span>)</span>
-<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a>loaded_tokenizer.trained <span class="op">=</span> <span class="va">True</span></span>
-<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>loaded_model_config <span class="op">=</span> ModelConfig(</span>
-<span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a>    embedding_dim<span class="op">=</span>saved_config[<span class="st">"embedding_dim"</span>],</span>
-<span id="cb16-30"><a href="#cb16-30" aria-hidden="true" tabindex="-1"></a>    num_classes<span class="op">=</span>saved_config[<span class="st">"num_classes"</span>],</span>
-<span id="cb16-31"><a href="#cb16-31" aria-hidden="true" tabindex="-1"></a>    attention_config<span class="op">=</span>AttentionConfig(</span>
-<span id="cb16-32"><a href="#cb16-32" aria-hidden="true" tabindex="-1"></a>        n_layers<span class="op">=</span>saved_config[<span class="st">"n_layers"</span>],</span>
-<span id="cb16-33"><a href="#cb16-33" aria-hidden="true" tabindex="-1"></a>        n_head<span class="op">=</span>saved_config[<span class="st">"n_head"</span>],</span>
-<span id="cb16-34"><a href="#cb16-34" aria-hidden="true" tabindex="-1"></a>        n_kv_head<span class="op">=</span>saved_config[<span class="st">"n_kv_head"</span>],</span>
-<span id="cb16-35"><a href="#cb16-35" aria-hidden="true" tabindex="-1"></a>        sequence_len<span class="op">=</span>saved_config[<span class="st">"output_dim"</span>],</span>
-<span id="cb16-36"><a href="#cb16-36" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb16-37"><a href="#cb16-37" aria-hidden="true" tabindex="-1"></a>    label_attention_config<span class="op">=</span>LabelAttentionConfig(</span>
-<span id="cb16-38"><a href="#cb16-38" aria-hidden="true" tabindex="-1"></a>        n_head<span class="op">=</span>saved_config[<span class="st">"label_attention_n_head"</span>],</span>
-<span id="cb16-39"><a href="#cb16-39" aria-hidden="true" tabindex="-1"></a>        num_classes<span class="op">=</span>saved_config[<span class="st">"num_classes"</span>],</span>
-<span id="cb16-40"><a href="#cb16-40" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb16-41"><a href="#cb16-41" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb16-42"><a href="#cb16-42" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-43"><a href="#cb16-43" aria-hidden="true" tabindex="-1"></a>ttc_full <span class="op">=</span> torchTextClassifiers(tokenizer<span class="op">=</span>loaded_tokenizer, model_config<span class="op">=</span>loaded_model_config)</span>
-<span id="cb16-44"><a href="#cb16-44" aria-hidden="true" tabindex="-1"></a>ttc_full.pytorch_model.load_state_dict(</span>
-<span id="cb16-45"><a href="#cb16-45" aria-hidden="true" tabindex="-1"></a>    torch.load(os.path.join(artifacts_path, <span class="st">"model_state_dict.pt"</span>), weights_only<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb16-46"><a href="#cb16-46" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb16-47"><a href="#cb16-47" aria-hidden="true" tabindex="-1"></a>ttc_full.pytorch_model.<span class="bu">eval</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> mlflow</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> transformers <span class="im">import</span> PreTrainedTokenizerFast</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>MLFLOW_TRACKING_URI <span class="op">=</span> os.environ[<span class="st">"MLFLOW_TRACKING_URI"</span>]</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>RUN_ID <span class="op">=</span> os.environ[<span class="st">"MLFLOW_RUN_ID"</span>]</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>artifacts_path <span class="op">=</span> mlflow.artifacts.download_artifacts(<span class="ss">f"runs:/</span><span class="sc">{</span>RUN_ID<span class="sc">}</span><span class="ss">/model_artifacts"</span>)</span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(os.path.join(artifacts_path, <span class="st">"model_config.json"</span>)) <span class="im">as</span> f:</span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>    saved_config <span class="op">=</span> json.load(f)</span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(os.path.join(artifacts_path, <span class="st">"label_mapping.json"</span>)) <span class="im">as</span> f:</span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>    saved_label_mapping <span class="op">=</span> json.load(f)  <span class="co"># {str(int): NAF code}</span></span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>loaded_tokenizer <span class="op">=</span> WordPieceTokenizer(</span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>    vocab_size<span class="op">=</span>saved_config[<span class="st">"vocab_size"</span>],</span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>    output_dim<span class="op">=</span>saved_config[<span class="st">"output_dim"</span>],</span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>loaded_tokenizer.tokenizer <span class="op">=</span> PreTrainedTokenizerFast.from_pretrained(</span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>    os.path.join(artifacts_path, <span class="st">"tokenizer"</span>)</span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>loaded_tokenizer.trained <span class="op">=</span> <span class="va">True</span></span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a>loaded_model_config <span class="op">=</span> ModelConfig(</span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>    embedding_dim<span class="op">=</span>saved_config[<span class="st">"embedding_dim"</span>],</span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a>    num_classes<span class="op">=</span>saved_config[<span class="st">"num_classes"</span>],</span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a>    attention_config<span class="op">=</span>AttentionConfig(</span>
+<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a>        n_layers<span class="op">=</span>saved_config[<span class="st">"n_layers"</span>],</span>
+<span id="cb15-33"><a href="#cb15-33" aria-hidden="true" tabindex="-1"></a>        n_head<span class="op">=</span>saved_config[<span class="st">"n_head"</span>],</span>
+<span id="cb15-34"><a href="#cb15-34" aria-hidden="true" tabindex="-1"></a>        n_kv_head<span class="op">=</span>saved_config[<span class="st">"n_kv_head"</span>],</span>
+<span id="cb15-35"><a href="#cb15-35" aria-hidden="true" tabindex="-1"></a>        sequence_len<span class="op">=</span>saved_config[<span class="st">"output_dim"</span>],</span>
+<span id="cb15-36"><a href="#cb15-36" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb15-37"><a href="#cb15-37" aria-hidden="true" tabindex="-1"></a>    label_attention_config<span class="op">=</span>LabelAttentionConfig(</span>
+<span id="cb15-38"><a href="#cb15-38" aria-hidden="true" tabindex="-1"></a>        n_head<span class="op">=</span>saved_config[<span class="st">"label_attention_n_head"</span>],</span>
+<span id="cb15-39"><a href="#cb15-39" aria-hidden="true" tabindex="-1"></a>        num_classes<span class="op">=</span>saved_config[<span class="st">"num_classes"</span>],</span>
+<span id="cb15-40"><a href="#cb15-40" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb15-41"><a href="#cb15-41" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb15-42"><a href="#cb15-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-43"><a href="#cb15-43" aria-hidden="true" tabindex="-1"></a>ttc_full <span class="op">=</span> torchTextClassifiers(tokenizer<span class="op">=</span>loaded_tokenizer, model_config<span class="op">=</span>loaded_model_config)</span>
+<span id="cb15-44"><a href="#cb15-44" aria-hidden="true" tabindex="-1"></a>ttc_full.pytorch_model.load_state_dict(</span>
+<span id="cb15-45"><a href="#cb15-45" aria-hidden="true" tabindex="-1"></a>    torch.load(os.path.join(artifacts_path, <span class="st">"model_state_dict.pt"</span>), weights_only<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb15-46"><a href="#cb15-46" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb15-47"><a href="#cb15-47" aria-hidden="true" tabindex="-1"></a>ttc_full.pytorch_model.<span class="bu">eval</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div id="load-pretrained" class="cell-output cell-output-display" data-execution_count="9">
 <pre><code>TextClassificationModel(
@@ -919,24 +925,24 @@ Clue here
 <div id="predict-examples" class="cell" data-execution_count="10">
 <details class="code-fold">
 <summary>Click to see the answer</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>top_k <span class="op">=</span> <span class="dv">3</span></span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>example_texts <span class="op">=</span> [</span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"I sell croissants and pains au chocolat in my bakery"</span>,</span>
-<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">"I develop business management software for companies"</span>,</span>
-<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">"I repair cars and carry out technical inspections"</span>,</span>
-<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>]</span>
-<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> ttc_full.predict(np.array(example_texts), top_k<span class="op">=</span>top_k, explain_with_label_attention<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, text <span class="kw">in</span> <span class="bu">enumerate</span>(example_texts):</span>
-<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>    predicted_codes <span class="op">=</span> [saved_label_mapping[<span class="bu">str</span>(results[<span class="st">"prediction"</span>][i][k].item())] <span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(top_k)]</span>
-<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>    confidence <span class="op">=</span> [results[<span class="st">"confidence"</span>][i][k].item() <span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(top_k)]</span>
-<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Text: </span><span class="sc">{</span>text<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> code, conf <span class="kw">in</span> <span class="bu">zip</span>(predicted_codes, confidence):</span>
-<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"  </span><span class="sc">{</span>code<span class="sc">}</span><span class="ss">  (confidence: </span><span class="sc">{</span>conf<span class="sc">:.3f}</span><span class="ss">)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>top_k <span class="op">=</span> <span class="dv">3</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>example_texts <span class="op">=</span> [</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"I sell croissants and pains au chocolat in my bakery"</span>,</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">"I develop business management software for companies"</span>,</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">"I repair cars and carry out technical inspections"</span>,</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> ttc_full.predict(np.array(example_texts), top_k<span class="op">=</span>top_k, explain_with_label_attention<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, text <span class="kw">in</span> <span class="bu">enumerate</span>(example_texts):</span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>    predicted_codes <span class="op">=</span> [saved_label_mapping[<span class="bu">str</span>(results[<span class="st">"prediction"</span>][i][k].item())] <span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(top_k)]</span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>    confidence <span class="op">=</span> [results[<span class="st">"confidence"</span>][i][k].item() <span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(top_k)]</span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Text: </span><span class="sc">{</span>text<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> code, conf <span class="kw">in</span> <span class="bu">zip</span>(predicted_codes, confidence):</span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"  </span><span class="sc">{</span>code<span class="sc">}</span><span class="ss">  (confidence: </span><span class="sc">{</span>conf<span class="sc">:.3f}</span><span class="ss">)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>
@@ -983,37 +989,37 @@ Text: I repair cars and carry out technical inspections
 <div id="explainability" class="cell" data-execution_count="11">
 <details class="code-fold">
 <summary>Click to see the answer</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torchTextClassifiers.utilities.plot_explainability <span class="im">import</span> (</span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>    map_attributions_to_char, map_attributions_to_word,</span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    plot_attributions_at_char, plot_attributions_at_word, figshow,</span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>text_idx <span class="op">=</span> <span class="dv">0</span></span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>top_k_idx <span class="op">=</span> <span class="dv">0</span></span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>text_sample         <span class="op">=</span> example_texts[text_idx]</span>
-<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>offsets             <span class="op">=</span> results[<span class="st">"offset_mapping"</span>][text_idx]</span>
-<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>word_ids            <span class="op">=</span> results[<span class="st">"word_ids"</span>][text_idx]</span>
-<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>predicted_class_idx <span class="op">=</span> results[<span class="st">"prediction"</span>][text_idx][top_k_idx].item()</span>
-<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>predicted_code      <span class="op">=</span> saved_label_mapping[<span class="bu">str</span>(predicted_class_idx)]</span>
-<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Average attention over heads, pick the row for the predicted class</span></span>
-<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>attn_matrix  <span class="op">=</span> results[<span class="st">"label_attention_attributions"</span>][text_idx].detach()  <span class="co"># (n_head, num_classes, seq_len)</span></span>
-<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>attributions <span class="op">=</span> attn_matrix.mean(dim<span class="op">=</span><span class="dv">0</span>)[predicted_class_idx]                <span class="co"># (seq_len,)</span></span>
-<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>words, word_attributions <span class="op">=</span> map_attributions_to_word(</span>
-<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>    attributions.unsqueeze(<span class="dv">0</span>), text_sample, word_ids, offsets</span>
-<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>char_attributions <span class="op">=</span> map_attributions_to_char(attributions.unsqueeze(<span class="dv">0</span>), offsets, text_sample)</span>
-<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a>titles <span class="op">=</span> [<span class="ss">f"Attributions for NAF code </span><span class="sc">{</span>predicted_code<span class="sc">}</span><span class="ss">"</span>]</span>
-<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a>figshow(plot_attributions_at_char(</span>
-<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a>    text<span class="op">=</span>text_sample, attributions_per_char<span class="op">=</span>char_attributions, titles<span class="op">=</span>titles,</span>
-<span id="cb20-27"><a href="#cb20-27" aria-hidden="true" tabindex="-1"></a>)[<span class="dv">0</span>])</span>
-<span id="cb20-28"><a href="#cb20-28" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-29"><a href="#cb20-29" aria-hidden="true" tabindex="-1"></a>figshow(plot_attributions_at_word(</span>
-<span id="cb20-30"><a href="#cb20-30" aria-hidden="true" tabindex="-1"></a>    text<span class="op">=</span>text_sample, words<span class="op">=</span>words.values(), attributions_per_word<span class="op">=</span>word_attributions, titles<span class="op">=</span>titles,</span>
-<span id="cb20-31"><a href="#cb20-31" aria-hidden="true" tabindex="-1"></a>)[<span class="dv">0</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torchTextClassifiers.utilities.plot_explainability <span class="im">import</span> (</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    map_attributions_to_char, map_attributions_to_word,</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    plot_attributions_at_char, plot_attributions_at_word, figshow,</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>text_idx <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>top_k_idx <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>text_sample         <span class="op">=</span> example_texts[text_idx]</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>offsets             <span class="op">=</span> results[<span class="st">"offset_mapping"</span>][text_idx]</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>word_ids            <span class="op">=</span> results[<span class="st">"word_ids"</span>][text_idx]</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>predicted_class_idx <span class="op">=</span> results[<span class="st">"prediction"</span>][text_idx][top_k_idx].item()</span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>predicted_code      <span class="op">=</span> saved_label_mapping[<span class="bu">str</span>(predicted_class_idx)]</span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Average attention over heads, pick the row for the predicted class</span></span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>attn_matrix  <span class="op">=</span> results[<span class="st">"label_attention_attributions"</span>][text_idx].detach()  <span class="co"># (n_head, num_classes, seq_len)</span></span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>attributions <span class="op">=</span> attn_matrix.mean(dim<span class="op">=</span><span class="dv">0</span>)[predicted_class_idx]                <span class="co"># (seq_len,)</span></span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>words, word_attributions <span class="op">=</span> map_attributions_to_word(</span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>    attributions.unsqueeze(<span class="dv">0</span>), text_sample, word_ids, offsets</span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a>char_attributions <span class="op">=</span> map_attributions_to_char(attributions.unsqueeze(<span class="dv">0</span>), offsets, text_sample)</span>
+<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a>titles <span class="op">=</span> [<span class="ss">f"Attributions for NAF code </span><span class="sc">{</span>predicted_code<span class="sc">}</span><span class="ss">"</span>]</span>
+<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-25"><a href="#cb19-25" aria-hidden="true" tabindex="-1"></a>figshow(plot_attributions_at_char(</span>
+<span id="cb19-26"><a href="#cb19-26" aria-hidden="true" tabindex="-1"></a>    text<span class="op">=</span>text_sample, attributions_per_char<span class="op">=</span>char_attributions, titles<span class="op">=</span>titles,</span>
+<span id="cb19-27"><a href="#cb19-27" aria-hidden="true" tabindex="-1"></a>)[<span class="dv">0</span>])</span>
+<span id="cb19-28"><a href="#cb19-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-29"><a href="#cb19-29" aria-hidden="true" tabindex="-1"></a>figshow(plot_attributions_at_word(</span>
+<span id="cb19-30"><a href="#cb19-30" aria-hidden="true" tabindex="-1"></a>    text<span class="op">=</span>text_sample, words<span class="op">=</span>words.values(), attributions_per_word<span class="op">=</span>word_attributions, titles<span class="op">=</span>titles,</span>
+<span id="cb19-31"><a href="#cb19-31" aria-hidden="true" tabindex="-1"></a>)[<span class="dv">0</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-display">
 <div>
@@ -1037,15 +1043,15 @@ Text: I repair cars and carry out technical inspections
 <div id="evaluate" class="cell" data-execution_count="12">
 <details class="code-fold">
 <summary>Click to see the answer</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>TEST_FRAC <span class="op">=</span> <span class="fl">0.05</span></span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>X_test_small <span class="op">=</span> X_test[:<span class="bu">int</span>(<span class="bu">len</span>(X_test) <span class="op">*</span> TEST_FRAC)]</span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>y_test_small <span class="op">=</span> y_test[:<span class="bu">int</span>(<span class="bu">len</span>(y_test) <span class="op">*</span> TEST_FRAC)]</span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>results_test <span class="op">=</span> ttc_full.predict(X_test_small, top_k<span class="op">=</span><span class="dv">1</span>)</span>
-<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>preds    <span class="op">=</span> results_test[<span class="st">"prediction"</span>].squeeze(<span class="dv">1</span>).numpy()</span>
-<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>accuracy <span class="op">=</span> (preds <span class="op">==</span> y_test_small).mean()</span>
-<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Test accuracy: </span><span class="sc">{</span>accuracy<span class="sc">:.4f}</span><span class="ss"> (</span><span class="sc">{</span><span class="bu">int</span>(accuracy <span class="op">*</span> <span class="bu">len</span>(y_test_small))<span class="sc">}</span><span class="ss">/</span><span class="sc">{</span><span class="bu">len</span>(y_test_small)<span class="sc">}</span><span class="ss"> correct)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>TEST_FRAC <span class="op">=</span> <span class="fl">0.05</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>X_test_small <span class="op">=</span> X_test[:<span class="bu">int</span>(<span class="bu">len</span>(X_test) <span class="op">*</span> TEST_FRAC)]</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>y_test_small <span class="op">=</span> y_test[:<span class="bu">int</span>(<span class="bu">len</span>(y_test) <span class="op">*</span> TEST_FRAC)]</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>results_test <span class="op">=</span> ttc_full.predict(X_test_small, top_k<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>preds    <span class="op">=</span> results_test[<span class="st">"prediction"</span>].squeeze(<span class="dv">1</span>).numpy()</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>accuracy <span class="op">=</span> (preds <span class="op">==</span> y_test_small).mean()</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Test accuracy: </span><span class="sc">{</span>accuracy<span class="sc">:.4f}</span><span class="ss"> (</span><span class="sc">{</span><span class="bu">int</span>(accuracy <span class="op">*</span> <span class="bu">len</span>(y_test_small))<span class="sc">}</span><span class="ss">/</span><span class="sc">{</span><span class="bu">len</span>(y_test_small)<span class="sc">}</span><span class="ss"> correct)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>Test accuracy: 0.0971 (51/525 correct)</code></pre>
@@ -1067,7 +1073,7 @@ Clue here
 
 </main> <!-- /main -->
 <script type="application/vnd.jupyter.widget-state+json">
-{"state":{"857075f892f94f619420fe40f74d7101":{"model_module":"@jupyter-widgets/base","model_module_version":"2.0.0","model_name":"LayoutModel","state":{"_model_module":"@jupyter-widgets/base","_model_module_version":"2.0.0","_model_name":"LayoutModel","_view_count":null,"_view_module":"@jupyter-widgets/base","_view_module_version":"2.0.0","_view_name":"LayoutView","align_content":null,"align_items":null,"align_self":null,"border_bottom":null,"border_left":null,"border_right":null,"border_top":null,"bottom":null,"display":null,"flex":null,"flex_flow":null,"grid_area":null,"grid_auto_columns":null,"grid_auto_flow":null,"grid_auto_rows":null,"grid_column":null,"grid_gap":null,"grid_row":null,"grid_template_areas":null,"grid_template_columns":null,"grid_template_rows":null,"height":null,"justify_content":null,"justify_items":null,"left":null,"margin":null,"max_height":null,"max_width":null,"min_height":null,"min_width":null,"object_fit":null,"object_position":null,"order":null,"overflow":null,"padding":null,"right":null,"top":null,"visibility":null,"width":null}},"d4ac73e362124828a87e596bc695ec0d":{"model_module":"@jupyter-widgets/output","model_module_version":"1.0.0","model_name":"OutputModel","state":{"_dom_classes":[],"_model_module":"@jupyter-widgets/output","_model_module_version":"1.0.0","_model_name":"OutputModel","_view_count":null,"_view_module":"@jupyter-widgets/output","_view_module_version":"1.0.0","_view_name":"OutputView","layout":"IPY_MODEL_857075f892f94f619420fe40f74d7101","msg_id":"","outputs":[{"data":{"text/html":"<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\">Epoch 0/0  <span style=\"color: #6206e0; text-decoration-color: #6206e0\">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> 10/10 <span style=\"color: #7f7f7f; text-decoration-color: #7f7f7f\">0:00:07 • 0:00:00</span> <span style=\"color: #7f7f7f; text-decoration-color: #7f7f7f; text-decoration: underline\">1.37it/s</span> <span style=\"font-style: italic\">v_num: 0.000 train_loss_step: 5.740 </span>\n                                                                               <span style=\"font-style: italic\">val_loss: 5.740 val_accuracy: 0.179 </span>\n                                                                               <span style=\"font-style: italic\">train_loss_epoch: 5.740             </span>\n                                                                               <span style=\"font-style: italic\">train_accuracy: 0.084               </span>\n</pre>\n","text/plain":"Epoch 0/0  \u001b[38;2;98;6;224m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m 10/10 \u001b[2m0:00:07 • 0:00:00\u001b[0m \u001b[2;4m1.37it/s\u001b[0m \u001b[3mv_num: 0.000 train_loss_step: 5.740 \u001b[0m\n                                                                               \u001b[3mval_loss: 5.740 val_accuracy: 0.179 \u001b[0m\n                                                                               \u001b[3mtrain_loss_epoch: 5.740             \u001b[0m\n                                                                               \u001b[3mtrain_accuracy: 0.084               \u001b[0m\n"},"metadata":{},"output_type":"display_data"}],"tabbable":null,"tooltip":null}}},"version_major":2,"version_minor":0}
+{"state":{"17ae58b8c9b24280a1b574823a2716b7":{"model_module":"@jupyter-widgets/base","model_module_version":"2.0.0","model_name":"LayoutModel","state":{"_model_module":"@jupyter-widgets/base","_model_module_version":"2.0.0","_model_name":"LayoutModel","_view_count":null,"_view_module":"@jupyter-widgets/base","_view_module_version":"2.0.0","_view_name":"LayoutView","align_content":null,"align_items":null,"align_self":null,"border_bottom":null,"border_left":null,"border_right":null,"border_top":null,"bottom":null,"display":null,"flex":null,"flex_flow":null,"grid_area":null,"grid_auto_columns":null,"grid_auto_flow":null,"grid_auto_rows":null,"grid_column":null,"grid_gap":null,"grid_row":null,"grid_template_areas":null,"grid_template_columns":null,"grid_template_rows":null,"height":null,"justify_content":null,"justify_items":null,"left":null,"margin":null,"max_height":null,"max_width":null,"min_height":null,"min_width":null,"object_fit":null,"object_position":null,"order":null,"overflow":null,"padding":null,"right":null,"top":null,"visibility":null,"width":null}},"e0b0b5d2046d4aa08be9cf1916bd79c9":{"model_module":"@jupyter-widgets/output","model_module_version":"1.0.0","model_name":"OutputModel","state":{"_dom_classes":[],"_model_module":"@jupyter-widgets/output","_model_module_version":"1.0.0","_model_name":"OutputModel","_view_count":null,"_view_module":"@jupyter-widgets/output","_view_module_version":"1.0.0","_view_name":"OutputView","layout":"IPY_MODEL_17ae58b8c9b24280a1b574823a2716b7","msg_id":"","outputs":[{"data":{"text/html":"<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\">Epoch 0/0  <span style=\"color: #6206e0; text-decoration-color: #6206e0\">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> 10/10 <span style=\"color: #7f7f7f; text-decoration-color: #7f7f7f\">0:00:07 • 0:00:00</span> <span style=\"color: #7f7f7f; text-decoration-color: #7f7f7f; text-decoration: underline\">1.37it/s</span> <span style=\"font-style: italic\">v_num: 0.000 train_loss_step: 5.740 </span>\n                                                                               <span style=\"font-style: italic\">val_loss: 5.740 val_accuracy: 0.179 </span>\n                                                                               <span style=\"font-style: italic\">train_loss_epoch: 5.740             </span>\n                                                                               <span style=\"font-style: italic\">train_accuracy: 0.054               </span>\n</pre>\n","text/plain":"Epoch 0/0  \u001b[38;2;98;6;224m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m 10/10 \u001b[2m0:00:07 • 0:00:00\u001b[0m \u001b[2;4m1.37it/s\u001b[0m \u001b[3mv_num: 0.000 train_loss_step: 5.740 \u001b[0m\n                                                                               \u001b[3mval_loss: 5.740 val_accuracy: 0.179 \u001b[0m\n                                                                               \u001b[3mtrain_loss_epoch: 5.740             \u001b[0m\n                                                                               \u001b[3mtrain_accuracy: 0.054               \u001b[0m\n"},"metadata":{},"output_type":"display_data"}],"tabbable":null,"tooltip":null}}},"version_major":2,"version_minor":0}
 </script>
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
