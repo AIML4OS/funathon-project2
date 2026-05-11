@@ -598,12 +598,12 @@ Tip
 Keys: ['code', 'name', 'label']</code></pre>
 </div>
 <div id="get-data" class="cell-output cell-output-display" data-execution_count="8">
-<pre><code>[{'code': '01.11',
-  'name': 'Growing of cereals, other than rice, leguminous crops and oil seeds',
-  'label': 'Lupine growing for human consumption'},
- {'code': '47.23',
-  'name': 'Retail sale of fish, crustaceans and molluscs',
-  'label': 'Consumer sales of molluscs and cephalopods'}]</code></pre>
+<pre><code>[{'code': '62.10',
+  'name': 'Computer programming activities',
+  'label': 'Programming of computer applications'},
+ {'code': '68.12',
+  'name': 'Development of building projects',
+  'label': 'Real estate venture capital for construction'}]</code></pre>
 </div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -844,41 +844,41 @@ Note
 <tbody>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">0</th>
-<td>Lupine growing for human consumption</td>
-<td>01.11</td>
-<td>01.11</td>
+<td>Programming of computer applications</td>
+<td>62.10</td>
+<td>62.10</td>
 <td>True</td>
 <td>True</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">1</th>
-<td>Consumer sales of molluscs and cephalopods</td>
-<td>47.23</td>
-<td>47.23</td>
-<td>True</td>
-<td>True</td>
+<td>Real estate venture capital for construction</td>
+<td>68.12</td>
+<td>68.1</td>
+<td>False</td>
+<td>False</td>
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">2</th>
-<td>Market stall fruit and vegetable sales</td>
-<td>47.21</td>
-<td>47.21</td>
-<td>True</td>
-<td>True</td>
+<td>Support services for elderly individuals</td>
+<td>88.10</td>
+<td>88.1</td>
+<td>False</td>
+<td>False</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">3</th>
-<td>Specialized patient transfer via ambulance</td>
-<td>86.92</td>
-<td>86.92</td>
+<td>Computer system preventative maintenance</td>
+<td>95.10</td>
+<td>95.10</td>
 <td>True</td>
 <td>True</td>
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">4</th>
-<td>Data center space provision</td>
-<td>68.20</td>
-<td>63.1</td>
+<td>Short-term access to light transport</td>
+<td>77.11</td>
+<td>NaN</td>
 <td>False</td>
 <td>False</td>
 </tr>
@@ -899,8 +899,8 @@ Note
 <div id="cell-retriever-accuracy-hint" class="cell" data-execution_count="13">
 <div id="retriever-accuracy-hint" class="cell-output cell-output-display" data-execution_count="13">
 <pre><code>retriever_hit
-Retriever found true code    28
-Retriever missed             22
+Retriever found true code    29
+Retriever missed             21
 Name: count, dtype: int64</code></pre>
 </div>
 </div>
@@ -923,8 +923,8 @@ Name: count, dtype: int64</code></pre>
 <div id="cell-llm-accuracy-hint" class="cell" data-execution_count="15">
 <div id="llm-accuracy-hint" class="cell-output cell-output-display" data-execution_count="15">
 <pre><code>pipeline_correct
-LLM correct    27
-LLM wrong       1
+LLM correct    26
+LLM wrong       3
 Name: count, dtype: int64</code></pre>
 </div>
 </div>
@@ -948,8 +948,8 @@ Name: count, dtype: int64</code></pre>
 <div id="cell-pipeline-accuracy-hint" class="cell" data-execution_count="17">
 <div id="pipeline-accuracy-hint" class="cell-output cell-output-display" data-execution_count="17">
 <pre><code>pipeline_correct
-Correctly coded      27
-Incorrectly coded    23
+Correctly coded      26
+Incorrectly coded    24
 Name: count, dtype: int64</code></pre>
 </div>
 </div>
