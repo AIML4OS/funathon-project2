@@ -7,6 +7,10 @@ format:
     number-sections: false
     output: false
     warning: false
+
+execute:
+  output: false
+  warning: false
 ---
 
 # Forewords
@@ -62,6 +66,8 @@ You will need to use your creds `os.environ["LLMLAB_URL"]` and `os.environ["LLML
 
 More information [here](https://github.com/openai/openai-python) about `OpenAI API`.
 
+(Go to next question to see the answer).
+
 ### Question 2
 
 - Print all the available models (kindly made available to everyone by the SSPcloud team ❤️)
@@ -69,7 +75,7 @@ More information [here](https://github.com/openai/openai-python) about `OpenAI A
 You can notice the `llm.lab` platform provides both __generation__ and __embedding__ models.
 
 ::: {.callout-tip}
-The OpenAI API provides a standard way to interact with language models for text generation and embeddings. Here, instead of OpenAI’s cloud, we connect to a remote Ollama server (the *famous* `llm.lab` from the even more famous `SSPCloud`), which hosts the models. The API interface stays the same, so you can generate text or create embeddings with calls like `.completions.create()` or `.embeddings.create()` while all computation happens on the Ollama server.
+The OpenAI API provides a standard way to interact with language models for text generation and embeddings. Here, instead of OpenAI’s cloud, we connect to a remote OpenWebUI/vLLM server (the *famous* `llm.lab` from the even more famous `SSPCloud`), which hosts the models. The API interface stays the same, so you can generate text or create embeddings with calls like `.completions.create()` or `.embeddings.create()` while all computation happens on the OpenWebUI/vLLM server.
 :::
 
 ```{python}
@@ -159,6 +165,8 @@ nace[22]
 
 ```
 
+*Not familiar with `@dataclass` or `@classmethod`? See [Python refresher](#tip-python-refresher).*
+
 ### Question 2
 
 - Build a class `NaceDocument` that will help you handle your NACE documents : 
@@ -169,6 +177,8 @@ nace[22]
         - example: attribute `text`, created by a `to_embedding_text` method, 
         - this text will be ready to be embedded, 
         - It would be best to parametrize whether to include or not each possible field (e.g : text with or without "Excludes" feature). 
+
+- Create all `NaceDocument` instances from `nace` list.
 
 See an example of a cleaned and ready text for embedding: 
 
@@ -371,14 +381,38 @@ emb_dim = 4096
 
 ```{python}
 
+#| label: create-collection-hide
+#| include: false
+from qdrant_client.models import Distance, VectorParams
+
+COLLECTION_NAME = "nace-collection-test"
+
+# Delete the collection if necessary
+if client_qdrant.collection_exists(collection_name=COLLECTION_NAME):
+    client_qdrant.delete_collection(collection_name=COLLECTION_NAME)
+
+# Create the collection
+client_qdrant.create_collection(
+    collection_name=COLLECTION_NAME,
+    vectors_config=VectorParams(
+        size=emb_dim,
+        distance=Distance.COSINE
+    )
+)
+```
+
+
+```{python}
+
 #| label: create-collection
 #| code-fold: true
 #| code-summary: Click to see the answer
 #| code-overflow: scroll
+#| eval: false
 
 from qdrant_client.models import Distance, VectorParams
 
-COLLECTION_NAME = "nace-collection-test"
+COLLECTION_NAME = "nace-collection"
 
 # Delete the collection if necessary
 if client_qdrant.collection_exists(collection_name=COLLECTION_NAME):
@@ -400,13 +434,36 @@ So far, you should see your new empty collection from Qdrant's UI:
 
 ### Question 2
 
-Use your `client_llmlab` and the method `.embeddings.create` to embed your NACE descriptions created earlier. 
+It's now time to **embed your NACE descriptions** (the `text` attribute of each `NaceDocument` built earlier) using your `client_llmlab` connection.
 
-- a) Update your `NaceDocument` class like previously:
-    - Add a `get_embeddings` method (not called by the constructor) that generates an embedding vector for a `NaceDocument` instance.
-    - The method stores the embeddings in a new `vector` attribute.
-- b) Try it on a couple of NACE documents (not to launch 1,047 requests)
-- c) Inspect your embedding vectors
+**a)** Enrich your `NaceDocument` class:
+
+- Add a new attribute `vector` (initialized to `None`, not set by the constructor) that will hold the embedding vector.
+- Add a `get_embeddings` method that calls the embedding model via `client_llmlab` and stores the result in `self.vector`.
+
+**b)** Run the method on **a couple of documents only** (no need to fire 1,047 requests at this stage).
+
+**c)** Inspect the embedding vectors: what is their dimension? what do the values look like?
+
+::: {.callout-note collapse="true"}
+## Hint: structure of the call to `client_llmlab.embeddings.create`
+
+The OpenAI-compatible API exposes embeddings through `client.embeddings.create(...)`. In pseudo-code, the call looks like this:
+
+```text
+response = client_llmlab.embeddings.create(
+    model = <name of an embedding model from Exercise 1>,
+    input = <the text you want to embed>,
+)
+```
+
+The returned `response` object follows the OpenAI schema — the embedding vector itself lives inside `response.data[...]`. Browse the object (or check the [OpenAI docs](https://platform.openai.com/docs/api-reference/embeddings/create)) to find where exactly.
+
+💡 *Tips:*
+
+- Wrap the call in a `try / except` block so a failed request doesn't silently corrupt your data.
+- `input` accepts either a single string or a list of strings — pick whichever fits your method best.
+:::
 
 ```{python}
 #| label: up-nacedocument-emb
@@ -811,6 +868,8 @@ print(count)
 
 ::: {.callout-note #pointstruct}
 
+## PointStruct
+
 `PointStruct` is a Pydantic model provided by the qdrant_client library that represents a single vector database entry. 
 It bundles together the three components Qdrant needs to store and query a point:
 
@@ -845,3 +904,82 @@ Below, please find a non-exhaustive list of good practices for production-grade 
 - __Security & Secrets__: Keep API keys and sensitive data secure and never hardcode them in your code.
 
 :::
+
+::: {#tip-python-refresher .callout-tip collapse="true"}
+## Python refresher: `@dataclass` and `@classmethod`
+
+### `@dataclass`: classes that hold data
+
+When you build a class whose main purpose is to **store data**, writing the `__init__`, `__repr__` and `__eq__` methods by hand quickly becomes repetitive. The `@dataclass` decorator (introduced in Python 3.7) generates them automatically from your type annotations.
+
+**Without `@dataclass`** — a lot of boilerplate just to store three fields:
+
+```python
+class NaceDocument:
+    def __init__(self, code, title, includes=None):
+        self.code = code
+        self.title = title
+        self.includes = includes
+
+    def __repr__(self):
+        return f"NaceDocument(code={self.code!r}, title={self.title!r})"
+
+    def __eq__(self, other):
+        return (self.code, self.title, self.includes) == (other.code, other.title, other.includes)
+```
+
+**With `@dataclass`** — the same behavior, declared once:
+
+```python
+from dataclasses import dataclass
+from typing import Optional
+
+@dataclass
+class NaceDocument:
+    code: str                            # required field
+    title: str                           # required field
+    includes: Optional[str] = None       # optional field, with default
+```
+
+A few things to know:
+
+- The type annotations (`str`, `Optional[str]`, …) are **mandatory** — `@dataclass` uses them to discover the fields.
+- Fields **with a default value** must come *after* fields without one (same rule as regular function arguments).
+- You can still add your own methods to a dataclass (e.g., `to_embedding_text` in `NaceDocument`).
+- Useful variants: `@dataclass(frozen=True)` makes instances immutable (like a `NamedTuple`), `@dataclass(order=True)` adds comparison operators (`<`, `>`, …).
+
+### `@classmethod`: methods that act on the class, not on an instance
+
+Most methods you write receive `self` — the **instance** the method is called on. A method decorated with `@classmethod` receives `cls` instead — the **class itself**.
+
+```python
+class NaceDocument:
+    def to_embedding_text(self) -> str:    # instance method: needs an existing object
+        return f"{self.code} — {self.title}"
+
+    @classmethod
+    def from_raw(cls, raw: dict) -> "NaceDocument":   # class method: builds a new object
+        return cls(code=raw["CODE"], title=raw["HEADING"])
+```
+
+The typical use case is to define **alternative constructors** — different ways of building an instance from different sources:
+
+```python
+doc1 = NaceDocument(code="A01", title="Crop production")     # via __init__
+doc2 = NaceDocument.from_raw({"CODE": "A01", "HEADING": "Crop production"})  # via classmethod
+doc3 = NaceDocument.from_json(json_string)                   # another classmethod, if you wrote one
+```
+
+**Why `cls` instead of writing `NaceDocument(...)` directly?**
+Using `cls` makes the method **inheritance-aware**: if `SpecialNaceDocument` inherits from `NaceDocument`, calling `SpecialNaceDocument.from_raw(...)` will correctly build a `SpecialNaceDocument` (not a `NaceDocument`), because `cls` resolves to the actual class on which the method was called.
+
+### Putting it together
+
+In the `NaceDocument` class above, both decorators play complementary roles:
+
+- `@dataclass` removes the boilerplate of declaring fields and writing `__init__`.
+- `@classmethod` provides `from_raw`, a clean entry point that parses a raw dictionary (with validation, cleaning, etc.) and hands back a fully built `NaceDocument`.
+
+This is a very common pattern in data pipelines: a lightweight container for the data + one or more classmethods to ingest it from external formats (CSV row, JSON, database record…).
+:::
+
