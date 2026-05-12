@@ -7,11 +7,16 @@ format:
     number-sections: false
     output: false
     warning: false
+
+execute:
+  output: false
+  warning: false
+
 ---
 
 # Forewords
 
-This second tutorial builds on the vector database created in part 1. It completes the RAG pipeline by loading labelled data, retrieving context from Qdrant, and generating final answers from a query. You will learn how to **automatically classify free-text activity labels** into the NACE 2.1 nomenclature, and then **evaluate the quality of the pipeline** at each stage.
+This second RAG tutorial builds on the vector database created in part 1. It completes the RAG pipeline by loading labelled data, retrieving context from Qdrant, and generating final answers from a query. You will learn how to **automatically classify free-text activity labels** into the NACE 2.1 nomenclature, and then **evaluate the quality of the pipeline** at each stage.
 
 ## RAG pipeline overview
 
@@ -42,18 +47,16 @@ The **RAG** acronym specifically refers to the combination of steps 2 (**R**etri
 
 ## Why do we need the generation step?
 
-Retrieval alone is not enough. Here's why we need generation:
+Retrieval gives us the **top-k most semantically similar NACE descriptions** for a given activity label — but it doesn't *pick* the right code. For our use case, the generation step is what turns a list of candidates into a single classification decision:
 
-- **Raw retrieval returns documents, not answers**: Qdrant gives us relevant chunks, but a user wants a clear, coherent response tailored to their question.
-- **Synthesis across multiple documents**: The LLM can read 5+ retrieved chunks and synthesize a unified answer, not just return the closest match.
-- **Natural language output**: Generation models (GPT-like) produce human-readable text that directly addresses the user's intent.
-- **Reasoning and inference**: The LLM can combine retrieved facts with its own reasoning to make predictions or classifications.
-- **Evaluation**: In our case, we compare the LLM's predicted labels against ground truth to measure RAG quality.
+- **Disambiguation among close candidates**: the top-5 retrieved codes often look very similar (e.g. several variants of "retail trade"). The LLM compares them against the full activity label and chooses the most specific one.
+- **Handling imprecise or messy inputs**: real activity labels are often short, abbreviated or ambiguous. The LLM can interpret them by leveraging the retrieved definitions as context.
+- **Structured output**: by constraining the LLM to return a JSON with the chosen NACE code, we get a directly usable prediction — not free-form prose.
 
 ## In this notebook, you will:
 
 - Load and inspect annotated examples
-- Connect to Qdrant and verify collections are available
+- Connect to Qdrant and check available collections
 - Build a retrieval + generation function that queries Qdrant and sends retrieved context to an LLM
 - Compare predicted labels with ground truth for evaluation
 - Understand how retrieval quality affects final generation quality
@@ -120,20 +123,23 @@ Temperature controls the degree of randomness in generation. For a closed-list c
 
 Before running the pipeline on the full dataset, test each component step by step.
 
+The following questions will follow the steps described below. 
+
+![Steps for the Exercice 1](img/generation_workflow_exercice1.png) 
+
 ::: {.callout-tip collapse="false" icon=false}
 ## `<i class="bi bi-book"></i>`{=html} Exercise 1: Test the pipeline on a single example
 
 ### Question 1 — Embed an activity label
 
-**Embedding** is the process of transforming a text into a high-dimensional numerical vector that captures its semantics. Two semantically similar texts will have vectors that are close to each other in the vector space. This property is what enables nearest-neighbour search.
+**Embedding** is the process of transforming a text into a (high-dimensional) numerical vector that captures its semantics. Two semantically similar texts will have vectors that are close to each other in the vector space. This property is what enables nearest-neighbour search.
 
-Use `client_llmlab.embeddings.create` to embed the activity label below.
+Use `client_llmlab.embeddings.create` to embed the activity label below (see the [doc](https://developers.openai.com/api/reference/python/resources/embeddings/methods/create)), and store the embedding vector into a **search_embedding** object.
 
 ```{python}
 #| label: activity-example
 #| output: true
 activity = "Installation, maintenance and repair of residential air conditioning systems for private customers"
-print(f"Activity to code: {activity}")
 ```
 
 ```{python}
@@ -162,7 +168,36 @@ print(f"Vector created of length: {len(search_embedding)}")
 
 **Retrieval** consists of querying the Qdrant vector store to find the `k` NACE codes whose descriptions are semantically closest to the label being coded.
 
-Use `client_qdrant.query_points` with `limit=RETRIEVER_LIMIT` and inspect the results.
+Use `client_qdrant.query_points` with `limit=RETRIEVER_LIMIT` to get the `k` closest candidates, then extract from the response **two lists**:
+
+- `codes_retrieved` — the NACE codes of the retrieved candidates
+- `descriptions_retrieved` — their associated textual descriptions
+
+These two lists will be reused in the next question to build the prompt sent to the LLM.
+
+::: {.callout-tip collapse="true"}
+## Hint: `client_qdrant.query_points` and response structure
+
+The call follows this pattern (see the [Qdrant Python client doc](https://python-client.qdrant.tech/qdrant_client.qdrant_client)):
+
+```text
+points = client_qdrant.query_points(
+    collection_name = <your collection>,
+    query           = <your embedding vector>,
+    limit           = <how many neighbours to return>,
+)
+```
+
+The response is a Pydantic model — calling `.model_dump()` on it gives back a plain dict. The retrieved candidates live under the `"points"` key, and each point exposes a `"payload"` dict that contains the metadata you stored in tutorial 1 (`code`, `text`, etc.).
+
+💡 *Pattern in pseudo-code:*
+
+```text
+for point in points.model_dump()["points"]:
+    append point["payload"]["code"] to codes_retrieved
+    append point["payload"]["text"] to descriptions_retrieved
+```
+:::
 
 ```{python}
 #| label: search-example
@@ -211,53 +246,43 @@ Constraining the output to **JSON format** is a best practice: it simplifies aut
 #| code-summary: Click to see the answer
 #| code-overflow: scroll
 
-SYSTEM_PROMPT = """
-You are an expert in the Statistical Classification of Economic Activities in the European Community (NACE).
+SYSTEM_PROMPT = """\
+You are an expert classifier for the NACE 2.1 nomenclature (Statistical Classification of Economic Activities in the European Community).
 
-Your task is to classify the main economic activity of a company into the NACE 2.1 classification system, based strictly on:
-- the textual description of the company's activity.
-- a restricted list of candidate NACE codes and their explanatory notes
+Given a company activity description and a short list of candidate NACE codes, your job is to pick the single most appropriate code from the candidates — or to declare the activity not codable if the description is too ambiguous.
 
-You must follow the instructions rigorously and return only the requested JSON output.
+Always reply with a valid JSON object matching the requested schema. No explanations, no extra text.
 """
 
-USER_PROMPT_TEMPLATE = """
-
-# Company main activity:
+USER_PROMPT_TEMPLATE = """\
+## Activity to classify
 {activity}
 
-# Candidate NACE codes and their explanatory notes:
+## Candidate NACE codes and their explanatory notes
 {proposed_nace_descriptions}
 
-========
+## Rules
+- Pick exactly one code from this list: [{proposed_nace_codes}]. Do not invent codes outside the list.
+- If several activities are mentioned, only consider the first one.
+- If the description is too vague to decide, return `nace_code: null` and `codable: false`.
 
-# Instructions:
-1. You MUST select the NACE code strictly from the provided candidate list. No external codes are allowed.
-2. If multiple activities are mentioned, ONLY consider the first one.
-3. If the description is unclear or insufficient to determine a classification, return:
-- "nace2025": null
-- "codable": false
-4. The selected code MUST belong to this list:
-[{proposed_nace_codes}]
-5. Provide a realistic confidence score between 0.00 and 1.00 (two decimal places max).
-6. Your response MUST be a valid JSON object following the schema below.
-
-- "codable": <boolean>,
-- "nace2025": <string or null>,
-- "confidence": <float>
-
-7. DO NOT include any explanation, reasoning, or additional text.
-
+## Output — valid JSON only
+{{
+  "nace_code": "<one code from the candidate list, or null>",
+  "codable": <true | false>,
+  "confidence": <float between 0.0 and 1.0>
+}}
 """
 ```
 
 ::: {.callout-tip}
 **Prompt engineering best practices for classification:**
 
-- **Constrain the candidate list** (instruction 4): prevents the LLM from inventing a code outside the nomenclature.
-- **Handle uncertainty explicitly** (instruction 3): an ambiguous label should return `codable: false` rather than a random code.
-- **Require a confidence score**: useful for filtering unreliable predictions in production.
-- **Forbid explanations** (instruction 7): reduces the risk of malformed JSON output.
+- **Constrain the candidate list**: by injecting the allowed codes directly into the rules (`Pick exactly one code from this list: [...]`), we prevent the LLM from inventing a code outside the nomenclature.
+- **Handle uncertainty explicitly**: an ambiguous label should return `codable: false` rather than a random code — without this escape hatch, the LLM is forced to guess.
+- **Require a confidence score**: useful for filtering unreliable predictions in production (e.g. flag low-confidence cases for human review).
+- **Show a concrete JSON schema in the prompt**: giving the model the exact output shape (with placeholders for each field) yields more reliable parsing than describing it in prose.
+- **Forbid explanations**: combined with `response_format={"type": "json_object"}` at inference time, this minimises the risk of free-text preambles breaking JSON parsing.
 :::
 
 ---
@@ -277,7 +302,7 @@ Compile the prompt with the retrieved candidates and run inference. The steps ar
 response_format={"type": "json_object"}
 ```
 
-This eliminates free-text preambles and makes parsing reliable. The expected keys (`nace2025`, `codable`, `confidence`) are described in the system prompt.
+This eliminates free-text preambles and makes parsing reliable. The expected keys (`nace_code`, `codable`, `confidence`) are described in the system prompt.
 :::
 
 
@@ -376,7 +401,7 @@ def run_rag_pipeline(activity: str) -> dict:
     Returns
     -------
     dict with keys:
-        - nace2025 (str | None) : predicted NACE code
+        - nace_code (str | None) : predicted NACE code
         - codable (bool)        : True if the label could be coded
         - confidence (float)    : confidence score (0–1)
         - retrieved_codes (list): candidates returned by the retriever
@@ -454,7 +479,7 @@ for row in tqdm(annotations, total=len(annotations), desc="Coding"):
         pred = run_rag_pipeline(activity_label)
     except Exception as e:
         pred = {
-            "nace2025":       None,
+            "nace_code":       None,
             "codable":        False,
             "confidence":     0.0,
             "retrieved_codes": []
@@ -464,7 +489,7 @@ for row in tqdm(annotations, total=len(annotations), desc="Coding"):
     records.append({
         "activity":        activity_label,
         "true_code":       true_code,
-        "pred_code":       pred.get("nace2025"),
+        "pred_code":       pred.get("nace_code"),
         "codable":         pred.get("codable", False),
         "confidence":      pred.get("confidence", 0.0),
         "retrieved_codes": pred.get("retrieved_codes", []),
@@ -544,7 +569,7 @@ results["llm_correct_given_retriever"] = results.apply(
 #| echo: false
 #| output: true
 
-results[["activity", "true_code", "pred_code", "retriever_hit", "pipeline_correct"]].head()
+results[["activity", "true_code", "pred_code", "retriever_hit", "pipeline_correct", "llm_correct_given_retriever"]].head()
 ```
 
 ---
