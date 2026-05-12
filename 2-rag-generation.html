@@ -249,7 +249,7 @@ window.Quarto = {
 
 <section id="forewords" class="level1">
 <h1>Forewords</h1>
-<p>This second tutorial builds on the vector database created in part 1. It completes the RAG pipeline by loading labelled data, retrieving context from Qdrant, and generating final answers from a query. You will learn how to <strong>automatically classify free-text activity labels</strong> into the NACE 2.1 nomenclature, and then <strong>evaluate the quality of the pipeline</strong> at each stage.</p>
+<p>This second RAG tutorial builds on the vector database created in part 1. It completes the RAG pipeline by loading labelled data, retrieving context from Qdrant, and generating final answers from a query. You will learn how to <strong>automatically classify free-text activity labels</strong> into the NACE 2.1 nomenclature, and then <strong>evaluate the quality of the pipeline</strong> at each stage.</p>
 <section id="rag-pipeline-overview" class="level2">
 <h2 class="anchored" data-anchor-id="rag-pipeline-overview">RAG pipeline overview</h2>
 <p>The automated coding workflow is broken down into five steps:</p>
@@ -279,20 +279,18 @@ window.Quarto = {
 </section>
 <section id="why-do-we-need-the-generation-step" class="level2">
 <h2 class="anchored" data-anchor-id="why-do-we-need-the-generation-step">Why do we need the generation step?</h2>
-<p>Retrieval alone is not enough. Here’s why we need generation:</p>
+<p>Retrieval gives us the <strong>top-k most semantically similar NACE descriptions</strong> for a given activity label — but it doesn’t <em>pick</em> the right code. For our use case, the generation step is what turns a list of candidates into a single classification decision:</p>
 <ul>
-<li><strong>Raw retrieval returns documents, not answers</strong>: Qdrant gives us relevant chunks, but a user wants a clear, coherent response tailored to their question.</li>
-<li><strong>Synthesis across multiple documents</strong>: The LLM can read 5+ retrieved chunks and synthesize a unified answer, not just return the closest match.</li>
-<li><strong>Natural language output</strong>: Generation models (GPT-like) produce human-readable text that directly addresses the user’s intent.</li>
-<li><strong>Reasoning and inference</strong>: The LLM can combine retrieved facts with its own reasoning to make predictions or classifications.</li>
-<li><strong>Evaluation</strong>: In our case, we compare the LLM’s predicted labels against ground truth to measure RAG quality.</li>
+<li><strong>Disambiguation among close candidates</strong>: the top-5 retrieved codes often look very similar (e.g.&nbsp;several variants of “retail trade”). The LLM compares them against the full activity label and chooses the most specific one.</li>
+<li><strong>Handling imprecise or messy inputs</strong>: real activity labels are often short, abbreviated or ambiguous. The LLM can interpret them by leveraging the retrieved definitions as context.</li>
+<li><strong>Structured output</strong>: by constraining the LLM to return a JSON with the chosen NACE code, we get a directly usable prediction — not free-form prose.</li>
 </ul>
 </section>
 <section id="in-this-notebook-you-will" class="level2">
 <h2 class="anchored" data-anchor-id="in-this-notebook-you-will">In this notebook, you will:</h2>
 <ul>
 <li>Load and inspect annotated examples</li>
-<li>Connect to Qdrant and verify collections are available</li>
+<li>Connect to Qdrant and check available collections</li>
 <li>Build a retrieval + generation function that queries Qdrant and sends retrieved context to an LLM</li>
 <li>Compare predicted labels with ground truth for evaluation</li>
 <li>Understand how retrieval quality affects final generation quality</li>
@@ -343,8 +341,15 @@ Note
 <section id="first-attempt-on-a-single-activity-label" class="level1">
 <h1>First attempt on a single activity label</h1>
 <p>Before running the pipeline on the full dataset, test each component step by step.</p>
+<p>The following questions will follow the steps described below.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="img/generation_workflow_exercice1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2" title="Steps for the Exercice 1"><img src="img/generation_workflow_exercice1.png" class="img-fluid figure-img" alt="Steps for the Exercice 1"></a></p>
+<figcaption>Steps for the Exercice 1</figcaption>
+</figure>
+</div>
 <div class="callout callout-style-default callout-tip no-icon callout-titled">
-<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-6-contents" aria-controls="callout-6" aria-expanded="true" aria-label="Toggle callout">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-7-contents" aria-controls="callout-7" aria-expanded="true" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon no-icon"></i>
 </div>
@@ -353,30 +358,26 @@ Note
 </div>
 <div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
-<div id="callout-6" class="callout-6-contents callout-collapse collapse show">
+<div id="callout-7" class="callout-7-contents callout-collapse collapse show">
 <div class="callout-body-container callout-body">
 <section id="question-1-embed-an-activity-label" class="level3">
 <h3 class="anchored" data-anchor-id="question-1-embed-an-activity-label">Question 1 — Embed an activity label</h3>
-<p><strong>Embedding</strong> is the process of transforming a text into a high-dimensional numerical vector that captures its semantics. Two semantically similar texts will have vectors that are close to each other in the vector space. This property is what enables nearest-neighbour search.</p>
-<p>Use <code>client_llmlab.embeddings.create</code> to embed the activity label below.</p>
+<p><strong>Embedding</strong> is the process of transforming a text into a (high-dimensional) numerical vector that captures its semantics. Two semantically similar texts will have vectors that are close to each other in the vector space. This property is what enables nearest-neighbour search.</p>
+<p>Use <code>client_llmlab.embeddings.create</code> to embed the activity label below (see the <a href="https://developers.openai.com/api/reference/python/resources/embeddings/methods/create">doc</a>), and store the embedding vector into a <strong>search_embedding</strong> object.</p>
 <div id="activity-example" class="cell" data-execution_count="3">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>activity <span class="op">=</span> <span class="st">"Installation, maintenance and repair of residential air conditioning systems for private customers"</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Activity to code: </span><span class="sc">{</span>activity<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Activity to code: Installation, maintenance and repair of residential air conditioning systems for private customers</code></pre>
-</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>activity <span class="op">=</span> <span class="st">"Installation, maintenance and repair of residential air conditioning systems for private customers"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="embed-question" class="cell" data-execution_count="4">
 <details class="code-fold">
 <summary>Click to see the answer</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>response <span class="op">=</span> client_llmlab.embeddings.create(</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    model<span class="op">=</span>EMB_MODEL_NAME,</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">input</span><span class="op">=</span>activity</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>search_embedding <span class="op">=</span> response.data[<span class="dv">0</span>].embedding</span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Vector created of length: </span><span class="sc">{</span><span class="bu">len</span>(search_embedding)<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>response <span class="op">=</span> client_llmlab.embeddings.create(</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    model<span class="op">=</span>EMB_MODEL_NAME,</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">input</span><span class="op">=</span>activity</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>search_embedding <span class="op">=</span> response.data[<span class="dv">0</span>].embedding</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Vector created of length: </span><span class="sc">{</span><span class="bu">len</span>(search_embedding)<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -397,28 +398,59 @@ Note
 <section id="question-2-retrieval-search-for-nace-candidates" class="level3">
 <h3 class="anchored" data-anchor-id="question-2-retrieval-search-for-nace-candidates">Question 2 — Retrieval: search for NACE candidates</h3>
 <p><strong>Retrieval</strong> consists of querying the Qdrant vector store to find the <code>k</code> NACE codes whose descriptions are semantically closest to the label being coded.</p>
-<p>Use <code>client_qdrant.query_points</code> with <code>limit=RETRIEVER_LIMIT</code> and inspect the results.</p>
+<p>Use <code>client_qdrant.query_points</code> with <code>limit=RETRIEVER_LIMIT</code> to get the <code>k</code> closest candidates, then extract from the response <strong>two lists</strong>:</p>
+<ul>
+<li><code>codes_retrieved</code> — the NACE codes of the retrieved candidates</li>
+<li><code>descriptions_retrieved</code> — their associated textual descriptions</li>
+</ul>
+<p>These two lists will be reused in the next question to build the prompt sent to the LLM.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-3-contents" aria-controls="callout-3" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>Hint: <code>client_qdrant.query_points</code> and response structure
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-3" class="callout-3-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p>The call follows this pattern (see the <a href="https://python-client.qdrant.tech/qdrant_client.qdrant_client">Qdrant Python client doc</a>):</p>
+<pre class="text"><code>points = client_qdrant.query_points(
+    collection_name = &lt;your collection&gt;,
+    query           = &lt;your embedding vector&gt;,
+    limit           = &lt;how many neighbours to return&gt;,
+)</code></pre>
+<p>The response is a Pydantic model — calling <code>.model_dump()</code> on it gives back a plain dict. The retrieved candidates live under the <code>"points"</code> key, and each point exposes a <code>"payload"</code> dict that contains the metadata you stored in tutorial 1 (<code>code</code>, <code>text</code>, etc.).</p>
+<p>💡 <em>Pattern in pseudo-code:</em></p>
+<pre class="text"><code>for point in points.model_dump()["points"]:
+    append point["payload"]["code"] to codes_retrieved
+    append point["payload"]["text"] to descriptions_retrieved</code></pre>
+</div>
+</div>
+</div>
 <div id="search-example" class="cell" data-execution_count="5">
 <details class="code-fold">
 <summary>Click to see the answer</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>points <span class="op">=</span> client_qdrant.query_points(</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    collection_name<span class="op">=</span>COLLECTION_NAME,</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    query<span class="op">=</span>search_embedding,</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    limit<span class="op">=</span>RETRIEVER_LIMIT,</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>descriptions_retrieved <span class="op">=</span> []</span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>codes_retrieved <span class="op">=</span> []</span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> point <span class="kw">in</span> points.model_dump()[<span class="st">"points"</span>]:</span>
-<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    descriptions_retrieved.append(point[<span class="st">"payload"</span>][<span class="st">"text"</span>])</span>
-<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    codes_retrieved.append(point[<span class="st">"payload"</span>][<span class="st">"code"</span>])</span>
-<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(</span>
-<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    <span class="ss">f"✓ Vector search completed: </span><span class="sc">{</span><span class="bu">len</span>(descriptions_retrieved)<span class="sc">}</span><span class="ss"> codes and descriptions retrieved</span><span class="ch">\n</span><span class="ss">"</span></span>
-<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Check the first code retrieved ==============</span><span class="ch">\n</span><span class="st">"</span>)</span>
-<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(descriptions_retrieved[<span class="dv">0</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>points <span class="op">=</span> client_qdrant.query_points(</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    collection_name<span class="op">=</span>COLLECTION_NAME,</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    query<span class="op">=</span>search_embedding,</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    limit<span class="op">=</span>RETRIEVER_LIMIT,</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>descriptions_retrieved <span class="op">=</span> []</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>codes_retrieved <span class="op">=</span> []</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> point <span class="kw">in</span> points.model_dump()[<span class="st">"points"</span>]:</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>    descriptions_retrieved.append(point[<span class="st">"payload"</span>][<span class="st">"text"</span>])</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>    codes_retrieved.append(point[<span class="st">"payload"</span>][<span class="st">"code"</span>])</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>    <span class="ss">f"✓ Vector search completed: </span><span class="sc">{</span><span class="bu">len</span>(descriptions_retrieved)<span class="sc">}</span><span class="ss"> codes and descriptions retrieved</span><span class="ch">\n</span><span class="ss">"</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Check the first code retrieved ==============</span><span class="ch">\n</span><span class="st">"</span>)</span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(descriptions_retrieved[<span class="dv">0</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -445,44 +477,33 @@ Note
 </ul>
 <p>Constraining the output to <strong>JSON format</strong> is a best practice: it simplifies automatic parsing and reduces format hallucinations.</p>
 <div id="create-prompt" class="cell" data-execution_count="6">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>SYSTEM_PROMPT <span class="op">=</span> <span class="st">"""</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="st">You are an expert in the Statistical Classification of Economic Activities in the European Community (NACE).</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="st">Your task is to classify the main economic activity of a company into the NACE 2.1 classification system, based strictly on:</span></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="st">- the textual description of the company's activity.</span></span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="st">- a restricted list of candidate NACE codes and their explanatory notes</span></span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="st">You must follow the instructions rigorously and return only the requested JSON output.</span></span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="st">"""</span></span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>USER_PROMPT_TEMPLATE <span class="op">=</span> <span class="st">"""</span></span>
-<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="st"># Company main activity:</span></span>
-<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="sc">{activity}</span></span>
-<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a><span class="st"># Candidate NACE codes and their explanatory notes:</span></span>
-<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="sc">{proposed_nace_descriptions}</span></span>
-<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a><span class="st">========</span></span>
-<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a><span class="st"># Instructions:</span></span>
-<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a><span class="st">1. You MUST select the NACE code strictly from the provided candidate list. No external codes are allowed.</span></span>
-<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a><span class="st">2. If multiple activities are mentioned, ONLY consider the first one.</span></span>
-<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a><span class="st">3. If the description is unclear or insufficient to determine a classification, return:</span></span>
-<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a><span class="st">- "nace2025": null</span></span>
-<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a><span class="st">- "codable": false</span></span>
-<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a><span class="st">4. The selected code MUST belong to this list:</span></span>
-<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a><span class="st">[</span><span class="sc">{proposed_nace_codes}</span><span class="st">]</span></span>
-<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a><span class="st">5. Provide a realistic confidence score between 0.00 and 1.00 (two decimal places max).</span></span>
-<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a><span class="st">6. Your response MUST be a valid JSON object following the schema below.</span></span>
-<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a><span class="st">- "codable": &lt;boolean&gt;,</span></span>
-<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a><span class="st">- "nace2025": &lt;string or null&gt;,</span></span>
-<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a><span class="st">- "confidence": &lt;float&gt;</span></span>
-<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a><span class="st">7. DO NOT include any explanation, reasoning, or additional text.</span></span>
-<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-38"><a href="#cb7-38" aria-hidden="true" tabindex="-1"></a><span class="st">"""</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>SYSTEM_PROMPT <span class="op">=</span> <span class="st">"""</span><span class="op">\</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="st">You are an expert classifier for the NACE 2.1 nomenclature (Statistical Classification of Economic Activities in the European Community).</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="st">Given a company activity description and a short list of candidate NACE codes, your job is to pick the single most appropriate code from the candidates — or to declare the activity not codable if the description is too ambiguous.</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="st">Always reply with a valid JSON object matching the requested schema. No explanations, no extra text.</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="st">"""</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>USER_PROMPT_TEMPLATE <span class="op">=</span> <span class="st">"""</span><span class="op">\</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="st">## Activity to classify</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="sc">{activity}</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a><span class="st">## Candidate NACE codes and their explanatory notes</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a><span class="sc">{proposed_nace_descriptions}</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a><span class="st">## Rules</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a><span class="st">- Pick exactly one code from this list: [</span><span class="sc">{proposed_nace_codes}</span><span class="st">]. Do not invent codes outside the list.</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a><span class="st">- If several activities are mentioned, only consider the first one.</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a><span class="st">- If the description is too vague to decide, return `nace_code: null` and `codable: false`.</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a><span class="st">## Output — valid JSON only</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a><span class="sc">{{</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a><span class="st">  "nace_code": "&lt;one code from the candidate list, or null&gt;",</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a><span class="st">  "codable": &lt;true | false&gt;,</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a><span class="st">  "confidence": &lt;float between 0.0 and 1.0&gt;</span></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a><span class="sc">}}</span></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a><span class="st">"""</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="callout callout-style-default callout-tip callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -496,10 +517,11 @@ Tip
 <div class="callout-body-container callout-body">
 <p><strong>Prompt engineering best practices for classification:</strong></p>
 <ul>
-<li><strong>Constrain the candidate list</strong> (instruction 4): prevents the LLM from inventing a code outside the nomenclature.</li>
-<li><strong>Handle uncertainty explicitly</strong> (instruction 3): an ambiguous label should return <code>codable: false</code> rather than a random code.</li>
-<li><strong>Require a confidence score</strong>: useful for filtering unreliable predictions in production.</li>
-<li><strong>Forbid explanations</strong> (instruction 7): reduces the risk of malformed JSON output.</li>
+<li><strong>Constrain the candidate list</strong>: by injecting the allowed codes directly into the rules (<code>Pick exactly one code from this list: [...]</code>), we prevent the LLM from inventing a code outside the nomenclature.</li>
+<li><strong>Handle uncertainty explicitly</strong>: an ambiguous label should return <code>codable: false</code> rather than a random code — without this escape hatch, the LLM is forced to guess.</li>
+<li><strong>Require a confidence score</strong>: useful for filtering unreliable predictions in production (e.g.&nbsp;flag low-confidence cases for human review).</li>
+<li><strong>Show a concrete JSON schema in the prompt</strong>: giving the model the exact output shape (with placeholders for each field) yields more reliable parsing than describing it in prose.</li>
+<li><strong>Forbid explanations</strong>: combined with <code>response_format={"type": "json_object"}</code> at inference time, this minimises the risk of free-text preambles breaking JSON parsing.</li>
 </ul>
 </div>
 </div>
@@ -524,33 +546,33 @@ Tip
 </div>
 <div class="callout-body-container callout-body">
 <p><strong>Constraining the output to JSON.</strong> The OpenAI-compatible API accepts a <code>response_format</code> parameter that forces the model to return valid JSON:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>response_format<span class="op">=</span>{<span class="st">"type"</span>: <span class="st">"json_object"</span>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>This eliminates free-text preambles and makes parsing reliable. The expected keys (<code>nace2025</code>, <code>codable</code>, <code>confidence</code>) are described in the system prompt.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>response_format<span class="op">=</span>{<span class="st">"type"</span>: <span class="st">"json_object"</span>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>This eliminates free-text preambles and makes parsing reliable. The expected keys (<code>nace_code</code>, <code>codable</code>, <code>confidence</code>) are described in the system prompt.</p>
 </div>
 </div>
 <div id="inference-example" class="cell" data-execution_count="7">
 <details class="code-fold">
 <summary>Click to see the answer</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>user_prompt <span class="op">=</span> USER_PROMPT_TEMPLATE.<span class="bu">format</span>(</span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    activity<span class="op">=</span>activity,</span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    proposed_nace_descriptions<span class="op">=</span><span class="st">"## "</span> <span class="op">+</span> <span class="st">"</span><span class="ch">\n\n</span><span class="st">## "</span>.join(descriptions_retrieved),</span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    proposed_nace_codes<span class="op">=</span><span class="st">", "</span>.join(codes_retrieved)</span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>response <span class="op">=</span> client_llmlab.chat.completions.create(</span>
-<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    model<span class="op">=</span>GEN_MODEL_NAME,</span>
-<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    messages<span class="op">=</span>[</span>
-<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>        {<span class="st">"role"</span>: <span class="st">"system"</span>, <span class="st">"content"</span>: SYSTEM_PROMPT},</span>
-<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>        {<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: user_prompt}</span>
-<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>    ],</span>
-<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>    temperature<span class="op">=</span>TEMPERATURE,</span>
-<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>    response_format<span class="op">=</span>{<span class="st">"type"</span>: <span class="st">"json_object"</span>}</span>
-<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>llm_response <span class="op">=</span> json.loads(response.choices[<span class="dv">0</span>].message.content)</span>
-<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(json.dumps(llm_response, indent<span class="op">=</span><span class="dv">2</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>user_prompt <span class="op">=</span> USER_PROMPT_TEMPLATE.<span class="bu">format</span>(</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    activity<span class="op">=</span>activity,</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    proposed_nace_descriptions<span class="op">=</span><span class="st">"## "</span> <span class="op">+</span> <span class="st">"</span><span class="ch">\n\n</span><span class="st">## "</span>.join(descriptions_retrieved),</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    proposed_nace_codes<span class="op">=</span><span class="st">", "</span>.join(codes_retrieved)</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>response <span class="op">=</span> client_llmlab.chat.completions.create(</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    model<span class="op">=</span>GEN_MODEL_NAME,</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    messages<span class="op">=</span>[</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>        {<span class="st">"role"</span>: <span class="st">"system"</span>, <span class="st">"content"</span>: SYSTEM_PROMPT},</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>        {<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: user_prompt}</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    ],</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>    temperature<span class="op">=</span>TEMPERATURE,</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>    response_format<span class="op">=</span>{<span class="st">"type"</span>: <span class="st">"json_object"</span>}</span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>llm_response <span class="op">=</span> json.loads(response.choices[<span class="dv">0</span>].message.content)</span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(json.dumps(llm_response, indent<span class="op">=</span><span class="dv">2</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 </section>
@@ -569,41 +591,41 @@ Tip
 <section id="load-the-data" class="level2">
 <h2 class="anchored" data-anchor-id="load-the-data">Load the data</h2>
 <div id="cell-get-data" class="cell" data-execution_count="8">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> duckdb</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>con <span class="op">=</span> duckdb.<span class="ex">connect</span>(database<span class="op">=</span><span class="st">":memory:"</span>)</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>con.execute(<span class="st">"INSTALL httpfs;"</span>)</span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>con.execute(<span class="st">"LOAD httpfs;"</span>)</span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>query_definition <span class="op">=</span> <span class="ss">f"""</span></span>
-<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="ss">SELECT *</span></span>
-<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="ss">FROM read_parquet(</span></span>
-<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="ss">  'https://minio.lab.sspcloud.fr/projet-formation/diffusion/funathon/2026/project2/generation_None_temp08.parquet'</span></span>
-<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="ss">)</span></span>
-<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a><span class="ss">USING SAMPLE </span><span class="sc">{</span>SAMPLE_SIZE<span class="sc">}</span></span>
-<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a><span class="ss">"""</span></span>
-<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>annotations <span class="op">=</span> (</span>
-<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>    con.sql(query_definition)</span>
-<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>    .to_df()</span>
-<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>    .to_dict(orient<span class="op">=</span><span class="st">"records"</span>)</span>
-<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Dataset loaded: </span><span class="sc">{</span><span class="bu">len</span>(annotations)<span class="sc">}</span><span class="ss"> rows"</span>)</span>
-<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Keys: </span><span class="sc">{</span><span class="bu">list</span>(annotations[<span class="dv">0</span>].keys())<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>annotations[:<span class="dv">2</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> duckdb</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>con <span class="op">=</span> duckdb.<span class="ex">connect</span>(database<span class="op">=</span><span class="st">":memory:"</span>)</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>con.execute(<span class="st">"INSTALL httpfs;"</span>)</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>con.execute(<span class="st">"LOAD httpfs;"</span>)</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>query_definition <span class="op">=</span> <span class="ss">f"""</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="ss">SELECT *</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="ss">FROM read_parquet(</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a><span class="ss">  'https://minio.lab.sspcloud.fr/projet-formation/diffusion/funathon/2026/project2/generation_None_temp08.parquet'</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a><span class="ss">)</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a><span class="ss">USING SAMPLE </span><span class="sc">{</span>SAMPLE_SIZE<span class="sc">}</span></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a><span class="ss">"""</span></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>annotations <span class="op">=</span> (</span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>    con.sql(query_definition)</span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>    .to_df()</span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>    .to_dict(orient<span class="op">=</span><span class="st">"records"</span>)</span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Dataset loaded: </span><span class="sc">{</span><span class="bu">len</span>(annotations)<span class="sc">}</span><span class="ss"> rows"</span>)</span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Keys: </span><span class="sc">{</span><span class="bu">list</span>(annotations[<span class="dv">0</span>].keys())<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>annotations[:<span class="dv">2</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Dataset loaded: 50 rows
 Keys: ['code', 'name', 'label']</code></pre>
 </div>
 <div id="get-data" class="cell-output cell-output-display" data-execution_count="8">
-<pre><code>[{'code': '82.10',
-  'name': 'Office administrative and support activities',
-  'label': 'Comprehensive administrative and support solutions'},
- {'code': '68.20',
-  'name': 'Rental and operating of own or leased real estate',
-  'label': 'Mobile home park site administration'}]</code></pre>
+<pre><code>[{'code': '46.23',
+  'name': 'Wholesale of live animals',
+  'label': 'Livestock wholesale activities'},
+ {'code': '70.10',
+  'name': 'Activities of head offices',
+  'label': 'Head office operational tasks'}]</code></pre>
 </div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -624,71 +646,71 @@ Note
 <h2 class="anchored" data-anchor-id="utility-function-a-full-pipeline-call">Utility function: a full pipeline call</h2>
 <p>Before looping, we encapsulate steps 1–4 into a reusable function.</p>
 <div id="pipeline-function" class="cell" data-execution_count="9">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> run_rag_pipeline(activity: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">dict</span>:</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co">    Run the full RAG pipeline for a single activity label.</span></span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="co">    Parameters</span></span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="co">    ----------</span></span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="co">    activity : str</span></span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="co">        Free-text economic activity label to be coded.</span></span>
-<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a><span class="co">    Returns</span></span>
-<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a><span class="co">    -------</span></span>
-<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a><span class="co">    dict with keys:</span></span>
-<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="co">        - nace2025 (str | None) : predicted NACE code</span></span>
-<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a><span class="co">        - codable (bool)        : True if the label could be coded</span></span>
-<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a><span class="co">        - confidence (float)    : confidence score (0–1)</span></span>
-<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a><span class="co">        - retrieved_codes (list): candidates returned by the retriever</span></span>
-<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
-<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>    <span class="co"># --- Step 1: Embedding ---</span></span>
-<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>    emb_response <span class="op">=</span> client_llmlab.embeddings.create(</span>
-<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>        model<span class="op">=</span>EMB_MODEL_NAME,</span>
-<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>        <span class="bu">input</span><span class="op">=</span>activity</span>
-<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a>    embedding <span class="op">=</span> emb_response.data[<span class="dv">0</span>].embedding</span>
-<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a>    <span class="co"># --- Step 2: Retrieval ---</span></span>
-<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a>    points <span class="op">=</span> client_qdrant.query_points(</span>
-<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a>        collection_name<span class="op">=</span>COLLECTION_NAME,</span>
-<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a>        query<span class="op">=</span>embedding,</span>
-<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a>        limit<span class="op">=</span>RETRIEVER_LIMIT,</span>
-<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a>    descriptions_retrieved <span class="op">=</span> []</span>
-<span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a>    codes_retrieved <span class="op">=</span> []</span>
-<span id="cb13-33"><a href="#cb13-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> point <span class="kw">in</span> points.model_dump()[<span class="st">"points"</span>]:</span>
-<span id="cb13-34"><a href="#cb13-34" aria-hidden="true" tabindex="-1"></a>        descriptions_retrieved.append(point[<span class="st">"payload"</span>][<span class="st">"text"</span>])</span>
-<span id="cb13-35"><a href="#cb13-35" aria-hidden="true" tabindex="-1"></a>        codes_retrieved.append(point[<span class="st">"payload"</span>][<span class="st">"code"</span>])</span>
-<span id="cb13-36"><a href="#cb13-36" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-37"><a href="#cb13-37" aria-hidden="true" tabindex="-1"></a>    <span class="co"># --- Step 3: Prompt construction ---</span></span>
-<span id="cb13-38"><a href="#cb13-38" aria-hidden="true" tabindex="-1"></a>    user_prompt <span class="op">=</span> USER_PROMPT_TEMPLATE.<span class="bu">format</span>(</span>
-<span id="cb13-39"><a href="#cb13-39" aria-hidden="true" tabindex="-1"></a>        activity<span class="op">=</span>activity,</span>
-<span id="cb13-40"><a href="#cb13-40" aria-hidden="true" tabindex="-1"></a>        proposed_nace_descriptions<span class="op">=</span><span class="st">"## "</span> <span class="op">+</span> <span class="st">"</span><span class="ch">\n\n</span><span class="st">## "</span>.join(descriptions_retrieved),</span>
-<span id="cb13-41"><a href="#cb13-41" aria-hidden="true" tabindex="-1"></a>        proposed_nace_codes<span class="op">=</span><span class="st">", "</span>.join(codes_retrieved)</span>
-<span id="cb13-42"><a href="#cb13-42" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb13-43"><a href="#cb13-43" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-44"><a href="#cb13-44" aria-hidden="true" tabindex="-1"></a>    <span class="co"># --- Step 4: LLM inference ---</span></span>
-<span id="cb13-45"><a href="#cb13-45" aria-hidden="true" tabindex="-1"></a>    gen_response <span class="op">=</span> client_llmlab.chat.completions.create(</span>
-<span id="cb13-46"><a href="#cb13-46" aria-hidden="true" tabindex="-1"></a>        model<span class="op">=</span>GEN_MODEL_NAME,</span>
-<span id="cb13-47"><a href="#cb13-47" aria-hidden="true" tabindex="-1"></a>        messages<span class="op">=</span>[</span>
-<span id="cb13-48"><a href="#cb13-48" aria-hidden="true" tabindex="-1"></a>            {<span class="st">"role"</span>: <span class="st">"system"</span>, <span class="st">"content"</span>: SYSTEM_PROMPT},</span>
-<span id="cb13-49"><a href="#cb13-49" aria-hidden="true" tabindex="-1"></a>            {<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: user_prompt}</span>
-<span id="cb13-50"><a href="#cb13-50" aria-hidden="true" tabindex="-1"></a>        ],</span>
-<span id="cb13-51"><a href="#cb13-51" aria-hidden="true" tabindex="-1"></a>        temperature<span class="op">=</span>TEMPERATURE,</span>
-<span id="cb13-52"><a href="#cb13-52" aria-hidden="true" tabindex="-1"></a>        response_format<span class="op">=</span>{<span class="st">"type"</span>: <span class="st">"json_object"</span>}</span>
-<span id="cb13-53"><a href="#cb13-53" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb13-54"><a href="#cb13-54" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-55"><a href="#cb13-55" aria-hidden="true" tabindex="-1"></a>    result <span class="op">=</span> json.loads(gen_response.choices[<span class="dv">0</span>].message.content)</span>
-<span id="cb13-56"><a href="#cb13-56" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Keep retrieved candidates for retriever evaluation</span></span>
-<span id="cb13-57"><a href="#cb13-57" aria-hidden="true" tabindex="-1"></a>    result[<span class="st">"retrieved_codes"</span>] <span class="op">=</span> codes_retrieved</span>
-<span id="cb13-58"><a href="#cb13-58" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-59"><a href="#cb13-59" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> result</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> run_rag_pipeline(activity: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">dict</span>:</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co">    Run the full RAG pipeline for a single activity label.</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="co">    Parameters</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="co">    ----------</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="co">    activity : str</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="co">        Free-text economic activity label to be coded.</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a><span class="co">    Returns</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a><span class="co">    -------</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a><span class="co">    dict with keys:</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a><span class="co">        - nace_code (str | None) : predicted NACE code</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a><span class="co">        - codable (bool)        : True if the label could be coded</span></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a><span class="co">        - confidence (float)    : confidence score (0–1)</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a><span class="co">        - retrieved_codes (list): candidates returned by the retriever</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>    <span class="co"># --- Step 1: Embedding ---</span></span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>    emb_response <span class="op">=</span> client_llmlab.embeddings.create(</span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>        model<span class="op">=</span>EMB_MODEL_NAME,</span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>        <span class="bu">input</span><span class="op">=</span>activity</span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>    embedding <span class="op">=</span> emb_response.data[<span class="dv">0</span>].embedding</span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a>    <span class="co"># --- Step 2: Retrieval ---</span></span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>    points <span class="op">=</span> client_qdrant.query_points(</span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a>        collection_name<span class="op">=</span>COLLECTION_NAME,</span>
+<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a>        query<span class="op">=</span>embedding,</span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a>        limit<span class="op">=</span>RETRIEVER_LIMIT,</span>
+<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a>    descriptions_retrieved <span class="op">=</span> []</span>
+<span id="cb14-32"><a href="#cb14-32" aria-hidden="true" tabindex="-1"></a>    codes_retrieved <span class="op">=</span> []</span>
+<span id="cb14-33"><a href="#cb14-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> point <span class="kw">in</span> points.model_dump()[<span class="st">"points"</span>]:</span>
+<span id="cb14-34"><a href="#cb14-34" aria-hidden="true" tabindex="-1"></a>        descriptions_retrieved.append(point[<span class="st">"payload"</span>][<span class="st">"text"</span>])</span>
+<span id="cb14-35"><a href="#cb14-35" aria-hidden="true" tabindex="-1"></a>        codes_retrieved.append(point[<span class="st">"payload"</span>][<span class="st">"code"</span>])</span>
+<span id="cb14-36"><a href="#cb14-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-37"><a href="#cb14-37" aria-hidden="true" tabindex="-1"></a>    <span class="co"># --- Step 3: Prompt construction ---</span></span>
+<span id="cb14-38"><a href="#cb14-38" aria-hidden="true" tabindex="-1"></a>    user_prompt <span class="op">=</span> USER_PROMPT_TEMPLATE.<span class="bu">format</span>(</span>
+<span id="cb14-39"><a href="#cb14-39" aria-hidden="true" tabindex="-1"></a>        activity<span class="op">=</span>activity,</span>
+<span id="cb14-40"><a href="#cb14-40" aria-hidden="true" tabindex="-1"></a>        proposed_nace_descriptions<span class="op">=</span><span class="st">"## "</span> <span class="op">+</span> <span class="st">"</span><span class="ch">\n\n</span><span class="st">## "</span>.join(descriptions_retrieved),</span>
+<span id="cb14-41"><a href="#cb14-41" aria-hidden="true" tabindex="-1"></a>        proposed_nace_codes<span class="op">=</span><span class="st">", "</span>.join(codes_retrieved)</span>
+<span id="cb14-42"><a href="#cb14-42" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb14-43"><a href="#cb14-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-44"><a href="#cb14-44" aria-hidden="true" tabindex="-1"></a>    <span class="co"># --- Step 4: LLM inference ---</span></span>
+<span id="cb14-45"><a href="#cb14-45" aria-hidden="true" tabindex="-1"></a>    gen_response <span class="op">=</span> client_llmlab.chat.completions.create(</span>
+<span id="cb14-46"><a href="#cb14-46" aria-hidden="true" tabindex="-1"></a>        model<span class="op">=</span>GEN_MODEL_NAME,</span>
+<span id="cb14-47"><a href="#cb14-47" aria-hidden="true" tabindex="-1"></a>        messages<span class="op">=</span>[</span>
+<span id="cb14-48"><a href="#cb14-48" aria-hidden="true" tabindex="-1"></a>            {<span class="st">"role"</span>: <span class="st">"system"</span>, <span class="st">"content"</span>: SYSTEM_PROMPT},</span>
+<span id="cb14-49"><a href="#cb14-49" aria-hidden="true" tabindex="-1"></a>            {<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: user_prompt}</span>
+<span id="cb14-50"><a href="#cb14-50" aria-hidden="true" tabindex="-1"></a>        ],</span>
+<span id="cb14-51"><a href="#cb14-51" aria-hidden="true" tabindex="-1"></a>        temperature<span class="op">=</span>TEMPERATURE,</span>
+<span id="cb14-52"><a href="#cb14-52" aria-hidden="true" tabindex="-1"></a>        response_format<span class="op">=</span>{<span class="st">"type"</span>: <span class="st">"json_object"</span>}</span>
+<span id="cb14-53"><a href="#cb14-53" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb14-54"><a href="#cb14-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-55"><a href="#cb14-55" aria-hidden="true" tabindex="-1"></a>    result <span class="op">=</span> json.loads(gen_response.choices[<span class="dv">0</span>].message.content)</span>
+<span id="cb14-56"><a href="#cb14-56" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Keep retrieved candidates for retriever evaluation</span></span>
+<span id="cb14-57"><a href="#cb14-57" aria-hidden="true" tabindex="-1"></a>    result[<span class="st">"retrieved_codes"</span>] <span class="op">=</span> codes_retrieved</span>
+<span id="cb14-58"><a href="#cb14-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-59"><a href="#cb14-59" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> result</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="inference-loop" class="level2">
 <h2 class="anchored" data-anchor-id="inference-loop">Inference loop</h2>
 <div class="callout callout-style-default callout-tip no-icon callout-titled">
-<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-10-contents" aria-controls="callout-10" aria-expanded="true" aria-label="Toggle callout">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-11-contents" aria-controls="callout-11" aria-expanded="true" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon no-icon"></i>
 </div>
@@ -697,7 +719,7 @@ Note
 </div>
 <div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
-<div id="callout-10" class="callout-10-contents callout-collapse collapse show">
+<div id="callout-11" class="callout-11-contents callout-collapse collapse show">
 <div class="callout-body-container callout-body">
 <p>Apply <code>run_rag_pipeline</code> to every row of the <code>annotations</code> list. Store the results in a DataFrame called <code>results</code>.</p>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -716,37 +738,37 @@ Note
 <div id="batch-inference" class="cell" data-execution_count="10">
 <details class="code-fold">
 <summary>Click to see the answer</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> tqdm <span class="im">import</span> tqdm</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>records <span class="op">=</span> []</span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> row <span class="kw">in</span> tqdm(annotations, total<span class="op">=</span><span class="bu">len</span>(annotations), desc<span class="op">=</span><span class="st">"Coding"</span>):</span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    activity_label <span class="op">=</span> row[<span class="st">"label"</span>]</span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    true_code      <span class="op">=</span> row[<span class="st">"code"</span>]</span>
-<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span>:</span>
-<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>        pred <span class="op">=</span> run_rag_pipeline(activity_label)</span>
-<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span> <span class="pp">Exception</span> <span class="im">as</span> e:</span>
-<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>        pred <span class="op">=</span> {</span>
-<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>            <span class="st">"nace2025"</span>:       <span class="va">None</span>,</span>
-<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>            <span class="st">"codable"</span>:        <span class="va">False</span>,</span>
-<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>            <span class="st">"confidence"</span>:     <span class="fl">0.0</span>,</span>
-<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>            <span class="st">"retrieved_codes"</span>: []</span>
-<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>        }</span>
-<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"⚠ Error for '</span><span class="sc">{</span>activity_label[:<span class="dv">60</span>]<span class="sc">}</span><span class="ss">...': </span><span class="sc">{</span>e<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>    records.append({</span>
-<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>        <span class="st">"activity"</span>:        activity_label,</span>
-<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>        <span class="st">"true_code"</span>:       true_code,</span>
-<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>        <span class="st">"pred_code"</span>:       pred.get(<span class="st">"nace2025"</span>),</span>
-<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>        <span class="st">"codable"</span>:         pred.get(<span class="st">"codable"</span>, <span class="va">False</span>),</span>
-<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a>        <span class="st">"confidence"</span>:      pred.get(<span class="st">"confidence"</span>, <span class="fl">0.0</span>),</span>
-<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>        <span class="st">"retrieved_codes"</span>: pred.get(<span class="st">"retrieved_codes"</span>, []),</span>
-<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a>    })</span>
-<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> pd.DataFrame(records)</span>
-<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">✓ Inference complete: </span><span class="sc">{</span><span class="bu">len</span>(results)<span class="sc">}</span><span class="ss"> activities processed"</span>)</span>
-<span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a>results.head()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-overflow-scroll code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> tqdm <span class="im">import</span> tqdm</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>records <span class="op">=</span> []</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> row <span class="kw">in</span> tqdm(annotations, total<span class="op">=</span><span class="bu">len</span>(annotations), desc<span class="op">=</span><span class="st">"Coding"</span>):</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    activity_label <span class="op">=</span> row[<span class="st">"label"</span>]</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    true_code      <span class="op">=</span> row[<span class="st">"code"</span>]</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span>:</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>        pred <span class="op">=</span> run_rag_pipeline(activity_label)</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span> <span class="pp">Exception</span> <span class="im">as</span> e:</span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>        pred <span class="op">=</span> {</span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>            <span class="st">"nace_code"</span>:       <span class="va">None</span>,</span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>            <span class="st">"codable"</span>:        <span class="va">False</span>,</span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>            <span class="st">"confidence"</span>:     <span class="fl">0.0</span>,</span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>            <span class="st">"retrieved_codes"</span>: []</span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>        }</span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"⚠ Error for '</span><span class="sc">{</span>activity_label[:<span class="dv">60</span>]<span class="sc">}</span><span class="ss">...': </span><span class="sc">{</span>e<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>    records.append({</span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>        <span class="st">"activity"</span>:        activity_label,</span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>        <span class="st">"true_code"</span>:       true_code,</span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>        <span class="st">"pred_code"</span>:       pred.get(<span class="st">"nace_code"</span>),</span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>        <span class="st">"codable"</span>:         pred.get(<span class="st">"codable"</span>, <span class="va">False</span>),</span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>        <span class="st">"confidence"</span>:      pred.get(<span class="st">"confidence"</span>, <span class="fl">0.0</span>),</span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>        <span class="st">"retrieved_codes"</span>: pred.get(<span class="st">"retrieved_codes"</span>, []),</span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a>    })</span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> pd.DataFrame(records)</span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">✓ Inference complete: </span><span class="sc">{</span><span class="bu">len</span>(results)<span class="sc">}</span><span class="ss"> activities processed"</span>)</span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a>results.head()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -788,7 +810,7 @@ Note
 <p><span class="math display">\[\text{Pipeline accuracy} = \text{Retriever@k} \times \text{LLM accuracy (conditional)}\]</span></p>
 <p>This decomposition helps pinpoint whether errors come from the retriever or the LLM, and guides improvement efforts.</p>
 <div class="callout callout-style-default callout-tip no-icon callout-titled">
-<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-15-contents" aria-controls="callout-15" aria-expanded="true" aria-label="Toggle callout">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-16-contents" aria-controls="callout-16" aria-expanded="true" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon no-icon"></i>
 </div>
@@ -797,7 +819,7 @@ Note
 </div>
 <div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
-<div id="callout-15" class="callout-15-contents callout-collapse collapse show">
+<div id="callout-16" class="callout-16-contents callout-collapse collapse show">
 <div class="callout-body-container callout-body">
 <section id="prepare-evaluation-columns" class="level3">
 <h3 class="anchored" data-anchor-id="prepare-evaluation-columns">Prepare evaluation columns</h3>
@@ -810,19 +832,19 @@ Note
 <div id="eval-columns" class="cell" data-execution_count="11">
 <details class="code-fold">
 <summary>Click to see the answer</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Is the true code among the retriever's candidates?</span></span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>results[<span class="st">"retriever_hit"</span>] <span class="op">=</span> results.<span class="bu">apply</span>(</span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">lambda</span> row: row[<span class="st">"true_code"</span>] <span class="kw">in</span> row[<span class="st">"retrieved_codes"</span>], axis<span class="op">=</span><span class="dv">1</span></span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Is the predicted code correct?</span></span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>results[<span class="st">"pipeline_correct"</span>] <span class="op">=</span> results[<span class="st">"pred_code"</span>] <span class="op">==</span> results[<span class="st">"true_code"</span>]</span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Did the LLM pick the right code, given that the retriever found it?</span></span>
-<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>results[<span class="st">"llm_correct_given_retriever"</span>] <span class="op">=</span> results.<span class="bu">apply</span>(</span>
-<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">lambda</span> row: row[<span class="st">"pipeline_correct"</span>] <span class="cf">if</span> row[<span class="st">"retriever_hit"</span>] <span class="cf">else</span> <span class="va">None</span>,</span>
-<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    axis<span class="op">=</span><span class="dv">1</span></span>
-<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Is the true code among the retriever's candidates?</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>results[<span class="st">"retriever_hit"</span>] <span class="op">=</span> results.<span class="bu">apply</span>(</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">lambda</span> row: row[<span class="st">"true_code"</span>] <span class="kw">in</span> row[<span class="st">"retrieved_codes"</span>], axis<span class="op">=</span><span class="dv">1</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Is the predicted code correct?</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>results[<span class="st">"pipeline_correct"</span>] <span class="op">=</span> results[<span class="st">"pred_code"</span>] <span class="op">==</span> results[<span class="st">"true_code"</span>]</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Did the LLM pick the right code, given that the retriever found it?</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>results[<span class="st">"llm_correct_given_retriever"</span>] <span class="op">=</span> results.<span class="bu">apply</span>(</span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">lambda</span> row: row[<span class="st">"pipeline_correct"</span>] <span class="cf">if</span> row[<span class="st">"retriever_hit"</span>] <span class="cf">else</span> <span class="va">None</span>,</span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>    axis<span class="op">=</span><span class="dv">1</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 <div id="cell-eval-columns-preview" class="cell" data-execution_count="12">
@@ -839,46 +861,52 @@ Note
 <th data-quarto-table-cell-role="th">pred_code</th>
 <th data-quarto-table-cell-role="th">retriever_hit</th>
 <th data-quarto-table-cell-role="th">pipeline_correct</th>
+<th data-quarto-table-cell-role="th">llm_correct_given_retriever</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">0</th>
-<td>Comprehensive administrative and support solut...</td>
-<td>82.10</td>
-<td>82.10</td>
+<td>Livestock wholesale activities</td>
+<td>46.23</td>
+<td>46.23</td>
+<td>True</td>
 <td>True</td>
 <td>True</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">1</th>
-<td>Mobile home park site administration</td>
-<td>68.20</td>
-<td>55.3</td>
-<td>False</td>
-<td>False</td>
+<td>Head office operational tasks</td>
+<td>70.10</td>
+<td>70.10</td>
+<td>True</td>
+<td>True</td>
+<td>True</td>
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">2</th>
-<td>Residential parcel service provision</td>
-<td>53.20</td>
-<td>53.20</td>
-<td>True</td>
-<td>True</td>
+<td>District office support activities</td>
+<td>70.10</td>
+<td>82</td>
+<td>False</td>
+<td>False</td>
+<td>None</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">3</th>
-<td>Flavoring agent manufacturing</td>
-<td>10.84</td>
-<td>10.84</td>
-<td>True</td>
-<td>True</td>
+<td>Roof space leasing for energy production</td>
+<td>68.20</td>
+<td>68.2</td>
+<td>False</td>
+<td>False</td>
+<td>None</td>
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">4</th>
-<td>Insurance product marketing and sales</td>
-<td>66.22</td>
-<td>66.22</td>
+<td>Electrical system integration for homes</td>
+<td>43.21</td>
+<td>43.21</td>
+<td>True</td>
 <td>True</td>
 <td>True</td>
 </tr>
@@ -899,17 +927,17 @@ Note
 <div id="cell-retriever-accuracy-hint" class="cell" data-execution_count="13">
 <div id="retriever-accuracy-hint" class="cell-output cell-output-display" data-execution_count="13">
 <pre><code>retriever_hit
-Retriever found true code    32
-Retriever missed             18
+Retriever found true code    29
+Retriever missed             21
 Name: count, dtype: int64</code></pre>
 </div>
 </div>
 <div id="retriever-accuracy" class="cell" data-execution_count="14">
 <details class="code-fold">
 <summary>Click to see the answer</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>retriever_accuracy <span class="op">=</span> results[<span class="st">"retriever_hit"</span>].mean()</span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Retriever@</span><span class="sc">{</span>RETRIEVER_LIMIT<span class="sc">}</span><span class="ss"> accuracy: </span><span class="sc">{</span>retriever_accuracy<span class="sc">:.1%}</span><span class="ss">"</span>)</span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  → </span><span class="sc">{</span>results[<span class="st">'retriever_hit'</span>]<span class="sc">.</span><span class="bu">sum</span>()<span class="sc">}</span><span class="ss"> / </span><span class="sc">{</span><span class="bu">len</span>(results)<span class="sc">}</span><span class="ss"> correctly retrieved"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>retriever_accuracy <span class="op">=</span> results[<span class="st">"retriever_hit"</span>].mean()</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Retriever@</span><span class="sc">{</span>RETRIEVER_LIMIT<span class="sc">}</span><span class="ss"> accuracy: </span><span class="sc">{</span>retriever_accuracy<span class="sc">:.1%}</span><span class="ss">"</span>)</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  → </span><span class="sc">{</span>results[<span class="st">'retriever_hit'</span>]<span class="sc">.</span><span class="bu">sum</span>()<span class="sc">}</span><span class="ss"> / </span><span class="sc">{</span><span class="bu">len</span>(results)<span class="sc">}</span><span class="ss"> correctly retrieved"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 <hr>
@@ -923,7 +951,7 @@ Name: count, dtype: int64</code></pre>
 <div id="cell-llm-accuracy-hint" class="cell" data-execution_count="15">
 <div id="llm-accuracy-hint" class="cell-output cell-output-display" data-execution_count="15">
 <pre><code>pipeline_correct
-LLM correct    31
+LLM correct    28
 LLM wrong       1
 Name: count, dtype: int64</code></pre>
 </div>
@@ -931,11 +959,11 @@ Name: count, dtype: int64</code></pre>
 <div id="llm-accuracy" class="cell" data-execution_count="16">
 <details class="code-fold">
 <summary>Click to see the answer</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>retriever_success <span class="op">=</span> results[results[<span class="st">"retriever_hit"</span>]]</span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>llm_accuracy <span class="op">=</span> retriever_success[<span class="st">"pipeline_correct"</span>].mean()</span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"LLM accuracy (conditional on retriever): </span><span class="sc">{</span>llm_accuracy<span class="sc">:.1%}</span><span class="ss">"</span>)</span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  → </span><span class="sc">{</span>retriever_success[<span class="st">'pipeline_correct'</span>]<span class="sc">.</span><span class="bu">sum</span>()<span class="sc">}</span><span class="ss"> / </span><span class="sc">{</span><span class="bu">len</span>(retriever_success)<span class="sc">}</span><span class="ss"> correctly coded by the LLM"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>retriever_success <span class="op">=</span> results[results[<span class="st">"retriever_hit"</span>]]</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>llm_accuracy <span class="op">=</span> retriever_success[<span class="st">"pipeline_correct"</span>].mean()</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"LLM accuracy (conditional on retriever): </span><span class="sc">{</span>llm_accuracy<span class="sc">:.1%}</span><span class="ss">"</span>)</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  → </span><span class="sc">{</span>retriever_success[<span class="st">'pipeline_correct'</span>]<span class="sc">.</span><span class="bu">sum</span>()<span class="sc">}</span><span class="ss"> / </span><span class="sc">{</span><span class="bu">len</span>(retriever_success)<span class="sc">}</span><span class="ss"> correctly coded by the LLM"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 <hr>
@@ -948,20 +976,20 @@ Name: count, dtype: int64</code></pre>
 <div id="cell-pipeline-accuracy-hint" class="cell" data-execution_count="17">
 <div id="pipeline-accuracy-hint" class="cell-output cell-output-display" data-execution_count="17">
 <pre><code>pipeline_correct
-Correctly coded      31
-Incorrectly coded    19
+Correctly coded      28
+Incorrectly coded    22
 Name: count, dtype: int64</code></pre>
 </div>
 </div>
 <div id="pipeline-accuracy" class="cell" data-execution_count="18">
 <details class="code-fold">
 <summary>Click to see the answer</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>pipeline_accuracy <span class="op">=</span> results[<span class="st">"pipeline_correct"</span>].mean()</span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Pipeline accuracy (end-to-end)          : </span><span class="sc">{</span>pipeline_accuracy<span class="sc">:.1%}</span><span class="ss">"</span>)</span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  → </span><span class="sc">{</span>results[<span class="st">'pipeline_correct'</span>]<span class="sc">.</span><span class="bu">sum</span>()<span class="sc">}</span><span class="ss"> / </span><span class="sc">{</span><span class="bu">len</span>(results)<span class="sc">}</span><span class="ss"> correctly coded"</span>)</span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
-<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Cross-check: Retriever@k × LLM = </span><span class="sc">{</span>retriever_accuracy<span class="sc">:.3f}</span><span class="ss"> × </span><span class="sc">{</span>llm_accuracy<span class="sc">:.3f}</span><span class="ss"> = </span><span class="sc">{</span>retriever_accuracy <span class="op">*</span> llm_accuracy<span class="sc">:.1%}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>pipeline_accuracy <span class="op">=</span> results[<span class="st">"pipeline_correct"</span>].mean()</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Pipeline accuracy (end-to-end)          : </span><span class="sc">{</span>pipeline_accuracy<span class="sc">:.1%}</span><span class="ss">"</span>)</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  → </span><span class="sc">{</span>results[<span class="st">'pipeline_correct'</span>]<span class="sc">.</span><span class="bu">sum</span>()<span class="sc">}</span><span class="ss"> / </span><span class="sc">{</span><span class="bu">len</span>(results)<span class="sc">}</span><span class="ss"> correctly coded"</span>)</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Cross-check: Retriever@k × LLM = </span><span class="sc">{</span>retriever_accuracy<span class="sc">:.3f}</span><span class="ss"> × </span><span class="sc">{</span>llm_accuracy<span class="sc">:.3f}</span><span class="ss"> = </span><span class="sc">{</span>retriever_accuracy <span class="op">*</span> llm_accuracy<span class="sc">:.1%}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 <hr>
@@ -972,24 +1000,24 @@ Name: count, dtype: int64</code></pre>
 <div id="dashboard" class="cell" data-execution_count="19">
 <details class="code-fold">
 <summary>Click to see the answer</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>n_total          <span class="op">=</span> <span class="bu">len</span>(results)</span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>n_retriever_miss <span class="op">=</span> (<span class="op">~</span>results[<span class="st">"retriever_hit"</span>]).<span class="bu">sum</span>()</span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>n_llm_miss       <span class="op">=</span> (results[<span class="st">"retriever_hit"</span>] <span class="op">&amp;</span> <span class="op">~</span>results[<span class="st">"pipeline_correct"</span>]).<span class="bu">sum</span>()</span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>n_correct        <span class="op">=</span> results[<span class="st">"pipeline_correct"</span>].<span class="bu">sum</span>()</span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"="</span> <span class="op">*</span> <span class="dv">52</span>)</span>
-<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"      DASHBOARD — RAG PIPELINE NACE 2.1"</span>)</span>
-<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"="</span> <span class="op">*</span> <span class="dv">52</span>)</span>
-<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  Activities processed        : </span><span class="sc">{</span>n_total<span class="sc">:&gt;6}</span><span class="ss">"</span>)</span>
-<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  Correctly coded             : </span><span class="sc">{</span>n_correct<span class="sc">:&gt;6}</span><span class="ss">  (</span><span class="sc">{</span>pipeline_accuracy<span class="sc">:.1%}</span><span class="ss">)"</span>)</span>
-<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
-<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  Retriever@</span><span class="sc">{</span>RETRIEVER_LIMIT<span class="sc">}</span><span class="ss"> accuracy        : </span><span class="sc">{</span>retriever_accuracy<span class="sc">:&gt;6.1%}</span><span class="ss">"</span>)</span>
-<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  LLM accuracy (conditional)  : </span><span class="sc">{</span>llm_accuracy<span class="sc">:&gt;6.1%}</span><span class="ss">"</span>)</span>
-<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  Pipeline accuracy           : </span><span class="sc">{</span>pipeline_accuracy<span class="sc">:&gt;6.1%}</span><span class="ss">"</span>)</span>
-<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
-<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  Retriever errors            : </span><span class="sc">{</span>n_retriever_miss<span class="sc">:&gt;6}</span><span class="ss">  (</span><span class="sc">{</span>n_retriever_miss<span class="op">/</span>n_total<span class="sc">:.1%}</span><span class="ss">)"</span>)</span>
-<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  LLM errors                  : </span><span class="sc">{</span>n_llm_miss<span class="sc">:&gt;6}</span><span class="ss">  (</span><span class="sc">{</span>n_llm_miss<span class="op">/</span>n_total<span class="sc">:.1%}</span><span class="ss">)"</span>)</span>
-<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"="</span> <span class="op">*</span> <span class="dv">52</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>n_total          <span class="op">=</span> <span class="bu">len</span>(results)</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>n_retriever_miss <span class="op">=</span> (<span class="op">~</span>results[<span class="st">"retriever_hit"</span>]).<span class="bu">sum</span>()</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>n_llm_miss       <span class="op">=</span> (results[<span class="st">"retriever_hit"</span>] <span class="op">&amp;</span> <span class="op">~</span>results[<span class="st">"pipeline_correct"</span>]).<span class="bu">sum</span>()</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>n_correct        <span class="op">=</span> results[<span class="st">"pipeline_correct"</span>].<span class="bu">sum</span>()</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"="</span> <span class="op">*</span> <span class="dv">52</span>)</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"      DASHBOARD — RAG PIPELINE NACE 2.1"</span>)</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"="</span> <span class="op">*</span> <span class="dv">52</span>)</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  Activities processed        : </span><span class="sc">{</span>n_total<span class="sc">:&gt;6}</span><span class="ss">"</span>)</span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  Correctly coded             : </span><span class="sc">{</span>n_correct<span class="sc">:&gt;6}</span><span class="ss">  (</span><span class="sc">{</span>pipeline_accuracy<span class="sc">:.1%}</span><span class="ss">)"</span>)</span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  Retriever@</span><span class="sc">{</span>RETRIEVER_LIMIT<span class="sc">}</span><span class="ss"> accuracy        : </span><span class="sc">{</span>retriever_accuracy<span class="sc">:&gt;6.1%}</span><span class="ss">"</span>)</span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  LLM accuracy (conditional)  : </span><span class="sc">{</span>llm_accuracy<span class="sc">:&gt;6.1%}</span><span class="ss">"</span>)</span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  Pipeline accuracy           : </span><span class="sc">{</span>pipeline_accuracy<span class="sc">:&gt;6.1%}</span><span class="ss">"</span>)</span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  Retriever errors            : </span><span class="sc">{</span>n_retriever_miss<span class="sc">:&gt;6}</span><span class="ss">  (</span><span class="sc">{</span>n_retriever_miss<span class="op">/</span>n_total<span class="sc">:.1%}</span><span class="ss">)"</span>)</span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  LLM errors                  : </span><span class="sc">{</span>n_llm_miss<span class="sc">:&gt;6}</span><span class="ss">  (</span><span class="sc">{</span>n_llm_miss<span class="op">/</span>n_total<span class="sc">:.1%}</span><span class="ss">)"</span>)</span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"="</span> <span class="op">*</span> <span class="dv">52</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -1041,70 +1069,70 @@ Important
 <p>The confidence score produced by the LLM can serve as a <strong>quality signal</strong> to filter unreliable predictions in production, at the cost of reduced coverage.</p>
 <details class="code-fold">
 <summary>Click to see the answer</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> plotnine <span class="im">import</span> (</span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>    ggplot, aes,</span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    geom_boxplot, geom_line, geom_point,</span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    scale_color_manual, scale_linetype_manual,</span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    labs, theme_minimal,</span>
-<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a><span class="co"># --- Left: confidence distribution by correctness ---</span></span>
-<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>results_plot <span class="op">=</span> results.assign(</span>
-<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>    correctness<span class="op">=</span>results[<span class="st">"pipeline_correct"</span>].<span class="bu">map</span>({<span class="va">False</span>: <span class="st">"Incorrect"</span>, <span class="va">True</span>: <span class="st">"Correct"</span>})</span>
-<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>p1 <span class="op">=</span> (</span>
-<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a>    ggplot(results_plot, aes(x<span class="op">=</span><span class="st">"correctness"</span>, y<span class="op">=</span><span class="st">"confidence"</span>))</span>
-<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> geom_boxplot()</span>
-<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> labs(</span>
-<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>        title<span class="op">=</span><span class="st">"Confidence distribution by pipeline correctness"</span>,</span>
-<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a>        x<span class="op">=</span><span class="st">"Prediction correct"</span>,</span>
-<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a>        y<span class="op">=</span><span class="st">"Confidence score"</span>,</span>
-<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> theme_minimal()</span>
-<span id="cb24-23"><a href="#cb24-23" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb24-24"><a href="#cb24-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-25"><a href="#cb24-25" aria-hidden="true" tabindex="-1"></a><span class="co"># --- Right: precision and coverage vs confidence threshold ---</span></span>
-<span id="cb24-26"><a href="#cb24-26" aria-hidden="true" tabindex="-1"></a>thresholds <span class="op">=</span> [i <span class="op">/</span> <span class="dv">10</span> <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, <span class="dv">10</span>)]</span>
-<span id="cb24-27"><a href="#cb24-27" aria-hidden="true" tabindex="-1"></a>rows <span class="op">=</span> []</span>
-<span id="cb24-28"><a href="#cb24-28" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> t <span class="kw">in</span> thresholds:</span>
-<span id="cb24-29"><a href="#cb24-29" aria-hidden="true" tabindex="-1"></a>    subset <span class="op">=</span> results[results[<span class="st">"confidence"</span>] <span class="op">&gt;=</span> t]</span>
-<span id="cb24-30"><a href="#cb24-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">len</span>(subset) <span class="op">&gt;</span> <span class="dv">0</span>:</span>
-<span id="cb24-31"><a href="#cb24-31" aria-hidden="true" tabindex="-1"></a>        rows <span class="op">+=</span> [</span>
-<span id="cb24-32"><a href="#cb24-32" aria-hidden="true" tabindex="-1"></a>            {<span class="st">"threshold"</span>: t, <span class="st">"metric"</span>: <span class="st">"Precision"</span>, <span class="st">"value"</span>: subset[<span class="st">"pipeline_correct"</span>].mean()},</span>
-<span id="cb24-33"><a href="#cb24-33" aria-hidden="true" tabindex="-1"></a>            {<span class="st">"threshold"</span>: t, <span class="st">"metric"</span>: <span class="st">"Coverage"</span>,  <span class="st">"value"</span>: <span class="bu">len</span>(subset) <span class="op">/</span> <span class="bu">len</span>(results)},</span>
-<span id="cb24-34"><a href="#cb24-34" aria-hidden="true" tabindex="-1"></a>        ]</span>
-<span id="cb24-35"><a href="#cb24-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-36"><a href="#cb24-36" aria-hidden="true" tabindex="-1"></a>df_thresh <span class="op">=</span> pd.DataFrame(rows)</span>
-<span id="cb24-37"><a href="#cb24-37" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-38"><a href="#cb24-38" aria-hidden="true" tabindex="-1"></a>p2 <span class="op">=</span> (</span>
-<span id="cb24-39"><a href="#cb24-39" aria-hidden="true" tabindex="-1"></a>    ggplot(df_thresh, aes(x<span class="op">=</span><span class="st">"threshold"</span>, y<span class="op">=</span><span class="st">"value"</span>, color<span class="op">=</span><span class="st">"metric"</span>, linetype<span class="op">=</span><span class="st">"metric"</span>))</span>
-<span id="cb24-40"><a href="#cb24-40" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> geom_line()</span>
-<span id="cb24-41"><a href="#cb24-41" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> geom_point()</span>
-<span id="cb24-42"><a href="#cb24-42" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> scale_color_manual(values<span class="op">=</span>{<span class="st">"Precision"</span>: <span class="st">"steelblue"</span>, <span class="st">"Coverage"</span>: <span class="st">"coral"</span>})</span>
-<span id="cb24-43"><a href="#cb24-43" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> scale_linetype_manual(values<span class="op">=</span>{<span class="st">"Precision"</span>: <span class="st">"solid"</span>, <span class="st">"Coverage"</span>: <span class="st">"dashed"</span>})</span>
-<span id="cb24-44"><a href="#cb24-44" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> labs(</span>
-<span id="cb24-45"><a href="#cb24-45" aria-hidden="true" tabindex="-1"></a>        title<span class="op">=</span><span class="st">"Precision and coverage vs. confidence threshold"</span>,</span>
-<span id="cb24-46"><a href="#cb24-46" aria-hidden="true" tabindex="-1"></a>        x<span class="op">=</span><span class="st">"Confidence threshold"</span>,</span>
-<span id="cb24-47"><a href="#cb24-47" aria-hidden="true" tabindex="-1"></a>        y<span class="op">=</span><span class="st">"Value"</span>,</span>
-<span id="cb24-48"><a href="#cb24-48" aria-hidden="true" tabindex="-1"></a>        color<span class="op">=</span><span class="st">""</span>,</span>
-<span id="cb24-49"><a href="#cb24-49" aria-hidden="true" tabindex="-1"></a>        linetype<span class="op">=</span><span class="st">""</span>,</span>
-<span id="cb24-50"><a href="#cb24-50" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb24-51"><a href="#cb24-51" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> theme_minimal()</span>
-<span id="cb24-52"><a href="#cb24-52" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb24-53"><a href="#cb24-53" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-54"><a href="#cb24-54" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> IPython.display <span class="im">import</span> display</span>
-<span id="cb24-55"><a href="#cb24-55" aria-hidden="true" tabindex="-1"></a>display(p1)</span>
-<span id="cb24-56"><a href="#cb24-56" aria-hidden="true" tabindex="-1"></a>display(p2)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> plotnine <span class="im">import</span> (</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>    ggplot, aes,</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>    geom_boxplot, geom_line, geom_point,</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>    scale_color_manual, scale_linetype_manual,</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>    labs, theme_minimal,</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a><span class="co"># --- Left: confidence distribution by correctness ---</span></span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>results_plot <span class="op">=</span> results.assign(</span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>    correctness<span class="op">=</span>results[<span class="st">"pipeline_correct"</span>].<span class="bu">map</span>({<span class="va">False</span>: <span class="st">"Incorrect"</span>, <span class="va">True</span>: <span class="st">"Correct"</span>})</span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a>p1 <span class="op">=</span> (</span>
+<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a>    ggplot(results_plot, aes(x<span class="op">=</span><span class="st">"correctness"</span>, y<span class="op">=</span><span class="st">"confidence"</span>))</span>
+<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> geom_boxplot()</span>
+<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> labs(</span>
+<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a>        title<span class="op">=</span><span class="st">"Confidence distribution by pipeline correctness"</span>,</span>
+<span id="cb25-19"><a href="#cb25-19" aria-hidden="true" tabindex="-1"></a>        x<span class="op">=</span><span class="st">"Prediction correct"</span>,</span>
+<span id="cb25-20"><a href="#cb25-20" aria-hidden="true" tabindex="-1"></a>        y<span class="op">=</span><span class="st">"Confidence score"</span>,</span>
+<span id="cb25-21"><a href="#cb25-21" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb25-22"><a href="#cb25-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> theme_minimal()</span>
+<span id="cb25-23"><a href="#cb25-23" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb25-24"><a href="#cb25-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-25"><a href="#cb25-25" aria-hidden="true" tabindex="-1"></a><span class="co"># --- Right: precision and coverage vs confidence threshold ---</span></span>
+<span id="cb25-26"><a href="#cb25-26" aria-hidden="true" tabindex="-1"></a>thresholds <span class="op">=</span> [i <span class="op">/</span> <span class="dv">10</span> <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, <span class="dv">10</span>)]</span>
+<span id="cb25-27"><a href="#cb25-27" aria-hidden="true" tabindex="-1"></a>rows <span class="op">=</span> []</span>
+<span id="cb25-28"><a href="#cb25-28" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> t <span class="kw">in</span> thresholds:</span>
+<span id="cb25-29"><a href="#cb25-29" aria-hidden="true" tabindex="-1"></a>    subset <span class="op">=</span> results[results[<span class="st">"confidence"</span>] <span class="op">&gt;=</span> t]</span>
+<span id="cb25-30"><a href="#cb25-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">len</span>(subset) <span class="op">&gt;</span> <span class="dv">0</span>:</span>
+<span id="cb25-31"><a href="#cb25-31" aria-hidden="true" tabindex="-1"></a>        rows <span class="op">+=</span> [</span>
+<span id="cb25-32"><a href="#cb25-32" aria-hidden="true" tabindex="-1"></a>            {<span class="st">"threshold"</span>: t, <span class="st">"metric"</span>: <span class="st">"Precision"</span>, <span class="st">"value"</span>: subset[<span class="st">"pipeline_correct"</span>].mean()},</span>
+<span id="cb25-33"><a href="#cb25-33" aria-hidden="true" tabindex="-1"></a>            {<span class="st">"threshold"</span>: t, <span class="st">"metric"</span>: <span class="st">"Coverage"</span>,  <span class="st">"value"</span>: <span class="bu">len</span>(subset) <span class="op">/</span> <span class="bu">len</span>(results)},</span>
+<span id="cb25-34"><a href="#cb25-34" aria-hidden="true" tabindex="-1"></a>        ]</span>
+<span id="cb25-35"><a href="#cb25-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-36"><a href="#cb25-36" aria-hidden="true" tabindex="-1"></a>df_thresh <span class="op">=</span> pd.DataFrame(rows)</span>
+<span id="cb25-37"><a href="#cb25-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-38"><a href="#cb25-38" aria-hidden="true" tabindex="-1"></a>p2 <span class="op">=</span> (</span>
+<span id="cb25-39"><a href="#cb25-39" aria-hidden="true" tabindex="-1"></a>    ggplot(df_thresh, aes(x<span class="op">=</span><span class="st">"threshold"</span>, y<span class="op">=</span><span class="st">"value"</span>, color<span class="op">=</span><span class="st">"metric"</span>, linetype<span class="op">=</span><span class="st">"metric"</span>))</span>
+<span id="cb25-40"><a href="#cb25-40" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> geom_line()</span>
+<span id="cb25-41"><a href="#cb25-41" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> geom_point()</span>
+<span id="cb25-42"><a href="#cb25-42" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> scale_color_manual(values<span class="op">=</span>{<span class="st">"Precision"</span>: <span class="st">"steelblue"</span>, <span class="st">"Coverage"</span>: <span class="st">"coral"</span>})</span>
+<span id="cb25-43"><a href="#cb25-43" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> scale_linetype_manual(values<span class="op">=</span>{<span class="st">"Precision"</span>: <span class="st">"solid"</span>, <span class="st">"Coverage"</span>: <span class="st">"dashed"</span>})</span>
+<span id="cb25-44"><a href="#cb25-44" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> labs(</span>
+<span id="cb25-45"><a href="#cb25-45" aria-hidden="true" tabindex="-1"></a>        title<span class="op">=</span><span class="st">"Precision and coverage vs. confidence threshold"</span>,</span>
+<span id="cb25-46"><a href="#cb25-46" aria-hidden="true" tabindex="-1"></a>        x<span class="op">=</span><span class="st">"Confidence threshold"</span>,</span>
+<span id="cb25-47"><a href="#cb25-47" aria-hidden="true" tabindex="-1"></a>        y<span class="op">=</span><span class="st">"Value"</span>,</span>
+<span id="cb25-48"><a href="#cb25-48" aria-hidden="true" tabindex="-1"></a>        color<span class="op">=</span><span class="st">""</span>,</span>
+<span id="cb25-49"><a href="#cb25-49" aria-hidden="true" tabindex="-1"></a>        linetype<span class="op">=</span><span class="st">""</span>,</span>
+<span id="cb25-50"><a href="#cb25-50" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb25-51"><a href="#cb25-51" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> theme_minimal()</span>
+<span id="cb25-52"><a href="#cb25-52" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb25-53"><a href="#cb25-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-54"><a href="#cb25-54" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> IPython.display <span class="im">import</span> display</span>
+<span id="cb25-55"><a href="#cb25-55" aria-hidden="true" tabindex="-1"></a>display(p1)</span>
+<span id="cb25-56"><a href="#cb25-56" aria-hidden="true" tabindex="-1"></a>display(p2)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
-<div id="confidence-analysis" class="cell quarto-layout-panel" data-execution_count="20" data-layout-ncol="2">
+<div id="confidence-analysis" class="cell quarto-layout-panel" data-layout-ncol="2" data-execution_count="20">
 <div class="quarto-layout-row">
 <div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
-<p><a href="2-rag-generation_files/figure-html/confidence-analysis-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2"><img src="2-rag-generation_files/figure-html/confidence-analysis-output-1.png" id="confidence-analysis-1" class="img-fluid" width="672"></a></p>
+<p><a href="2-rag-generation_files/figure-html/confidence-analysis-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3"><img src="2-rag-generation_files/figure-html/confidence-analysis-output-1.png" id="confidence-analysis-1" class="img-fluid" width="672"></a></p>
 </div>
 <div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
-<p><a href="2-rag-generation_files/figure-html/confidence-analysis-output-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3"><img src="2-rag-generation_files/figure-html/confidence-analysis-output-2.png" id="confidence-analysis-2" class="img-fluid" width="672"></a></p>
+<p><a href="2-rag-generation_files/figure-html/confidence-analysis-output-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4"><img src="2-rag-generation_files/figure-html/confidence-analysis-output-2.png" id="confidence-analysis-2" class="img-fluid" width="672"></a></p>
 </div>
 </div>
 </div>
