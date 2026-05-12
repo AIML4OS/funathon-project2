@@ -775,12 +775,8 @@ class NaceDocument:
 
 
 ```{python}
-
-#| label: gen-all-points
-#| code-fold: true
-#| code-summary: Click to see the answer
-#| code-overflow: scroll
-#| output: true
+#| label: gen-all-points-hidden
+#| include: false
 
 sample_size = 10  # /!\ Do not use a sample (it's just to build the notebook)
 
@@ -806,44 +802,103 @@ for nace_code in nace[:sample_size]:
 ```
 
 ```{python}
+#| label: gen-all-points
+#| code-fold: true
+#| code-summary: Click to see the answer
+#| code-overflow: scroll
+#| eval: false
 
+nace_points = []
+
+for nace_code in nace[]:
+    nace_doc = NaceDocument.from_raw(
+        raw=nace_code,
+        with_includes_also=True, 
+        with_excludes=True
+    )
+
+    nace_doc.get_embeddings(
+        client_llmlab,
+        emb_model,
+    )
+
+    nace_points.append(
+        nace_doc.to_qdrant_point()
+    )
+
+```
+
+```{python}
 #| label: check-point
 #| code-fold: true
 #| code-summary: Click to see the answer
 #| code-overflow: scroll
 #| output: true
 
-print("\nCheck the first PointStruct:\n")
-print(nace_points[0])
+import json
 
+point = nace_points[0]
+point_dict = point.model_dump()
+
+# Truncate the vector for readability (full vector is hundreds of floats)
+vector = point_dict["vector"]
+point_dict["vector"] = f"[{vector[0]:.4f}, {vector[1]:.4f}, ..., {vector[-1]:.4f}]  ({len(vector)} dims)"
+
+print("Check the first PointStruct:\n")
+print(json.dumps(point_dict, indent=2, ensure_ascii=False))
 ```
 
 ### Question 6
 
-- Upload your points into your Qdrant collection, using `client_qdrant.upsert` method. Try to batch it.
+- Upload your points into your Qdrant collection, using the `client_qdrant.upsert` method. Try to **batch** the upload (instead of sending all 1,047 points in a single request).
+
+::: {.callout-tip collapse="true"}
+## Hint: `client_qdrant.upsert`
+
+The `upsert` method takes two main arguments:
+
+```text
+client_qdrant.upsert(
+    collection_name = <name of your Qdrant collection>,
+    points          = <list of PointStruct to insert/update>,
+)
+```
+
+**"Upsert" = insert + update**: if a point with the same `id` already exists in the collection, it is overwritten; otherwise it is inserted. This makes the operation **idempotent** — re-running your script won't create duplicates.
+
+**Why batch?** Sending one point at a time means one HTTP round-trip per point (slow). Sending all 1,047 in a single request can blow past payload size limits or timeout. A batch size of a few dozen to a few hundred is a reasonable compromise.
+
+💡 *Pattern in pseudo-code:*
+
+```text
+for each slice of N consecutive points in nace_points:
+    client_qdrant.upsert(collection_name=..., points=slice)
+```
+
+Wrap each batch in a `try/except` so a single failure doesn't abort the whole upload.
+:::
 
 ```{python}
-
 #| label: feed-qdrant
 #| code-fold: true
 #| code-summary: Click to see the answer
 #| code-overflow: scroll
-#| output: false
+#| output: true
 
-upload_batch_size = 10
+from more_itertools import chunked
+from tqdm import tqdm
 
-for i in range(0, len(nace_points), upload_batch_size):
-    batch = nace_points[i:i + upload_batch_size]
+BATCH_SIZE = 16
+batches = list(chunked(nace_points, BATCH_SIZE))
+
+for batch in tqdm(batches, desc="Uploading to Qdrant", unit="batch"):
     try:
         client_qdrant.upsert(
             collection_name=COLLECTION_NAME,
-            points=batch
+            points=batch,
         )
-        print(f"Uploaded batch {i//upload_batch_size + 1}/{(len(nace_points)-1)//upload_batch_size + 1}")
     except Exception as e:
-        print(f"Failed to upload batch {i//upload_batch_size + 1}: {str(e)}")
-        continue
-
+        tqdm.write(f"✗ Batch failed: {e}")
 ```
 
 ### Question 7
