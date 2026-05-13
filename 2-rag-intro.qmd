@@ -7,30 +7,6 @@ format:
     number-sections: true
 ---
 
-```{=html}
-<table>
-  <thead>
-    <tr>
-      <th>Technical level</th>
-      <th>Tasks</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><span class="level-button level-beginner">Beginner</span></td>
-      <td>Follow the tutorial and understand provided answers.</td>
-    </tr>
-    <tr>
-      <td><span class="level-button level-intermediate">Intermediate</span></td>
-      <td>Try to complete the exercises without checking the answers.</td>
-    </tr>
-    <tr>
-      <td><span class="level-button level-expert">Expert</span></td>
-      <td>Enhance the pipeline and improve results: better models, richer embeddings, prompt tuning, etc.</td>
-    </tr>
-  </tbody>
-</table>
-```
 
 # What is a RAG, and why use one?
 
