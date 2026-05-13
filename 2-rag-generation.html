@@ -620,12 +620,12 @@ Tip
 Keys: ['code', 'name', 'label']</code></pre>
 </div>
 <div id="get-data" class="cell-output cell-output-display" data-execution_count="8">
-<pre><code>[{'code': '46.23',
-  'name': 'Wholesale of live animals',
-  'label': 'Livestock wholesale activities'},
- {'code': '70.10',
-  'name': 'Activities of head offices',
-  'label': 'Head office operational tasks'}]</code></pre>
+<pre><code>[{'code': '01.11',
+  'name': 'Growing of cereals, other than rice, leguminous crops and oil seeds',
+  'label': 'Cultivation of pulse crops for market'},
+ {'code': '81.30',
+  'name': 'Landscape service activities',
+  'label': 'Landscape ecological maintenance interventions'}]</code></pre>
 </div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -867,48 +867,48 @@ Note
 <tbody>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">0</th>
-<td>Livestock wholesale activities</td>
-<td>46.23</td>
-<td>46.23</td>
+<td>Cultivation of pulse crops for market</td>
+<td>01.11</td>
+<td>01.11</td>
 <td>True</td>
 <td>True</td>
 <td>True</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">1</th>
-<td>Head office operational tasks</td>
-<td>70.10</td>
-<td>70.10</td>
+<td>Landscape ecological maintenance interventions</td>
+<td>81.30</td>
+<td>81.30</td>
 <td>True</td>
 <td>True</td>
 <td>True</td>
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">2</th>
-<td>District office support activities</td>
-<td>70.10</td>
-<td>82</td>
-<td>False</td>
-<td>False</td>
-<td>None</td>
+<td>Software systems design and implementation</td>
+<td>62.10</td>
+<td>62.10</td>
+<td>True</td>
+<td>True</td>
+<td>True</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">3</th>
-<td>Roof space leasing for energy production</td>
-<td>68.20</td>
-<td>68.2</td>
-<td>False</td>
-<td>False</td>
-<td>None</td>
+<td>Software testing and quality assurance</td>
+<td>62.10</td>
+<td>62.10</td>
+<td>True</td>
+<td>True</td>
+<td>True</td>
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">4</th>
-<td>Electrical system integration for homes</td>
-<td>43.21</td>
-<td>43.21</td>
-<td>True</td>
-<td>True</td>
-<td>True</td>
+<td>Short-term visitor lodging</td>
+<td>55.20</td>
+<td>55</td>
+<td>False</td>
+<td>False</td>
+<td>None</td>
 </tr>
 </tbody>
 </table>
@@ -927,8 +927,8 @@ Note
 <div id="cell-retriever-accuracy-hint" class="cell" data-execution_count="13">
 <div id="retriever-accuracy-hint" class="cell-output cell-output-display" data-execution_count="13">
 <pre><code>retriever_hit
-Retriever found true code    29
-Retriever missed             21
+Retriever found true code    26
+Retriever missed             24
 Name: count, dtype: int64</code></pre>
 </div>
 </div>
@@ -951,8 +951,8 @@ Name: count, dtype: int64</code></pre>
 <div id="cell-llm-accuracy-hint" class="cell" data-execution_count="15">
 <div id="llm-accuracy-hint" class="cell-output cell-output-display" data-execution_count="15">
 <pre><code>pipeline_correct
-LLM correct    28
-LLM wrong       1
+LLM correct    24
+LLM wrong       2
 Name: count, dtype: int64</code></pre>
 </div>
 </div>
@@ -976,8 +976,8 @@ Name: count, dtype: int64</code></pre>
 <div id="cell-pipeline-accuracy-hint" class="cell" data-execution_count="17">
 <div id="pipeline-accuracy-hint" class="cell-output cell-output-display" data-execution_count="17">
 <pre><code>pipeline_correct
-Correctly coded      28
-Incorrectly coded    22
+Incorrectly coded    26
+Correctly coded      24
 Name: count, dtype: int64</code></pre>
 </div>
 </div>
