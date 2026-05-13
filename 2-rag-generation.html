@@ -620,12 +620,12 @@ Tip
 Keys: ['code', 'name', 'label']</code></pre>
 </div>
 <div id="get-data" class="cell-output cell-output-display" data-execution_count="8">
-<pre><code>[{'code': '68.20',
-  'name': 'Rental and operating of own or leased real estate',
-  'label': 'Operation of self-owned building spaces'},
- {'code': '70.20',
-  'name': 'Business and other management consultancy activities',
-  'label': 'Management audit preparation and support'}]</code></pre>
+<pre><code>[{'code': '96.22',
+  'name': 'Beauty care and other beauty treatment activities',
+  'label': 'Beauty service for personal grooming'},
+ {'code': '01.19',
+  'name': 'Growing of other non-perennial crops',
+  'label': 'Short-cycle flower farming'}]</code></pre>
 </div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -867,48 +867,48 @@ Note
 <tbody>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">0</th>
-<td>Operation of self-owned building spaces</td>
-<td>68.20</td>
-<td>68.2</td>
-<td>False</td>
-<td>False</td>
-<td>None</td>
+<td>Beauty service for personal grooming</td>
+<td>96.22</td>
+<td>96.22</td>
+<td>True</td>
+<td>True</td>
+<td>True</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">1</th>
-<td>Management audit preparation and support</td>
-<td>70.20</td>
-<td>70.2</td>
-<td>False</td>
-<td>False</td>
-<td>None</td>
+<td>Short-cycle flower farming</td>
+<td>01.19</td>
+<td>01.19</td>
+<td>True</td>
+<td>True</td>
+<td>True</td>
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">2</th>
-<td>Strategic organizational improvement initiatives</td>
+<td>Periodical news dissemination</td>
+<td>58.12</td>
+<td>58.13</td>
+<td>True</td>
+<td>False</td>
+<td>False</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">3</th>
+<td>Operational efficiency improvement programs</td>
 <td>70.20</td>
-<td>70.2</td>
+<td>NaN</td>
 <td>False</td>
 <td>False</td>
 <td>None</td>
 </tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">3</th>
-<td>Specialist dental healthcare provision</td>
-<td>86.23</td>
-<td>86.23</td>
-<td>True</td>
-<td>True</td>
-<td>True</td>
-</tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">4</th>
-<td>Hospital gas distribution system installation</td>
-<td>43.22</td>
-<td>43.22</td>
-<td>True</td>
-<td>True</td>
-<td>True</td>
+<td>Real estate investment and management</td>
+<td>68.20</td>
+<td>68.1</td>
+<td>False</td>
+<td>False</td>
+<td>None</td>
 </tr>
 </tbody>
 </table>
@@ -932,8 +932,8 @@ Note
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  → </span><span class="sc">{</span>results[<span class="st">'retriever_hit'</span>]<span class="sc">.</span><span class="bu">sum</span>()<span class="sc">}</span><span class="ss"> / </span><span class="sc">{</span><span class="bu">len</span>(results)<span class="sc">}</span><span class="ss"> correctly retrieved"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>Retriever@5 accuracy: 59.0%
-  → 59 / 100 correctly retrieved</code></pre>
+<pre><code>Retriever@5 accuracy: 66.0%
+  → 66 / 100 correctly retrieved</code></pre>
 </div>
 </div>
 <hr>
@@ -954,8 +954,8 @@ Note
 <span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  → </span><span class="sc">{</span>retriever_success[<span class="st">'pipeline_correct'</span>]<span class="sc">.</span><span class="bu">sum</span>()<span class="sc">}</span><span class="ss"> / </span><span class="sc">{</span><span class="bu">len</span>(retriever_success)<span class="sc">}</span><span class="ss"> correctly coded by the LLM"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>LLM accuracy (conditional on retriever): 88.1%
-  → 52 / 59 correctly coded by the LLM</code></pre>
+<pre><code>LLM accuracy (conditional on retriever): 98.5%
+  → 65 / 66 correctly coded by the LLM</code></pre>
 </div>
 </div>
 <hr>
@@ -976,10 +976,10 @@ Note
 <span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Cross-check: Retriever@k × LLM = </span><span class="sc">{</span>retriever_accuracy<span class="sc">:.3f}</span><span class="ss"> × </span><span class="sc">{</span>llm_accuracy<span class="sc">:.3f}</span><span class="ss"> = </span><span class="sc">{</span>retriever_accuracy <span class="op">*</span> llm_accuracy<span class="sc">:.1%}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>Pipeline accuracy (end-to-end)          : 52.0%
-  → 52 / 100 correctly coded
+<pre><code>Pipeline accuracy (end-to-end)          : 65.0%
+  → 65 / 100 correctly coded
 
-Cross-check: Retriever@k × LLM = 0.590 × 0.881 = 52.0%</code></pre>
+Cross-check: Retriever@k × LLM = 0.660 × 0.985 = 65.0%</code></pre>
 </div>
 </div>
 <hr>
@@ -1014,14 +1014,14 @@ Cross-check: Retriever@k × LLM = 0.590 × 0.881 = 52.0%</code></pre>
       DASHBOARD — RAG PIPELINE NACE 2.1
 ====================================================
   Activities processed        :    100
-  Correctly coded             :     52  (52.0%)
+  Correctly coded             :     65  (65.0%)
 
-  Retriever@5 accuracy        :  59.0%
-  LLM accuracy (conditional)  :  88.1%
-  Pipeline accuracy           :  52.0%
+  Retriever@5 accuracy        :  66.0%
+  LLM accuracy (conditional)  :  98.5%
+  Pipeline accuracy           :  65.0%
 
-  Retriever errors            :     41  (41.0%)
-  LLM errors                  :      7  (7.0%)
+  Retriever errors            :     34  (34.0%)
+  LLM errors                  :      1  (1.0%)
 ====================================================</code></pre>
 </div>
 </div>
