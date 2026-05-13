@@ -321,7 +321,7 @@ window.Quarto = {
 <span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>TEMPERATURE <span class="op">=</span> <span class="fl">0.1</span>      <span class="co"># Low temperature → more deterministic, reproducible outputs</span></span>
 <span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Evaluation</span></span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>SAMPLE_SIZE <span class="op">=</span> <span class="dv">50</span>       <span class="co"># Number of activities to evaluate (increase for more robust results)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>SAMPLE_SIZE <span class="op">=</span> <span class="dv">100</span>       <span class="co"># Number of activities to evaluate (increase for more robust results)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -616,16 +616,16 @@ Tip
 <span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Keys: </span><span class="sc">{</span><span class="bu">list</span>(annotations[<span class="dv">0</span>].keys())<span class="sc">}</span><span class="ss">"</span>)</span>
 <span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>annotations[:<span class="dv">2</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Dataset loaded: 50 rows
+<pre><code>Dataset loaded: 100 rows
 Keys: ['code', 'name', 'label']</code></pre>
 </div>
 <div id="get-data" class="cell-output cell-output-display" data-execution_count="8">
-<pre><code>[{'code': '01.11',
-  'name': 'Growing of cereals, other than rice, leguminous crops and oil seeds',
-  'label': 'Cultivation of pulse crops for market'},
- {'code': '81.30',
-  'name': 'Landscape service activities',
-  'label': 'Landscape ecological maintenance interventions'}]</code></pre>
+<pre><code>[{'code': '68.20',
+  'name': 'Rental and operating of own or leased real estate',
+  'label': 'Operation of self-owned building spaces'},
+ {'code': '70.20',
+  'name': 'Business and other management consultancy activities',
+  'label': 'Management audit preparation and support'}]</code></pre>
 </div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -732,7 +732,7 @@ Note
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>The default sample size is <code>SAMPLE_SIZE = 50</code>, which keeps inference fast and avoids consuming too many resources. Each call to the pipeline involves two API requests (embedding + generation), so larger samples will take proportionally longer. Feel free to increase <code>SAMPLE_SIZE</code> in the global parameters to get more robust evaluation metrics.</p>
+<p>The default sample size is <code>SAMPLE_SIZE = 100</code>, which keeps inference fast and avoids consuming too many resources. Each call to the pipeline involves two API requests (embedding + generation), so larger samples will take proportionally longer. Feel free to increase <code>SAMPLE_SIZE</code> in the global parameters to get more robust evaluation metrics.</p>
 </div>
 </div>
 <div id="batch-inference" class="cell" data-execution_count="10">
@@ -867,48 +867,48 @@ Note
 <tbody>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">0</th>
-<td>Cultivation of pulse crops for market</td>
-<td>01.11</td>
-<td>01.11</td>
-<td>True</td>
-<td>True</td>
-<td>True</td>
+<td>Operation of self-owned building spaces</td>
+<td>68.20</td>
+<td>68.2</td>
+<td>False</td>
+<td>False</td>
+<td>None</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">1</th>
-<td>Landscape ecological maintenance interventions</td>
-<td>81.30</td>
-<td>81.30</td>
-<td>True</td>
-<td>True</td>
-<td>True</td>
+<td>Management audit preparation and support</td>
+<td>70.20</td>
+<td>70.2</td>
+<td>False</td>
+<td>False</td>
+<td>None</td>
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">2</th>
-<td>Software systems design and implementation</td>
-<td>62.10</td>
-<td>62.10</td>
-<td>True</td>
-<td>True</td>
-<td>True</td>
+<td>Strategic organizational improvement initiatives</td>
+<td>70.20</td>
+<td>70.2</td>
+<td>False</td>
+<td>False</td>
+<td>None</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">3</th>
-<td>Software testing and quality assurance</td>
-<td>62.10</td>
-<td>62.10</td>
+<td>Specialist dental healthcare provision</td>
+<td>86.23</td>
+<td>86.23</td>
 <td>True</td>
 <td>True</td>
 <td>True</td>
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">4</th>
-<td>Short-term visitor lodging</td>
-<td>55.20</td>
-<td>55</td>
-<td>False</td>
-<td>False</td>
-<td>None</td>
+<td>Hospital gas distribution system installation</td>
+<td>43.22</td>
+<td>43.22</td>
+<td>True</td>
+<td>True</td>
+<td>True</td>
 </tr>
 </tbody>
 </table>
@@ -924,21 +924,17 @@ Note
 <p><span class="math display">\[\text{Retriever@k} = \frac{N_\text{hit}}{N}\]</span></p>
 <p>where <span class="math inline">\(N_\text{hit}\)</span> is the number of activities for which the true code is among the <span class="math inline">\(k\)</span> retrieved candidates, and <span class="math inline">\(N\)</span> is the total number of activities.</p>
 <p>Using the <code>retriever_hit</code> column, compute the proportion of rows where the retriever returned the true code. Store the result in a variable called <code>retriever_accuracy</code>.</p>
-<div id="cell-retriever-accuracy-hint" class="cell" data-execution_count="13">
-<div id="retriever-accuracy-hint" class="cell-output cell-output-display" data-execution_count="13">
-<pre><code>retriever_hit
-Retriever found true code    26
-Retriever missed             24
-Name: count, dtype: int64</code></pre>
-</div>
-</div>
-<div id="retriever-accuracy" class="cell" data-execution_count="14">
+<div id="retriever-accuracy" class="cell" data-execution_count="13">
 <details class="code-fold">
 <summary>Click to see the answer</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>retriever_accuracy <span class="op">=</span> results[<span class="st">"retriever_hit"</span>].mean()</span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Retriever@</span><span class="sc">{</span>RETRIEVER_LIMIT<span class="sc">}</span><span class="ss"> accuracy: </span><span class="sc">{</span>retriever_accuracy<span class="sc">:.1%}</span><span class="ss">"</span>)</span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  → </span><span class="sc">{</span>results[<span class="st">'retriever_hit'</span>]<span class="sc">.</span><span class="bu">sum</span>()<span class="sc">}</span><span class="ss"> / </span><span class="sc">{</span><span class="bu">len</span>(results)<span class="sc">}</span><span class="ss"> correctly retrieved"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>retriever_accuracy <span class="op">=</span> results[<span class="st">"retriever_hit"</span>].mean()</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Retriever@</span><span class="sc">{</span>RETRIEVER_LIMIT<span class="sc">}</span><span class="ss"> accuracy: </span><span class="sc">{</span>retriever_accuracy<span class="sc">:.1%}</span><span class="ss">"</span>)</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  → </span><span class="sc">{</span>results[<span class="st">'retriever_hit'</span>]<span class="sc">.</span><span class="bu">sum</span>()<span class="sc">}</span><span class="ss"> / </span><span class="sc">{</span><span class="bu">len</span>(results)<span class="sc">}</span><span class="ss"> correctly retrieved"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Retriever@5 accuracy: 59.0%
+  → 59 / 100 correctly retrieved</code></pre>
+</div>
 </div>
 <hr>
 </section>
@@ -948,23 +944,19 @@ Name: count, dtype: int64</code></pre>
 <p><span class="math display">\[\text{LLM accuracy} = \frac{N_{\text{correct} \mid \text{hit}}}{N_\text{hit}}\]</span></p>
 <p>where <span class="math inline">\(N_{\text{correct} \mid \text{hit}}\)</span> is the number of correct predictions in the subset where the retriever succeeded.</p>
 <p>Filter <code>results</code> to keep only the rows where <code>retriever_hit</code> is <code>True</code>, then compute the proportion of <code>pipeline_correct</code> in that subset. Store the result in <code>llm_accuracy</code>.</p>
-<div id="cell-llm-accuracy-hint" class="cell" data-execution_count="15">
-<div id="llm-accuracy-hint" class="cell-output cell-output-display" data-execution_count="15">
-<pre><code>pipeline_correct
-LLM correct    24
-LLM wrong       2
-Name: count, dtype: int64</code></pre>
-</div>
-</div>
-<div id="llm-accuracy" class="cell" data-execution_count="16">
+<div id="llm-accuracy" class="cell" data-execution_count="14">
 <details class="code-fold">
 <summary>Click to see the answer</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>retriever_success <span class="op">=</span> results[results[<span class="st">"retriever_hit"</span>]]</span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>llm_accuracy <span class="op">=</span> retriever_success[<span class="st">"pipeline_correct"</span>].mean()</span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"LLM accuracy (conditional on retriever): </span><span class="sc">{</span>llm_accuracy<span class="sc">:.1%}</span><span class="ss">"</span>)</span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  → </span><span class="sc">{</span>retriever_success[<span class="st">'pipeline_correct'</span>]<span class="sc">.</span><span class="bu">sum</span>()<span class="sc">}</span><span class="ss"> / </span><span class="sc">{</span><span class="bu">len</span>(retriever_success)<span class="sc">}</span><span class="ss"> correctly coded by the LLM"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>retriever_success <span class="op">=</span> results[results[<span class="st">"retriever_hit"</span>]]</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>llm_accuracy <span class="op">=</span> retriever_success[<span class="st">"pipeline_correct"</span>].mean()</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"LLM accuracy (conditional on retriever): </span><span class="sc">{</span>llm_accuracy<span class="sc">:.1%}</span><span class="ss">"</span>)</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  → </span><span class="sc">{</span>retriever_success[<span class="st">'pipeline_correct'</span>]<span class="sc">.</span><span class="bu">sum</span>()<span class="sc">}</span><span class="ss"> / </span><span class="sc">{</span><span class="bu">len</span>(retriever_success)<span class="sc">}</span><span class="ss"> correctly coded by the LLM"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
+<div class="cell-output cell-output-stdout">
+<pre><code>LLM accuracy (conditional on retriever): 88.1%
+  → 52 / 59 correctly coded by the LLM</code></pre>
+</div>
 </div>
 <hr>
 </section>
@@ -973,31 +965,29 @@ Name: count, dtype: int64</code></pre>
 <p><strong>End-to-end pipeline accuracy</strong> is the proportion of activity labels that are correctly coded, regardless of which component failed.</p>
 <p><span class="math display">\[\text{Pipeline accuracy} = \text{Retriever@k} \times \text{LLM accuracy}\]</span></p>
 <p>Compute the overall accuracy from the <code>pipeline_correct</code> column and store it in <code>pipeline_accuracy</code>. Then verify empirically that the multiplicative relationship with <code>retriever_accuracy</code> and <code>llm_accuracy</code> holds.</p>
-<div id="cell-pipeline-accuracy-hint" class="cell" data-execution_count="17">
-<div id="pipeline-accuracy-hint" class="cell-output cell-output-display" data-execution_count="17">
-<pre><code>pipeline_correct
-Incorrectly coded    26
-Correctly coded      24
-Name: count, dtype: int64</code></pre>
-</div>
-</div>
-<div id="pipeline-accuracy" class="cell" data-execution_count="18">
+<div id="pipeline-accuracy" class="cell" data-execution_count="15">
 <details class="code-fold">
 <summary>Click to see the answer</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>pipeline_accuracy <span class="op">=</span> results[<span class="st">"pipeline_correct"</span>].mean()</span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Pipeline accuracy (end-to-end)          : </span><span class="sc">{</span>pipeline_accuracy<span class="sc">:.1%}</span><span class="ss">"</span>)</span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  → </span><span class="sc">{</span>results[<span class="st">'pipeline_correct'</span>]<span class="sc">.</span><span class="bu">sum</span>()<span class="sc">}</span><span class="ss"> / </span><span class="sc">{</span><span class="bu">len</span>(results)<span class="sc">}</span><span class="ss"> correctly coded"</span>)</span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Cross-check: Retriever@k × LLM = </span><span class="sc">{</span>retriever_accuracy<span class="sc">:.3f}</span><span class="ss"> × </span><span class="sc">{</span>llm_accuracy<span class="sc">:.3f}</span><span class="ss"> = </span><span class="sc">{</span>retriever_accuracy <span class="op">*</span> llm_accuracy<span class="sc">:.1%}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>pipeline_accuracy <span class="op">=</span> results[<span class="st">"pipeline_correct"</span>].mean()</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Pipeline accuracy (end-to-end)          : </span><span class="sc">{</span>pipeline_accuracy<span class="sc">:.1%}</span><span class="ss">"</span>)</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  → </span><span class="sc">{</span>results[<span class="st">'pipeline_correct'</span>]<span class="sc">.</span><span class="bu">sum</span>()<span class="sc">}</span><span class="ss"> / </span><span class="sc">{</span><span class="bu">len</span>(results)<span class="sc">}</span><span class="ss"> correctly coded"</span>)</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Cross-check: Retriever@k × LLM = </span><span class="sc">{</span>retriever_accuracy<span class="sc">:.3f}</span><span class="ss"> × </span><span class="sc">{</span>llm_accuracy<span class="sc">:.3f}</span><span class="ss"> = </span><span class="sc">{</span>retriever_accuracy <span class="op">*</span> llm_accuracy<span class="sc">:.1%}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Pipeline accuracy (end-to-end)          : 52.0%
+  → 52 / 100 correctly coded
+
+Cross-check: Retriever@k × LLM = 0.590 × 0.881 = 52.0%</code></pre>
+</div>
 </div>
 <hr>
 </section>
 <section id="question-4-summary-dashboard-and-error-decomposition" class="level3">
 <h3 class="anchored" data-anchor-id="question-4-summary-dashboard-and-error-decomposition">Question 4 — Summary dashboard and error decomposition</h3>
 <p>Count how many errors come from the retriever (cases where <code>retriever_hit</code> is <code>False</code>) and how many come from the LLM (cases where <code>retriever_hit</code> is <code>True</code> but <code>pipeline_correct</code> is <code>False</code>). Then produce a summary table of all metrics.</p>
-<div id="dashboard" class="cell" data-execution_count="19">
+<div id="dashboard" class="cell" data-execution_count="16">
 <details class="code-fold">
 <summary>Click to see the answer</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>n_total          <span class="op">=</span> <span class="bu">len</span>(results)</span>
@@ -1019,6 +1009,21 @@ Name: count, dtype: int64</code></pre>
 <span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  LLM errors                  : </span><span class="sc">{</span>n_llm_miss<span class="sc">:&gt;6}</span><span class="ss">  (</span><span class="sc">{</span>n_llm_miss<span class="op">/</span>n_total<span class="sc">:.1%}</span><span class="ss">)"</span>)</span>
 <span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"="</span> <span class="op">*</span> <span class="dv">52</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
+<div class="cell-output cell-output-stdout">
+<pre><code>====================================================
+      DASHBOARD — RAG PIPELINE NACE 2.1
+====================================================
+  Activities processed        :    100
+  Correctly coded             :     52  (52.0%)
+
+  Retriever@5 accuracy        :  59.0%
+  LLM accuracy (conditional)  :  88.1%
+  Pipeline accuracy           :  52.0%
+
+  Retriever errors            :     41  (41.0%)
+  LLM errors                  :      7  (7.0%)
+====================================================</code></pre>
+</div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -1047,7 +1052,7 @@ Note
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p><strong>Not all errors are equal.</strong> A wrong prediction can mean very different things. Some errors are completely off — predicting a manufacturing code for a services activity. Others are near-misses: the predicted code is a parent (e.g.&nbsp;<code>47</code> instead of <code>47.11</code>) or a sibling at the same level of the hierarchy. Near-misses may be acceptable in practice, depending on how the coded data will be used. A hierarchical accuracy metric — counting a prediction as correct if it matches up to a certain depth — would capture this nuance.</p>
+<p><strong>Not all errors are equal.</strong> A wrong prediction can mean very different things. Some errors are completely off, predicting a manufacturing code for a services activity. Others are near-misses: the predicted code is a parent (e.g.&nbsp;<code>47</code> instead of <code>47.11</code>) or a sibling at the same level of the hierarchy. Near-misses may be acceptable in practice, depending on how the coded data will be used. A hierarchical accuracy metric (counting a prediction as correct if it matches up to a certain depth) would capture this nuance.</p>
 </div>
 </div>
 <div class="callout callout-style-default callout-important callout-titled">
@@ -1063,70 +1068,85 @@ Important
 <p><strong>On the optimism of these results.</strong> The evaluation dataset is synthetic: activity labels were generated by an AI system at low temperature, producing clean and unambiguous descriptions that are easier to classify than real-world data. Actual labels are often shorter, noisier, or ambiguous. The accuracy figures obtained here are therefore optimistic and should not be taken as representative of production performance.</p>
 </div>
 </div>
+<hr>
 </section>
-<section id="confidence-score-analysis" class="level2">
-<h2 class="anchored" data-anchor-id="confidence-score-analysis">Confidence score analysis</h2>
-<p>The confidence score produced by the LLM can serve as a <strong>quality signal</strong> to filter unreliable predictions in production, at the cost of reduced coverage.</p>
+<section id="question-5-confidence-score-analysis" class="level3">
+<h3 class="anchored" data-anchor-id="question-5-confidence-score-analysis">Question 5 — Confidence score analysis</h3>
+<p>The LLM returns a <code>confidence</code> score with each prediction. In production, this score can serve as a <strong>quality signal</strong> to filter out unreliable predictions — at the cost of reduced coverage (fewer activities are automatically coded, the rest going to manual review).</p>
+<p>Produce <strong>two complementary plots</strong> to investigate this trade-off:</p>
+<ul>
+<li><ol type="a">
+<li>A <strong>boxplot of the confidence score, split by prediction correctness</strong> (correct vs.&nbsp;incorrect). Does the LLM assign higher confidence to predictions that turn out to be correct?</li>
+</ol></li>
+<li><ol start="2" type="a">
+<li>A <strong>precision–coverage curve</strong> as a function of the confidence threshold. For each threshold <code>t ∈ {0.1, 0.2, ..., 0.9}</code>, compute:</li>
+</ol>
+<ul>
+<li><strong>precision</strong>: accuracy on the subset of predictions with <code>confidence ≥ t</code></li>
+<li><strong>coverage</strong>: share of the dataset that survives the threshold</li>
+</ul></li>
+</ul>
+<p>What confidence threshold would you choose if you wanted at least 95% precision? What coverage do you get?</p>
 <details class="code-fold">
 <summary>Click to see the answer</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> plotnine <span class="im">import</span> (</span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>    ggplot, aes,</span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>    geom_boxplot, geom_line, geom_point,</span>
-<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>    scale_color_manual, scale_linetype_manual,</span>
-<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>    labs, theme_minimal,</span>
-<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a><span class="co"># --- Left: confidence distribution by correctness ---</span></span>
-<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>results_plot <span class="op">=</span> results.assign(</span>
-<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>    correctness<span class="op">=</span>results[<span class="st">"pipeline_correct"</span>].<span class="bu">map</span>({<span class="va">False</span>: <span class="st">"Incorrect"</span>, <span class="va">True</span>: <span class="st">"Correct"</span>})</span>
-<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a>p1 <span class="op">=</span> (</span>
-<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a>    ggplot(results_plot, aes(x<span class="op">=</span><span class="st">"correctness"</span>, y<span class="op">=</span><span class="st">"confidence"</span>))</span>
-<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> geom_boxplot()</span>
-<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> labs(</span>
-<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a>        title<span class="op">=</span><span class="st">"Confidence distribution by pipeline correctness"</span>,</span>
-<span id="cb25-19"><a href="#cb25-19" aria-hidden="true" tabindex="-1"></a>        x<span class="op">=</span><span class="st">"Prediction correct"</span>,</span>
-<span id="cb25-20"><a href="#cb25-20" aria-hidden="true" tabindex="-1"></a>        y<span class="op">=</span><span class="st">"Confidence score"</span>,</span>
-<span id="cb25-21"><a href="#cb25-21" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb25-22"><a href="#cb25-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> theme_minimal()</span>
-<span id="cb25-23"><a href="#cb25-23" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb25-24"><a href="#cb25-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-25"><a href="#cb25-25" aria-hidden="true" tabindex="-1"></a><span class="co"># --- Right: precision and coverage vs confidence threshold ---</span></span>
-<span id="cb25-26"><a href="#cb25-26" aria-hidden="true" tabindex="-1"></a>thresholds <span class="op">=</span> [i <span class="op">/</span> <span class="dv">10</span> <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, <span class="dv">10</span>)]</span>
-<span id="cb25-27"><a href="#cb25-27" aria-hidden="true" tabindex="-1"></a>rows <span class="op">=</span> []</span>
-<span id="cb25-28"><a href="#cb25-28" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> t <span class="kw">in</span> thresholds:</span>
-<span id="cb25-29"><a href="#cb25-29" aria-hidden="true" tabindex="-1"></a>    subset <span class="op">=</span> results[results[<span class="st">"confidence"</span>] <span class="op">&gt;=</span> t]</span>
-<span id="cb25-30"><a href="#cb25-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">len</span>(subset) <span class="op">&gt;</span> <span class="dv">0</span>:</span>
-<span id="cb25-31"><a href="#cb25-31" aria-hidden="true" tabindex="-1"></a>        rows <span class="op">+=</span> [</span>
-<span id="cb25-32"><a href="#cb25-32" aria-hidden="true" tabindex="-1"></a>            {<span class="st">"threshold"</span>: t, <span class="st">"metric"</span>: <span class="st">"Precision"</span>, <span class="st">"value"</span>: subset[<span class="st">"pipeline_correct"</span>].mean()},</span>
-<span id="cb25-33"><a href="#cb25-33" aria-hidden="true" tabindex="-1"></a>            {<span class="st">"threshold"</span>: t, <span class="st">"metric"</span>: <span class="st">"Coverage"</span>,  <span class="st">"value"</span>: <span class="bu">len</span>(subset) <span class="op">/</span> <span class="bu">len</span>(results)},</span>
-<span id="cb25-34"><a href="#cb25-34" aria-hidden="true" tabindex="-1"></a>        ]</span>
-<span id="cb25-35"><a href="#cb25-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-36"><a href="#cb25-36" aria-hidden="true" tabindex="-1"></a>df_thresh <span class="op">=</span> pd.DataFrame(rows)</span>
-<span id="cb25-37"><a href="#cb25-37" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-38"><a href="#cb25-38" aria-hidden="true" tabindex="-1"></a>p2 <span class="op">=</span> (</span>
-<span id="cb25-39"><a href="#cb25-39" aria-hidden="true" tabindex="-1"></a>    ggplot(df_thresh, aes(x<span class="op">=</span><span class="st">"threshold"</span>, y<span class="op">=</span><span class="st">"value"</span>, color<span class="op">=</span><span class="st">"metric"</span>, linetype<span class="op">=</span><span class="st">"metric"</span>))</span>
-<span id="cb25-40"><a href="#cb25-40" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> geom_line()</span>
-<span id="cb25-41"><a href="#cb25-41" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> geom_point()</span>
-<span id="cb25-42"><a href="#cb25-42" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> scale_color_manual(values<span class="op">=</span>{<span class="st">"Precision"</span>: <span class="st">"steelblue"</span>, <span class="st">"Coverage"</span>: <span class="st">"coral"</span>})</span>
-<span id="cb25-43"><a href="#cb25-43" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> scale_linetype_manual(values<span class="op">=</span>{<span class="st">"Precision"</span>: <span class="st">"solid"</span>, <span class="st">"Coverage"</span>: <span class="st">"dashed"</span>})</span>
-<span id="cb25-44"><a href="#cb25-44" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> labs(</span>
-<span id="cb25-45"><a href="#cb25-45" aria-hidden="true" tabindex="-1"></a>        title<span class="op">=</span><span class="st">"Precision and coverage vs. confidence threshold"</span>,</span>
-<span id="cb25-46"><a href="#cb25-46" aria-hidden="true" tabindex="-1"></a>        x<span class="op">=</span><span class="st">"Confidence threshold"</span>,</span>
-<span id="cb25-47"><a href="#cb25-47" aria-hidden="true" tabindex="-1"></a>        y<span class="op">=</span><span class="st">"Value"</span>,</span>
-<span id="cb25-48"><a href="#cb25-48" aria-hidden="true" tabindex="-1"></a>        color<span class="op">=</span><span class="st">""</span>,</span>
-<span id="cb25-49"><a href="#cb25-49" aria-hidden="true" tabindex="-1"></a>        linetype<span class="op">=</span><span class="st">""</span>,</span>
-<span id="cb25-50"><a href="#cb25-50" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb25-51"><a href="#cb25-51" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> theme_minimal()</span>
-<span id="cb25-52"><a href="#cb25-52" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb25-53"><a href="#cb25-53" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-54"><a href="#cb25-54" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> IPython.display <span class="im">import</span> display</span>
-<span id="cb25-55"><a href="#cb25-55" aria-hidden="true" tabindex="-1"></a>display(p1)</span>
-<span id="cb25-56"><a href="#cb25-56" aria-hidden="true" tabindex="-1"></a>display(p2)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> plotnine <span class="im">import</span> (</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>    ggplot, aes,</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    geom_boxplot, geom_line, geom_point,</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>    scale_color_manual, scale_linetype_manual,</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>    labs, theme_minimal,</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a><span class="co"># --- Left: confidence distribution by correctness ---</span></span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>results_plot <span class="op">=</span> results.assign(</span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>    correctness<span class="op">=</span>results[<span class="st">"pipeline_correct"</span>].<span class="bu">map</span>({<span class="va">False</span>: <span class="st">"Incorrect"</span>, <span class="va">True</span>: <span class="st">"Correct"</span>})</span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a>p1 <span class="op">=</span> (</span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a>    ggplot(results_plot, aes(x<span class="op">=</span><span class="st">"correctness"</span>, y<span class="op">=</span><span class="st">"confidence"</span>))</span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> geom_boxplot()</span>
+<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> labs(</span>
+<span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a>        title<span class="op">=</span><span class="st">"Confidence distribution by pipeline correctness"</span>,</span>
+<span id="cb26-19"><a href="#cb26-19" aria-hidden="true" tabindex="-1"></a>        x<span class="op">=</span><span class="st">"Prediction correct"</span>,</span>
+<span id="cb26-20"><a href="#cb26-20" aria-hidden="true" tabindex="-1"></a>        y<span class="op">=</span><span class="st">"Confidence score"</span>,</span>
+<span id="cb26-21"><a href="#cb26-21" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb26-22"><a href="#cb26-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> theme_minimal()</span>
+<span id="cb26-23"><a href="#cb26-23" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb26-24"><a href="#cb26-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-25"><a href="#cb26-25" aria-hidden="true" tabindex="-1"></a><span class="co"># --- Right: precision and coverage vs confidence threshold ---</span></span>
+<span id="cb26-26"><a href="#cb26-26" aria-hidden="true" tabindex="-1"></a>thresholds <span class="op">=</span> [i <span class="op">/</span> <span class="dv">10</span> <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, <span class="dv">10</span>)]</span>
+<span id="cb26-27"><a href="#cb26-27" aria-hidden="true" tabindex="-1"></a>rows <span class="op">=</span> []</span>
+<span id="cb26-28"><a href="#cb26-28" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> t <span class="kw">in</span> thresholds:</span>
+<span id="cb26-29"><a href="#cb26-29" aria-hidden="true" tabindex="-1"></a>    subset <span class="op">=</span> results[results[<span class="st">"confidence"</span>] <span class="op">&gt;=</span> t]</span>
+<span id="cb26-30"><a href="#cb26-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">len</span>(subset) <span class="op">&gt;</span> <span class="dv">0</span>:</span>
+<span id="cb26-31"><a href="#cb26-31" aria-hidden="true" tabindex="-1"></a>        rows <span class="op">+=</span> [</span>
+<span id="cb26-32"><a href="#cb26-32" aria-hidden="true" tabindex="-1"></a>            {<span class="st">"threshold"</span>: t, <span class="st">"metric"</span>: <span class="st">"Precision"</span>, <span class="st">"value"</span>: subset[<span class="st">"pipeline_correct"</span>].mean()},</span>
+<span id="cb26-33"><a href="#cb26-33" aria-hidden="true" tabindex="-1"></a>            {<span class="st">"threshold"</span>: t, <span class="st">"metric"</span>: <span class="st">"Coverage"</span>,  <span class="st">"value"</span>: <span class="bu">len</span>(subset) <span class="op">/</span> <span class="bu">len</span>(results)},</span>
+<span id="cb26-34"><a href="#cb26-34" aria-hidden="true" tabindex="-1"></a>        ]</span>
+<span id="cb26-35"><a href="#cb26-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-36"><a href="#cb26-36" aria-hidden="true" tabindex="-1"></a>df_thresh <span class="op">=</span> pd.DataFrame(rows)</span>
+<span id="cb26-37"><a href="#cb26-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-38"><a href="#cb26-38" aria-hidden="true" tabindex="-1"></a>p2 <span class="op">=</span> (</span>
+<span id="cb26-39"><a href="#cb26-39" aria-hidden="true" tabindex="-1"></a>    ggplot(df_thresh, aes(x<span class="op">=</span><span class="st">"threshold"</span>, y<span class="op">=</span><span class="st">"value"</span>, color<span class="op">=</span><span class="st">"metric"</span>, linetype<span class="op">=</span><span class="st">"metric"</span>))</span>
+<span id="cb26-40"><a href="#cb26-40" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> geom_line()</span>
+<span id="cb26-41"><a href="#cb26-41" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> geom_point()</span>
+<span id="cb26-42"><a href="#cb26-42" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> scale_color_manual(values<span class="op">=</span>{<span class="st">"Precision"</span>: <span class="st">"steelblue"</span>, <span class="st">"Coverage"</span>: <span class="st">"coral"</span>})</span>
+<span id="cb26-43"><a href="#cb26-43" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> scale_linetype_manual(values<span class="op">=</span>{<span class="st">"Precision"</span>: <span class="st">"solid"</span>, <span class="st">"Coverage"</span>: <span class="st">"dashed"</span>})</span>
+<span id="cb26-44"><a href="#cb26-44" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> labs(</span>
+<span id="cb26-45"><a href="#cb26-45" aria-hidden="true" tabindex="-1"></a>        title<span class="op">=</span><span class="st">"Precision and coverage vs. confidence threshold"</span>,</span>
+<span id="cb26-46"><a href="#cb26-46" aria-hidden="true" tabindex="-1"></a>        x<span class="op">=</span><span class="st">"Confidence threshold"</span>,</span>
+<span id="cb26-47"><a href="#cb26-47" aria-hidden="true" tabindex="-1"></a>        y<span class="op">=</span><span class="st">"Value"</span>,</span>
+<span id="cb26-48"><a href="#cb26-48" aria-hidden="true" tabindex="-1"></a>        color<span class="op">=</span><span class="st">""</span>,</span>
+<span id="cb26-49"><a href="#cb26-49" aria-hidden="true" tabindex="-1"></a>        linetype<span class="op">=</span><span class="st">""</span>,</span>
+<span id="cb26-50"><a href="#cb26-50" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb26-51"><a href="#cb26-51" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> theme_minimal()</span>
+<span id="cb26-52"><a href="#cb26-52" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb26-53"><a href="#cb26-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-54"><a href="#cb26-54" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> IPython.display <span class="im">import</span> display</span>
+<span id="cb26-55"><a href="#cb26-55" aria-hidden="true" tabindex="-1"></a>display(p1)</span>
+<span id="cb26-56"><a href="#cb26-56" aria-hidden="true" tabindex="-1"></a>display(p2)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
-<div id="confidence-analysis" class="cell quarto-layout-panel" data-layout-ncol="2" data-execution_count="20">
+<div id="confidence-analysis" class="cell quarto-layout-panel" data-layout-ncol="2" data-execution_count="17">
 <div class="quarto-layout-row">
 <div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
 <p><a href="2-rag-generation_files/figure-html/confidence-analysis-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3"><img src="2-rag-generation_files/figure-html/confidence-analysis-output-1.png" id="confidence-analysis-1" class="img-fluid" width="672"></a></p>

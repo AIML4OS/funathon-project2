@@ -170,23 +170,21 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#what-you-will-learn" id="toc-what-you-will-learn" class="nav-link active" data-scroll-target="#what-you-will-learn">What you will learn</a></li>
-  <li><a href="#introduction" id="toc-introduction" class="nav-link" data-scroll-target="#introduction">Introduction</a></li>
-  <li><a href="#structure-of-the-project" id="toc-structure-of-the-project" class="nav-link" data-scroll-target="#structure-of-the-project"><span class="header-section-number">1</span> Structure of the project</a></li>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#two-independent-parts" id="toc-two-independent-parts" class="nav-link" data-scroll-target="#two-independent-parts"><span class="header-section-number">1</span> Two independent parts</a>
+  <ul class="collapse">
+  <li><a href="#part-1-supervised-learning-supervised-learning" id="toc-part-1-supervised-learning-supervised-learning" class="nav-link" data-scroll-target="#part-1-supervised-learning-supervised-learning"><span class="header-section-number">1.1</span> Part 1: Supervised learning (Supervised learning)</a></li>
+  <li><a href="#part-2-rag-pipeline-3-chapters" id="toc-part-2-rag-pipeline-3-chapters" class="nav-link" data-scroll-target="#part-2-rag-pipeline-3-chapters"><span class="header-section-number">1.2</span> Part 2: RAG pipeline (3 chapters)</a></li>
+  </ul></li>
   <li><a href="#initialization-of-the-project" id="toc-initialization-of-the-project" class="nav-link" data-scroll-target="#initialization-of-the-project"><span class="header-section-number">2</span> Initialization of the project</a>
   <ul class="collapse">
-  <li><a href="#fork-this-repository-in-your-own-github" id="toc-fork-this-repository-in-your-own-github" class="nav-link" data-scroll-target="#fork-this-repository-in-your-own-github"><span class="header-section-number">2.1</span> Fork this repository in your own GitHub</a></li>
-  <li><a href="#setup-the-environment-quick-start" id="toc-setup-the-environment-quick-start" class="nav-link" data-scroll-target="#setup-the-environment-quick-start"><span class="header-section-number">2.2</span> Setup the environment (quick start)</a>
-  <ul class="collapse">
-  <li><a href="#select-the-python-interpreter-vs-code" id="toc-select-the-python-interpreter-vs-code" class="nav-link" data-scroll-target="#select-the-python-interpreter-vs-code"><span class="header-section-number">2.2.1</span> Select the Python interpreter (VS Code)</a></li>
+  <li><a href="#fork-this-repository" id="toc-fork-this-repository" class="nav-link" data-scroll-target="#fork-this-repository"><span class="header-section-number">2.1</span> Fork this repository</a></li>
+  <li><a href="#open-a-vs-code-service-on-sspcloud" id="toc-open-a-vs-code-service-on-sspcloud" class="nav-link" data-scroll-target="#open-a-vs-code-service-on-sspcloud"><span class="header-section-number">2.2</span> Open a VS Code service on SSPCloud</a></li>
+  <li><a href="#clone-your-fork-inside-the-service" id="toc-clone-your-fork-inside-the-service" class="nav-link" data-scroll-target="#clone-your-fork-inside-the-service"><span class="header-section-number">2.3</span> Clone your fork inside the service</a></li>
+  <li><a href="#install-dependencies-with-uv-sync" id="toc-install-dependencies-with-uv-sync" class="nav-link" data-scroll-target="#install-dependencies-with-uv-sync"><span class="header-section-number">2.4</span> Install dependencies with <code>uv sync</code></a></li>
+  <li><a href="#select-the-python-interpreter-vs-code" id="toc-select-the-python-interpreter-vs-code" class="nav-link" data-scroll-target="#select-the-python-interpreter-vs-code"><span class="header-section-number">2.5</span> Select the Python interpreter (VS Code)</a></li>
+  <li><a href="#run-code-interactively-optional-but-recommended" id="toc-run-code-interactively-optional-but-recommended" class="nav-link" data-scroll-target="#run-code-interactively-optional-but-recommended"><span class="header-section-number">2.6</span> Run code interactively (optional but recommended)</a></li>
   </ul></li>
-  <li><a href="#quick-start-run-this-notebook" id="toc-quick-start-run-this-notebook" class="nav-link" data-scroll-target="#quick-start-run-this-notebook"><span class="header-section-number">2.3</span> Quick start: run this notebook</a></li>
-  <li><a href="#troubleshooting-common-issues" id="toc-troubleshooting-common-issues" class="nav-link" data-scroll-target="#troubleshooting-common-issues"><span class="header-section-number">2.4</span> Troubleshooting (common issues)</a></li>
-  </ul></li>
-  <li><a href="#todo" id="toc-todo" class="nav-link" data-scroll-target="#todo"><span class="header-section-number">3</span> TODO:</a></li>
-  <li><a href="#you-can-use-the-internal-s3-endpoint-if-you-have-access-uncomment-the-line-below" id="toc-you-can-use-the-internal-s3-endpoint-if-you-have-access-uncomment-the-line-below" class="nav-link" data-scroll-target="#you-can-use-the-internal-s3-endpoint-if-you-have-access-uncomment-the-line-below"><span class="header-section-number">4</span> You can use the internal S3 endpoint if you have access (uncomment the line below):</a></li>
-  <li><a href="#query_definition-fselect-from-read_parquets3projet-formationdiffusionfunathon2026project2generation_none_temp08.parquet" id="toc-query_definition-fselect-from-read_parquets3projet-formationdiffusionfunathon2026project2generation_none_temp08.parquet" class="nav-link" data-scroll-target="#query_definition-fselect-from-read_parquets3projet-formationdiffusionfunathon2026project2generation_none_temp08.parquet"><span class="header-section-number">5</span> query_definition = f”SELECT * FROM read_parquet(‘s3://projet-formation/diffusion/funathon/2026/project2/generation_None_temp08.parquet’)”</a></li>
-  <li><a href="#using-the-public-https-endpoint-is-more-likely-to-work-in-typical-environments" id="toc-using-the-public-https-endpoint-is-more-likely-to-work-in-typical-environments" class="nav-link" data-scroll-target="#using-the-public-https-endpoint-is-more-likely-to-work-in-typical-environments"><span class="header-section-number">6</span> Using the public HTTPS endpoint is more likely to work in typical environments:</a></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.com/AIML4OS/funathon-project2/edit/main/index.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/AIML4OS/funathon-project2/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
     </div>
@@ -251,133 +249,127 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <tbody>
 <tr class="odd">
 <td><span class="level-button level-beginner">Beginner</span></td>
-<td>Run the notebook start-to-finish, load the dataset, and connect to Qdrant.</td>
+<td>Follow the tutorial and understand provided answers.</td>
 </tr>
 <tr class="even">
 <td><span class="level-button level-intermediate">Intermediate</span></td>
-<td>Modify the data query, train a simple classifier, and log results with MLflow.</td>
+<td>Try to complete the exercises without checking the answers.</td>
 </tr>
 <tr class="odd">
 <td><span class="level-button level-expert">Expert</span></td>
-<td>Extend the pipeline with a new embedding/model, deploy a serving endpoint, or integrate additional data sources.</td>
+<td>Enhance the pipeline and improve results: better models, richer embeddings, prompt tuning, etc.</td>
 </tr>
 </tbody>
 </table>
-<section id="what-you-will-learn" class="level1 unnumbered">
-<h1 class="unnumbered">What you will learn</h1>
-<p>By following this tutorial, you will learn how to:</p>
-<ul>
-<li>Set up a Python environment and install dependencies for the project.</li>
-<li>Download and inspect a labeled dataset for NACE classification.</li>
-<li>Connect to a Qdrant vector database from Python.</li>
-<li>Explore the solution scripts in the <code>solutions/</code> folder.</li>
-<li>Understand how model training and logging are organized for reproducible experiments.</li>
-</ul>
-</section>
 <section id="introduction" class="level1 unnumbered">
 <h1 class="unnumbered">Introduction</h1>
-<p>This project demonstrates an end-to-end pipeline for automatically classifying text into NACE codes. It covers:</p>
+<p>This <strong>Funathon</strong> project (a non-competitive hackathon) is about building automatic coding tools that map free-text activity labels (such as <em>“Installation and repair of residential air conditioning systems”</em>) to the corresponding code in the <strong>NACE 2.1</strong> nomenclature, the European statistical classification of economic activities.</p>
+<p>We explore two approaches to the same task. Both take a textual activity label as input and produce a NACE code, but they rely on very different paradigms, with different strengths and weaknesses.</p>
+</section>
+<section id="two-independent-parts" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Two independent parts</h1>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Important
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The two parts below are independent. You can tackle either one, or both, in any order, depending on your time and interests. Each part is self-contained and starts from the same initialization (see below).</p>
+</div>
+</div>
+<section id="part-1-supervised-learning-supervised-learning" class="level2" data-number="1.1">
+<h2 data-number="1.1" class="anchored" data-anchor-id="part-1-supervised-learning-supervised-learning"><span class="header-section-number">1.1</span> Part 1: Supervised learning (<a href="./1-ttc.html">Supervised learning</a>)</h2>
+<p>Fine-tune a deep learning text classifier on a labelled dataset of <em>(activity label, NACE code)</em> pairs, using a pretrained transformer as backbone. You will learn how to:</p>
 <ul>
-<li>generating and loading labeled data,</li>
-<li>preprocessing and model training,</li>
-<li>logging experiments with MLflow,</li>
-<li>and preparing deployment-ready artifacts.</li>
+<li>Load and preprocess a labelled dataset</li>
+<li>Fine-tune a pretrained model on the multi-class classification task</li>
+<li>Evaluate the resulting classifier</li>
+<li>Log experiments and model artifacts with <strong>MLflow</strong> for reproducibility</li>
 </ul>
 </section>
-<section id="structure-of-the-project" class="level1" data-number="1">
-<h1 data-number="1"><span class="header-section-number">1</span> Structure of the project</h1>
-<p>This project has five main steps (listed in the banner at the top of the page):</p>
+<section id="part-2-rag-pipeline-3-chapters" class="level2" data-number="1.2">
+<h2 data-number="1.2" class="anchored" data-anchor-id="part-2-rag-pipeline-3-chapters"><span class="header-section-number">1.2</span> Part 2: RAG pipeline (3 chapters)</h2>
+<p>Build a <strong>retrieval-augmented generation</strong> (RAG) system that combines a vector database of official NACE definitions with a Large Language Model:</p>
 <ul>
-<li>data generation;</li>
-<li>data preprocessing;</li>
-<li>model fitting and evaluation;</li>
-<li>model logging with MLflow;</li>
-<li>deployment.</li>
+<li><a href="./2-rag-intro.html">RAG - Introduction</a>: concepts, components, and overview of the pipeline</li>
+<li><a href="./2-rag-vdb.html">RAG - Create the vector DB</a>: embed NACE definitions and store them in Qdrant</li>
+<li><a href="./2-rag-generation.html">RAG - Generate predictions</a>: query the LLM with retrieved context to classify new activities, then evaluate the pipeline</li>
 </ul>
+</section>
 </section>
 <section id="initialization-of-the-project" class="level1" data-number="2">
 <h1 data-number="2"><span class="header-section-number">2</span> Initialization of the project</h1>
-<section id="fork-this-repository-in-your-own-github" class="level2" data-number="2.1">
-<h2 data-number="2.1" class="anchored" data-anchor-id="fork-this-repository-in-your-own-github"><span class="header-section-number">2.1</span> Fork this repository in your own GitHub</h2>
-<p>On the GitHub page of the project <a href="https://github.com/AIML4OS/funathon-project2">here</a>, click <strong>Fork</strong> to create a copy in your own GitHub account.</p>
-<p>Then clone your fork locally using the command below (replace <code>&lt;YOUR_GITHUB_NAME&gt;</code> with your username):</p>
+<p>Before diving into either part, follow these steps to set up your environment. The same setup applies to both parts.</p>
+<p>If you need more details for setups, do not hesitate to visite <a href="https://aiml4os.github.io/funathon-project1/">project 1 introduction page</a>.</p>
+<section id="fork-this-repository" class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="fork-this-repository"><span class="header-section-number">2.1</span> Fork this repository</h2>
+<p>On the <a href="https://github.com/AIML4OS/funathon-project2">project’s GitHub page</a>, click <strong>Fork</strong> (top-right corner) to create a copy of the repository under your own GitHub account. Working on a fork lets you commit your experiments and your progress without affecting the original repository.</p>
+</section>
+<section id="open-a-vs-code-service-on-sspcloud" class="level2" data-number="2.2">
+<h2 data-number="2.2" class="anchored" data-anchor-id="open-a-vs-code-service-on-sspcloud"><span class="header-section-number">2.2</span> Open a VS Code service on SSPCloud</h2>
+<p>Go to the <a href="https://datalab.sspcloud.fr/catalog">SSPCloud catalogue</a> and launch a <strong>VS Code Python</strong> service. This gives you a browser-based development environment with direct access to the platform’s resources (S3 storage, Qdrant vector database, LLM Lab, MLflow). No local installation required.</p>
+</section>
+<section id="clone-your-fork-inside-the-service" class="level2" data-number="2.3">
+<h2 data-number="2.3" class="anchored" data-anchor-id="clone-your-fork-inside-the-service"><span class="header-section-number">2.3</span> Clone your fork inside the service</h2>
+<p>Open a terminal in the VS Code service and clone <strong>your fork</strong> (replace <code>&lt;YOUR_GITHUB_NAME&gt;</code> with your GitHub username):</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/<span class="op">&lt;</span>YOUR_GITHUB_NAME<span class="op">&gt;</span>/funathon-project2.git</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> funathon-project2</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
-<section id="setup-the-environment-quick-start" class="level2" data-number="2.2">
-<h2 data-number="2.2" class="anchored" data-anchor-id="setup-the-environment-quick-start"><span class="header-section-number">2.2</span> Setup the environment (quick start)</h2>
-<p>Run the following commands in a terminal inside the cloned repo:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># install/update dependencies</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> sync</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># activate the project virtual environment</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="bu">source</span> .venv/bin/activate</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<blockquote class="blockquote">
-<p>✅ If you prefer to keep your shell clean, you can also prefix commands with <code>uv run</code> (e.g.&nbsp;<code>uv run python script.py</code>).</p>
-</blockquote>
-<section id="select-the-python-interpreter-vs-code" class="level3" data-number="2.2.1">
-<h3 data-number="2.2.1" class="anchored" data-anchor-id="select-the-python-interpreter-vs-code"><span class="header-section-number">2.2.1</span> Select the Python interpreter (VS Code)</h3>
-<p>If you are using VS Code, make sure the workspace uses the virtual environment you just created:</p>
-<ol type="1">
-<li>Open the Command Palette (<code>Ctrl+Shift+P</code> or <code>Cmd+Shift+P</code>).</li>
-<li>Run <code>&gt;Python: Select Interpreter</code>.</li>
-<li>Choose <strong>Enter interpreter path</strong> and point to:</li>
-</ol>
-<p><code>/home/onyxia/work/funathon-project2/.venv/bin/python3.31</code></p>
-</section>
-</section>
-<section id="quick-start-run-this-notebook" class="level2" data-number="2.3">
-<h2 data-number="2.3" class="anchored" data-anchor-id="quick-start-run-this-notebook"><span class="header-section-number">2.3</span> Quick start: run this notebook</h2>
-<ol type="1">
-<li>Open <code>index.qmd</code> in VS Code or Quarto.</li>
-<li>Run the first code cell (the data download cell) and wait for it to finish.</li>
-<li>Confirm you see a small table output (from <code>annotations.head()</code>).</li>
-</ol>
-</section>
-<section id="troubleshooting-common-issues" class="level2" data-number="2.4">
-<h2 data-number="2.4" class="anchored" data-anchor-id="troubleshooting-common-issues"><span class="header-section-number">2.4</span> Troubleshooting (common issues)</h2>
+<section id="install-dependencies-with-uv-sync" class="level2" data-number="2.4">
+<h2 data-number="2.4" class="anchored" data-anchor-id="install-dependencies-with-uv-sync"><span class="header-section-number">2.4</span> Install dependencies with <code>uv sync</code></h2>
+<p>The project uses <a href="https://docs.astral.sh/uv/">uv</a> for dependency management. From the repository root, run:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> sync</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>This will:</p>
 <ul>
-<li>If <code>uv sync</code> fails, re-run it and check the error message; a missing system package or network issue is most common.</li>
-<li>If the Qdrant connection fails, ensure your <code>.env</code> file contains the correct values for <code>QDRANT_URL</code>, <code>QDRANT_API_KEY</code>, and <code>QDRANT_API_PORT</code>.</li>
-<li>If a terminal command fails, verify you are in the repository root (<code>pwd</code> should end with <code>funathon-project2</code>).</li>
+<li>create a virtual environment in <code>.venv/</code> at the root of the project,</li>
+<li>install every package pinned in <code>uv.lock</code>.</li>
 </ul>
+<p>Re-run <code>uv sync</code> any time <code>pyproject.toml</code> or <code>uv.lock</code> change (for instance, after pulling updates from upstream).</p>
 </section>
+<section id="select-the-python-interpreter-vs-code" class="level2" data-number="2.5">
+<h2 data-number="2.5" class="anchored" data-anchor-id="select-the-python-interpreter-vs-code"><span class="header-section-number">2.5</span> Select the Python interpreter (VS Code)</h2>
+<p>If you want to run code <strong>interactively</strong> in VS Code, instead of going through <code>quarto preview</code>, point VS Code to the virtual environment you just created:</p>
+<ol type="1">
+<li><p>Open the Command Palette (<code>Ctrl+Shift+P</code> or <code>Cmd+Shift+P</code>).</p></li>
+<li><p>Run <code>&gt;Python: Select Interpreter</code>.</p></li>
+<li><p>Choose <strong>Enter interpreter path</strong> and provide:</p>
+<pre><code>/home/onyxia/work/funathon-project2/.venv/bin/python</code></pre></li>
+</ol>
 </section>
-<section id="todo" class="level1" data-number="3">
-<h1 data-number="3"><span class="header-section-number">3</span> TODO:</h1>
-<p>In the following cell we retrieve a small labeled dataset (text + NACE labels) from a remote parquet file using DuckDB.</p>
-<p>con.execute(“INSTALL httpfs;”) con.execute(“LOAD httpfs;”)</p>
+<section id="run-code-interactively-optional-but-recommended" class="level2" data-number="2.6">
+<h2 data-number="2.6" class="anchored" data-anchor-id="run-code-interactively-optional-but-recommended"><span class="header-section-number">2.6</span> Run code interactively (optional but recommended)</h2>
+<p>For exploration, debugging, or quick experiments, the easiest workflow is to create your own scripts at the <strong>root of the repository</strong>. A useful pattern in VS Code is to use <strong>cell markers</strong> (<code># %%</code>) inside a regular <code>.py</code> file: each <code># %%</code> block becomes individually runnable, with outputs and plots rendered inline in the editor. It works like a notebook, but with the simplicity of a plain Python file.</p>
+<p>Example (<code>scratch.py</code> at the root of the repo):</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># %%</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">"data/sample.csv"</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>df.head()</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="co"># %%</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"nace_code"</span>].value_counts().head(<span class="dv">10</span>).plot(kind<span class="op">=</span><span class="st">"bar"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>A small “Run Cell” lens appears above each <code># %%</code> marker. Click it to execute that block. This is convenient for iterating on small pieces of code or testing specific functions from the project.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Files created at the root of the repository for your own exploration (such as <code>scratch.py</code> or <code>notes.md</code>) can be safely ignored from git by adding them to your local <code>.gitignore</code>, or to <code>.git/info/exclude</code> if you don’t want to commit the ignore rule.</p>
+</div>
+</div>
+<p>You’re now ready to start. Head to <a href="./1-ttc.html">Part 1</a> or <a href="./2-rag-intro.html">Part 2</a>.</p>
+
+
 </section>
-<section id="you-can-use-the-internal-s3-endpoint-if-you-have-access-uncomment-the-line-below" class="level1" data-number="4">
-<h1 data-number="4"><span class="header-section-number">4</span> You can use the internal S3 endpoint if you have access (uncomment the line below):</h1>
-</section>
-<section id="query_definition-fselect-from-read_parquets3projet-formationdiffusionfunathon2026project2generation_none_temp08.parquet" class="level1" data-number="5">
-<h1 data-number="5"><span class="header-section-number">5</span> query_definition = f”SELECT * FROM read_parquet(‘s3://projet-formation/diffusion/funathon/2026/project2/generation_None_temp08.parquet’)”</h1>
-</section>
-<section id="using-the-public-https-endpoint-is-more-likely-to-work-in-typical-environments" class="level1" data-number="6">
-<h1 data-number="6"><span class="header-section-number">6</span> Using the public HTTPS endpoint is more likely to work in typical environments:</h1>
-<p>query_definition = f”SELECT * FROM read_parquet(‘https://minio.lab.sspcloud.fr/projet-formation/diffusion/funathon/2026/project2/generation_None_temp08.parquet’)” annotations = con.sql(query_definition).to_df() annotations.head()</p>
-<pre><code>
-It is also useful to verify the Qdrant connection before running vector indexing or retrieval steps.
-
-::: {#qdrant-client .cell execution_count=1}
-``` {.python .cell-code}
-import os
-from dotenv import load_dotenv
-from qdrant_client import QdrantClient
-
-load_dotenv()
-
-client_qdrant = QdrantClient(
-    url=os.environ["QDRANT_URL"],
-    api_key=os.environ["QDRANT_API_KEY"],
-    port=os.environ["QDRANT_API_PORT"]
-)
-
-collections = client_qdrant.get_collections()</code></pre>
-<p>:::</p>
-
-
 </section>
 
 </main> <!-- /main -->
