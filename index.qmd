@@ -4,23 +4,24 @@ lang: en-US
 author:
 - name: Théo FERRY
   email: theo.ferry@insee.fr
-  affiliations: 
+  affiliations:
       - name: "[Insee](https://www.insee.fr/fr/accueil)"
 - name: Julien PRAMIL
   email: julien.pramil@insee.fr
-  affiliations: 
+  affiliations:
       - name: "[Insee](https://www.insee.fr/fr/accueil)"
 - name: Meilame TAYEBJEE
   email: meilame.tayebjee@insee.fr
-  affiliations: 
+  affiliations:
       - name: "[Insee](https://www.insee.fr/fr/accueil)"
 format:
   html:
     number-sections: true
 editor: visual
-editor_options: 
+editor_options:
   chunk_output_type: console
 ---
+
 
 ```{=html}
 <table>
@@ -33,134 +34,120 @@ editor_options:
   <tbody>
     <tr>
       <td><span class="level-button level-beginner">Beginner</span></td>
-      <td>Run the notebook start-to-finish, load the dataset, and connect to Qdrant.</td>
+      <td>Follow the tutorial and understand provided answers.</td>
     </tr>
     <tr>
       <td><span class="level-button level-intermediate">Intermediate</span></td>
-      <td>Modify the data query, train a simple classifier, and log results with MLflow.</td>
+      <td>Try to complete the exercises without checking the answers.</td>
     </tr>
     <tr>
       <td><span class="level-button level-expert">Expert</span></td>
-      <td>Extend the pipeline with a new embedding/model, deploy a serving endpoint, or integrate additional data sources.</td>
+      <td>Enhance the pipeline and improve results: better models, richer embeddings, prompt tuning, etc.</td>
     </tr>
   </tbody>
 </table>
 ```
 
-# What you will learn {.unnumbered}
-
-By following this tutorial, you will learn how to:
-
-- Set up a Python environment and install dependencies for the project.
-- Download and inspect a labeled dataset for NACE classification.
-- Connect to a Qdrant vector database from Python.
-- Explore the solution scripts in the `solutions/` folder.
-- Understand how model training and logging are organized for reproducible experiments.
-
 # Introduction {.unnumbered}
 
-This project demonstrates an end-to-end pipeline for automatically classifying text into NACE codes. It covers:
+This **Funathon** project (a non-competitive hackathon) is about building automatic coding tools that map free-text activity labels (such as *"Installation and repair of residential air conditioning systems"*) to the corresponding code in the **NACE 2.1** nomenclature, the European statistical classification of economic activities.
 
-- generating and loading labeled data,
-- preprocessing and model training,
-- logging experiments with MLflow,
-- and preparing deployment-ready artifacts.
+We explore two approaches to the same task. Both take a textual activity label as input and produce a NACE code, but they rely on very different paradigms, with different strengths and weaknesses.
 
-# Structure of the project
+# Two independent parts
 
-This project has five main steps (listed in the banner at the top of the page):
+::: {.callout-important}
+The two parts below are independent. You can tackle either one, or both, in any order, depending on your time and interests. Each part is self-contained and starts from the same initialization (see below).
+:::
 
-- data generation;
-- data preprocessing;
-- model fitting and evaluation;
-- model logging with MLflow;
-- deployment.
+## Part 1: Supervised learning ([Supervised learning](1-ttc.qmd))
+
+Fine-tune a deep learning text classifier on a labelled dataset of *(activity label, NACE code)* pairs, using a pretrained transformer as backbone. You will learn how to:
+
+- Load and preprocess a labelled dataset
+- Fine-tune a pretrained model on the multi-class classification task
+- Evaluate the resulting classifier
+- Log experiments and model artifacts with **MLflow** for reproducibility
+
+## Part 2: RAG pipeline (3 chapters)
+
+Build a **retrieval-augmented generation** (RAG) system that combines a vector database of official NACE definitions with a Large Language Model:
+
+- [RAG - Introduction](2-rag-intro.qmd): concepts, components, and overview of the pipeline
+- [RAG - Create the vector DB](2-rag-vdb.qmd): embed NACE definitions and store them in Qdrant
+- [RAG - Generate predictions](2-rag-generation.qmd): query the LLM with retrieved context to classify new activities, then evaluate the pipeline
 
 # Initialization of the project
 
-## Fork this repository in your own GitHub
+Before diving into either part, follow these steps to set up your environment. The same setup applies to both parts.
 
-On the GitHub page of the project [here](https://github.com/AIML4OS/funathon-project2), click **Fork** to create a copy in your own GitHub account.
+If you need more details for setups, do not hesitate to visite [project 1 introduction page](https://aiml4os.github.io/funathon-project1/).
 
-Then clone your fork locally using the command below (replace `<YOUR_GITHUB_NAME>` with your username):
+## Fork this repository
+
+On the [project's GitHub page](https://github.com/AIML4OS/funathon-project2), click **Fork** (top-right corner) to create a copy of the repository under your own GitHub account. Working on a fork lets you commit your experiments and your progress without affecting the original repository.
+
+## Open a VS Code service on SSPCloud
+
+Go to the [SSPCloud catalogue](https://datalab.sspcloud.fr/catalog) and launch a **VS Code Python** service. This gives you a browser-based development environment with direct access to the platform's resources (S3 storage, Qdrant vector database, LLM Lab, MLflow). No local installation required.
+
+## Clone your fork inside the service
+
+Open a terminal in the VS Code service and clone **your fork** (replace `<YOUR_GITHUB_NAME>` with your GitHub username):
 
 ```bash
 git clone https://github.com/<YOUR_GITHUB_NAME>/funathon-project2.git
 cd funathon-project2
 ```
 
-## Setup the environment (quick start)
+## Install dependencies with `uv sync`
 
-Run the following commands in a terminal inside the cloned repo:
+The project uses [uv](https://docs.astral.sh/uv/) for dependency management. From the repository root, run:
 
 ```bash
-# install/update dependencies
 uv sync
-
-# activate the project virtual environment
-source .venv/bin/activate
 ```
 
-> ✅ If you prefer to keep your shell clean, you can also prefix commands with `uv run` (e.g. `uv run python script.py`).
+This will:
 
-### Select the Python interpreter (VS Code)
+- create a virtual environment in `.venv/` at the root of the project,
+- install every package pinned in `uv.lock`.
 
-If you are using VS Code, make sure the workspace uses the virtual environment you just created:
+Re-run `uv sync` any time `pyproject.toml` or `uv.lock` change (for instance, after pulling updates from upstream).
+
+## Select the Python interpreter (VS Code)
+
+If you want to run code **interactively** in VS Code, instead of going through `quarto preview`, point VS Code to the virtual environment you just created:
 
 1. Open the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`).
 2. Run `>Python: Select Interpreter`.
-3. Choose **Enter interpreter path** and point to:
+3. Choose **Enter interpreter path** and provide:
 
-`/home/onyxia/work/funathon-project2/.venv/bin/python3.31`
+   ```
+   /home/onyxia/work/funathon-project2/.venv/bin/python
+   ```
 
-## Quick start: run this notebook
+## Run code interactively (optional but recommended)
 
-1. Open `index.qmd` in VS Code or Quarto.
-2. Run the first code cell (the data download cell) and wait for it to finish.
-3. Confirm you see a small table output (from `annotations.head()`).
+For exploration, debugging, or quick experiments, the easiest workflow is to create your own scripts at the **root of the repository**. A useful pattern in VS Code is to use **cell markers** (`# %%`) inside a regular `.py` file: each `# %%` block becomes individually runnable, with outputs and plots rendered inline in the editor. It works like a notebook, but with the simplicity of a plain Python file.
 
-## Troubleshooting (common issues)
+Example (`scratch.py` at the root of the repo):
 
-- If `uv sync` fails, re-run it and check the error message; a missing system package or network issue is most common.
-- If the Qdrant connection fails, ensure your `.env` file contains the correct values for `QDRANT_URL`, `QDRANT_API_KEY`, and `QDRANT_API_PORT`.
-- If a terminal command fails, verify you are in the repository root (`pwd` should end with `funathon-project2`).
+```python
+# %%
+import pandas as pd
 
+df = pd.read_csv("data/sample.csv")
+df.head()
 
-
-# TODO:
-
-In the following cell we retrieve a small labeled dataset (text + NACE labels) from a remote parquet file using DuckDB.
-
-
-
-con.execute("INSTALL httpfs;")
-con.execute("LOAD httpfs;")
-
-# You can use the internal S3 endpoint if you have access (uncomment the line below):
-# query_definition = f"SELECT * FROM read_parquet('s3://projet-formation/diffusion/funathon/2026/project2/generation_None_temp08.parquet')"
-
-# Using the public HTTPS endpoint is more likely to work in typical environments:
-query_definition = f"SELECT * FROM read_parquet('https://minio.lab.sspcloud.fr/projet-formation/diffusion/funathon/2026/project2/generation_None_temp08.parquet')"
-annotations = con.sql(query_definition).to_df()
-annotations.head()
+# %%
+df["nace_code"].value_counts().head(10).plot(kind="bar")
 ```
 
-It is also useful to verify the Qdrant connection before running vector indexing or retrieval steps.
+A small "Run Cell" lens appears above each `# %%` marker. Click it to execute that block. This is convenient for iterating on small pieces of code or testing specific functions from the project.
 
-```{python}
-#| label: qdrant-client
+::: {.callout-tip}
+Files created at the root of the repository for your own exploration (such as `scratch.py` or `notes.md`) can be safely ignored from git by adding them to your local `.gitignore`, or to `.git/info/exclude` if you don't want to commit the ignore rule.
+:::
 
-import os
-from dotenv import load_dotenv
-from qdrant_client import QdrantClient
-
-load_dotenv()
-
-client_qdrant = QdrantClient(
-    url=os.environ["QDRANT_URL"],
-    api_key=os.environ["QDRANT_API_KEY"],
-    port=os.environ["QDRANT_API_PORT"]
-)
-
-collections = client_qdrant.get_collections()
-```
+You're now ready to start. Head to [Part 1](1-ttc.qmd) or [Part 2](2-rag-intro.qmd).

@@ -109,7 +109,7 @@ RETRIEVER_LIMIT = 5    # Number of candidates returned by the vector search
 TEMPERATURE = 0.1      # Low temperature → more deterministic, reproducible outputs
 
 # Evaluation
-SAMPLE_SIZE = 50       # Number of activities to evaluate (increase for more robust results)
+SAMPLE_SIZE = 100       # Number of activities to evaluate (increase for more robust results)
 ```
 
 ::: {.callout-note}
@@ -458,7 +458,7 @@ def run_rag_pipeline(activity: str) -> dict:
 Apply `run_rag_pipeline` to every row of the `annotations` list. Store the results in a DataFrame called `results`.
 
 ::: {.callout-note}
-The default sample size is `SAMPLE_SIZE = 50`, which keeps inference fast and avoids consuming too many resources. Each call to the pipeline involves two API requests (embedding + generation), so larger samples will take proportionally longer. Feel free to increase `SAMPLE_SIZE` in the global parameters to get more robust evaluation metrics.
+The default sample size is `SAMPLE_SIZE = 100`, which keeps inference fast and avoids consuming too many resources. Each call to the pipeline involves two API requests (embedding + generation), so larger samples will take proportionally longer. Feel free to increase `SAMPLE_SIZE` in the global parameters to get more robust evaluation metrics.
 :::
 
 ```{python}
@@ -584,18 +584,12 @@ where $N_\text{hit}$ is the number of activities for which the true code is amon
 
 Using the `retriever_hit` column, compute the proportion of rows where the retriever returned the true code. Store the result in a variable called `retriever_accuracy`.
 
-```{python}
-#| label: retriever-accuracy-hint
-#| echo: false
-#| output: true
-
-results["retriever_hit"].value_counts().rename({True: "Retriever found true code", False: "Retriever missed"})
-```
 
 ```{python}
 #| label: retriever-accuracy
 #| code-fold: true
 #| code-summary: Click to see the answer
+#| output: true
 
 retriever_accuracy = results["retriever_hit"].mean()
 print(f"Retriever@{RETRIEVER_LIMIT} accuracy: {retriever_accuracy:.1%}")
@@ -614,18 +608,13 @@ where $N_{\text{correct} \mid \text{hit}}$ is the number of correct predictions 
 
 Filter `results` to keep only the rows where `retriever_hit` is `True`, then compute the proportion of `pipeline_correct` in that subset. Store the result in `llm_accuracy`.
 
-```{python}
-#| label: llm-accuracy-hint
-#| echo: false
-#| output: true
-
-results[results["retriever_hit"]]["pipeline_correct"].value_counts().rename({True: "LLM correct", False: "LLM wrong"})
-```
 
 ```{python}
 #| label: llm-accuracy
 #| code-fold: true
 #| code-summary: Click to see the answer
+#| output: true
+
 
 retriever_success = results[results["retriever_hit"]]
 llm_accuracy = retriever_success["pipeline_correct"].mean()
@@ -644,18 +633,12 @@ $$\text{Pipeline accuracy} = \text{Retriever@k} \times \text{LLM accuracy}$$
 
 Compute the overall accuracy from the `pipeline_correct` column and store it in `pipeline_accuracy`. Then verify empirically that the multiplicative relationship with `retriever_accuracy` and `llm_accuracy` holds.
 
-```{python}
-#| label: pipeline-accuracy-hint
-#| echo: false
-#| output: true
-
-results["pipeline_correct"].value_counts().rename({True: "Correctly coded", False: "Incorrectly coded"})
-```
 
 ```{python}
 #| label: pipeline-accuracy
 #| code-fold: true
 #| code-summary: Click to see the answer
+#| output: true
 
 pipeline_accuracy = results["pipeline_correct"].mean()
 
@@ -675,6 +658,7 @@ Count how many errors come from the retriever (cases where `retriever_hit` is `F
 #| label: dashboard
 #| code-fold: true
 #| code-summary: Click to see the answer
+#| output: true
 
 n_total          = len(results)
 n_retriever_miss = (~results["retriever_hit"]).sum()
@@ -704,16 +688,27 @@ print("=" * 52)
 :::
 
 ::: {.callout-note}
-**Not all errors are equal.** A wrong prediction can mean very different things. Some errors are completely off — predicting a manufacturing code for a services activity. Others are near-misses: the predicted code is a parent (e.g. `47` instead of `47.11`) or a sibling at the same level of the hierarchy. Near-misses may be acceptable in practice, depending on how the coded data will be used. A hierarchical accuracy metric — counting a prediction as correct if it matches up to a certain depth — would capture this nuance.
+**Not all errors are equal.** A wrong prediction can mean very different things. Some errors are completely off, predicting a manufacturing code for a services activity. Others are near-misses: the predicted code is a parent (e.g. `47` instead of `47.11`) or a sibling at the same level of the hierarchy. Near-misses may be acceptable in practice, depending on how the coded data will be used. A hierarchical accuracy metric (counting a prediction as correct if it matches up to a certain depth) would capture this nuance.
 :::
 
 ::: {.callout-important}
 **On the optimism of these results.** The evaluation dataset is synthetic: activity labels were generated by an AI system at low temperature, producing clean and unambiguous descriptions that are easier to classify than real-world data. Actual labels are often shorter, noisier, or ambiguous. The accuracy figures obtained here are therefore optimistic and should not be taken as representative of production performance.
 :::
 
-## Confidence score analysis
+---
 
-The confidence score produced by the LLM can serve as a **quality signal** to filter unreliable predictions in production, at the cost of reduced coverage.
+### Question 5 — Confidence score analysis
+
+The LLM returns a `confidence` score with each prediction. In production, this score can serve as a **quality signal** to filter out unreliable predictions — at the cost of reduced coverage (fewer activities are automatically coded, the rest going to manual review).
+
+Produce **two complementary plots** to investigate this trade-off:
+
+- a) A **boxplot of the confidence score, split by prediction correctness** (correct vs. incorrect). Does the LLM assign higher confidence to predictions that turn out to be correct?
+- b) A **precision–coverage curve** as a function of the confidence threshold. For each threshold `t ∈ {0.1, 0.2, ..., 0.9}`, compute:
+    - **precision**: accuracy on the subset of predictions with `confidence ≥ t`
+    - **coverage**: share of the dataset that survives the threshold
+
+What confidence threshold would you choose if you wanted at least 95% precision? What coverage do you get?
 
 ```{python}
 #| label: confidence-analysis
